@@ -6,6 +6,9 @@
 #include <vector>
 #include <unordered_map>
 #include <bitboard.h>
+#include <cassert>
+#include <algorithm>
+#include <valarray>
 
 /* Example, Rook on e4:
  *
@@ -40,6 +43,7 @@ public:
     static void init(){
         generateBishopBlockers();
         generateRookBlockers();
+        bruteforceMagics();
     }
 
 
@@ -47,9 +51,8 @@ private:
     /***
      * Simple blocker generation using 2D array converted into bitboard -> it will be called only once for a program run.
      */
+    static inline std::vector<std::pair<int, int>> rookDirections = {{0,1},{1,0},{-1,0},{0,-1}};
     static void generateRookBlockers(){
-        std::vector<std::pair<int, int>> rookDirections = {{0,1},{1,0},{-1,0},{0,-1}};
-
         Bitboard tmp;
         for(int rank = 0; rank < 8; rank++ ){
             for(int file = 0; file < 8; file++){
@@ -65,8 +68,8 @@ private:
     /***
      * Simple blocker generation using 2D array converted into bitboard -> it will be called only once for a program run.
      */
+    static inline std::vector<std::pair<int, int>> bishopDirections = {{1,1}, {-1,-1}, {1,-1}, {-1,1}};
     static void generateBishopBlockers(){
-        std::vector<std::pair<int, int>> bishopDirections = {{1,1}, {-1,-1}, {1,-1}, {-1,1}};
         Bitboard tmp;
         for(int rank = 0; rank < 8; rank++ ){
             for(int file = 0; file < 8; file++){
@@ -74,7 +77,6 @@ private:
                 int square = rank * 8 + file;
                 auto moves = generateMovesForDirections(bishopDirections, rank, file);
                 for(auto move: moves) tmp.setNthBit(move.first*8 + move.second);
-                tmp.printBoard();
                 BISHOP_BLOCKERS[square] = tmp.value;
             }
         }
@@ -98,9 +100,67 @@ private:
         return result;
     }
 
+    /***
+     * Generate all subsets of *_BLOCKERS (possible combinations of blocks).
+     * Than for this generate all possible moves bitboard.
+    */
+    static std::vector<uint64_t> generateAllBlockerCombinations(uint64_t bitboard){
+        std::vector<uint64_t> result; // No blockers.
+        std::vector<int> bits;
 
+        int move = 0;
+        while(move <= 63){
+            if((bitboard >> move) & 1) bits.push_back(move);
+            move++;
+        }
+
+        int n = bits.size();
+        int numCombinations = std::pow(2, n);
+
+
+        for (int i = 0; i < numCombinations; ++i) {
+            Bitboard b;
+            for (int j = 0; j < n; ++j) {
+                if (i & (1 << j)) {
+                    b.setNthBit(bits[j]);
+                }
+            }
+            result.push_back(b.value);
+        }
+
+        assert(result.size() == ((1 << bits.size())));
+        return result;
+    }
+
+    static uint64_t generateSliderMoves(int file, int rank, uint64_t bitboard, const std::vector<std::pair<int, int>> movement){
+        Bitboard b; b.value = bitboard;
+
+        auto board2d = b.generateBoardFromBitboard();
+        std::vector<int> bits;
+
+        for(const auto& direction : movement) {
+            int rankTmp = rank + direction.second;
+            int fileTmp = file + direction.first;
+            while(rankTmp >= 0 && rankTmp <= 7 && fileTmp >= 0 && fileTmp <= 7){
+                int square = rankTmp * 8 + fileTmp;
+                bits.push_back(square);
+                if(board2d[rankTmp][fileTmp]) break;
+                rankTmp += direction.second;
+                fileTmp += direction.first;
+            }
+        }
+
+        Bitboard resultB;
+        for(auto item: bits) resultB.setNthBit(item);
+
+        return resultB.value;
+    }
+
+    /***
+     * For each square, for each blocker combination -> move board.
+     * find magic number and shifts for each square, minimum maximal key for squares.
+     */
     static void bruteforceMagics(){
-        // TODO.
     }
 };
 

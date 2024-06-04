@@ -11,3 +11,14 @@ void Bitboard::setNthBit(int pos){
 void Bitboard::popNthBit(int pos) {
     if(getNthBit(pos)) value ^= (1ULL << pos);
 }
+
+std::array<std::array<bool, 8>, 8> Bitboard::generateBoardFromBitboard(){
+    std::array<std::array<bool, 8>, 8> result;
+    for(int rank = 0; rank < 8; rank++ ) {
+        for (int file = 0; file < 8; file++) {
+            int square = rank * 8 + file;
+            result[rank][file] = getNthBit(square);
+        }
+    }
+    return result;
+}

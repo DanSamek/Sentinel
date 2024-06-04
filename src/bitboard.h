@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <array>
 
 /***
  * Bitboard struct - only for "easier" work with bitboards.
@@ -40,7 +41,7 @@ struct Bitboard {
         WHITE
     };
 
-    uint64_t value;
+    uint64_t value = 0ULL;
     pieceType type;
     pieceColor color;
 
@@ -76,6 +77,11 @@ struct Bitboard {
      * @note: position is +1 -> as in array or number first bit = 0
      */
     void popNthBit(int pos);
+
+    /***
+     * Function, that converts bitboard to 2d board
+     */
+    std::array<std::array<bool, 8>, 8> generateBoardFromBitboard();
 };
 
 
