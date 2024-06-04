@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <bitboard.h>
-
+#include <magics.h>
 
 /*
     TODO LIST
@@ -37,24 +37,18 @@ struct Movegen {
     static inline uint64_t AND_BITBOARDS[64];
 
     /***
-     * Initialization of all movegen tables - magic bitboards, knight bitboards, pawn bitboards.
+     * Initialization of all movegen tables - magic bitboards, knight bitboards, king bitboards.
      */
     static void initTables(){
+        magics::init();
         initAndBitsForKKP();
         initKnightMoves();
         initKingMoves();
-        initPawnMoves();
+        // initPawnMoves(); easier in runtime
     }
 
     static void generateMoves(const std::vector<Bitboard>& currentBitboards, const std::vector<Bitboard>& enemyBitboards){
         // TODO.
-    }
-
-    /***
-     * ULL lookup tables for all squares for pawns.
-     */
-    static void initPawnMoves(){
-
     }
 
     /***

@@ -3,10 +3,16 @@ project(Sentinel)
 
 set(CMAKE_CXX_STANDARD 20)
 
+set(CMAKE_CXX_FLAGS "-Wall -pedantic")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+
 include_directories(src)
 
 add_executable(Sentinel
         src/main.cpp
         src/bitboard.cpp
         src/movegen.h
-        src/movegen.cpp)
+        src/movegen.cpp
+        src/magics.h
+        src/magics.cpp)
