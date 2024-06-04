@@ -7,7 +7,7 @@ int main(){
     b.value = 14951849539607157325ull;
     b.printBoard();
     magics::init();
-    auto moves = magics::getSlidingMoves(b.value, 34, true);
+    auto moves = magics::getSlidingMoves(b.value, 5, true);
 
     b.value = moves;
     b.printBoard();

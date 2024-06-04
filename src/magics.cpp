@@ -1,5 +1,8 @@
 #include "magics.h"
 #include "set"
+int getSquare(int rank, int file){
+    return rank * 8 + file;
+}
 
 void magics::init() {
     generateBishopBlockers();
@@ -17,7 +20,7 @@ uint64_t magics::getSlidingMoves(uint64_t blockers, int square, bool rook){
 }
 
 std::vector<uint64_t> magics::getMagics(int file, int rank, uint64_t* sliderBlockers, bool rook, uint64_t magic){
-    int square = rank * 8 + file;
+    int square = getSquare(rank, file);
     auto allBlockers = generateAllBlockerCombinations(sliderBlockers[square]);
     auto table = tryBuildTable(sliderBlockers[square], file, rank, rook, magic, allBlockers);
     return table;
@@ -35,7 +38,7 @@ uint64_t magics::magic_index(uint64_t currentBlockers, uint64_t tableBlocker, in
 void magics::initMagics() {
     for(int rank = 0; rank < 8; rank++ ) {
         for (int file = 0; file < 8; file++) {
-            int square = rank * 8 + file;
+            int square = getSquare(rank, file);
             ROOK_TABLE[square] = getMagics(file, rank, ROOK_BLOCKERS, true, ROOK_MAGICS[square]);
             assert(ROOK_TABLE[square].size() != 0);
         }
@@ -43,7 +46,7 @@ void magics::initMagics() {
 
     for(int rank = 0; rank < 8; rank++ ) {
         for (int file = 0; file < 8; file++) {
-            int square = rank * 8 + file;
+            int square = getSquare(rank, file);
             BISHOP_TABLE[square] = getMagics(file, rank, BISHOP_BLOCKERS, false, BISHOP_MAGICS[square]);
             assert(BISHOP_TABLE[square].size() != 0);
         }
@@ -54,7 +57,7 @@ void magics::generateRookBlockers(){
     Bitboard tmp;
     for(int rank = 0; rank < 8; rank++ ){
         for(int file = 0; file < 8; file++){
-            int square = rank * 8 + file;
+            int square = getSquare(rank, file);
             tmp.value = 0ULL;
             auto moves = generateMovesForDirections(rookDirections, rank, file);
             for(auto move: moves) tmp.setNthBit(move.first*8 + move.second);
@@ -69,7 +72,7 @@ void magics::generateBishopBlockers(){
     for(int rank = 0; rank < 8; rank++ ){
         for(int file = 0; file < 8; file++){
             tmp.value = 0ULL;
-            int square = rank * 8 + file;
+            int square = getSquare(rank, file);
             auto moves = generateMovesForDirections(bishopDirections, rank, file);
             for(auto move: moves) tmp.setNthBit(move.first*8 + move.second);
             BISHOP_BLOCKERS[square] = tmp.value;
@@ -149,7 +152,7 @@ uint64_t magics::generateSliderMoves(int file, int rank, uint64_t bitboard, cons
 
 
 std::pair<std::vector<uint64_t>, uint64_t> magics::findMagics(int file, int rank, uint64_t* sliderBlockers, bool rook){
-    int square = rank * 8 + file;
+    int square = getSquare(rank, file);
     auto allBlockers = generateAllBlockerCombinations(sliderBlockers[square]);
     while(true){
         auto magic = randUInt64() & randUInt64() & randUInt64();
@@ -162,7 +165,7 @@ std::pair<std::vector<uint64_t>, uint64_t> magics::findMagics(int file, int rank
 
 std::vector<uint64_t> magics::tryBuildTable(uint64_t blockerBitBoard, int file, int rank, bool rook,
                                            uint64_t magic, const std::vector<uint64_t>& allBlockers){
-    int indexBits = rook ?  ROOK_MAGICS_SHIFT[rank * 8 + file] : BISHOP_MAGICS_SHIFT[rank * 8 + file];
+    int indexBits = rook ?  ROOK_MAGICS_SHIFT[getSquare(rank, file)] : BISHOP_MAGICS_SHIFT[getSquare(rank, file)];
     std::vector<uint64_t> table(1 << indexBits, 0);
     for(auto& blocker: allBlockers){
         auto moves = generateSliderMoves(file, rank, blocker, rook ? rookDirections : bishopDirections);
@@ -188,7 +191,7 @@ void magics::generateMagics(){
     for(int rank = 0; rank < 8; rank++ ){
         for(int file = 0; file < 8; file++) {
             auto result = findMagics(file, rank, ROOK_BLOCKERS, true);
-            RESULT[rank * 8 + file] = result.second;
+            RESULT[getSquare(rank, file)] = result.second;
         }
     }
     for(auto item: RESULT){
@@ -202,7 +205,7 @@ void magics::generateMagics(){
     for(int rank = 0; rank < 8; rank++ ){
         for(int file = 0; file < 8; file++) {
             auto result = findMagics(file, rank, BISHOP_BLOCKERS, false);
-            RESULT[rank * 8 + file] = result.second;
+            RESULT[getSquare(rank, file)] = result.second;
         }
     }
     for(auto item: RESULT){
@@ -210,3 +213,4 @@ void magics::generateMagics(){
     }
     std::cout << std::endl;
 }
+
