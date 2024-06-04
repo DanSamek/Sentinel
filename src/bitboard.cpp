@@ -1,6 +1,6 @@
 #include "bitboard.h"
 
-bool Bitboard::getNthBit(int pos) {
+bool Bitboard::getNthBit(int pos) const{
     return value & (1ULL << pos);
 }
 
@@ -21,4 +21,14 @@ std::array<std::array<bool, 8>, 8> Bitboard::generateBoardFromBitboard(){
         }
     }
     return result;
+}
+
+Bitboard Bitboard::operator&(const Bitboard &bitboard) {
+    auto val = value & bitboard.value;
+    return Bitboard(val, type, color);
+}
+
+Bitboard Bitboard::operator|(const Bitboard &bitboard) {
+    auto val = value | bitboard.value;
+    return Bitboard(val, type, color);
 }

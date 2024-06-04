@@ -63,7 +63,7 @@ struct Bitboard {
      * @param pos position
      * @note: position is +1 -> as in array or number first bit = 0
      */
-    bool getNthBit(int pos);
+    bool getNthBit(int pos) const;
 
     /***
      * @param pos position
@@ -82,6 +82,10 @@ struct Bitboard {
      * Function, that converts bitboard to 2d board
      */
     std::array<std::array<bool, 8>, 8> generateBoardFromBitboard();
+
+
+    Bitboard operator & (const Bitboard& bitboard);
+    Bitboard operator | (const Bitboard& bitboard);
 };
 
 

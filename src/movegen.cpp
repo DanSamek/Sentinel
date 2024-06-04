@@ -64,3 +64,45 @@ void Movegen::initAndBitsForKKP(){
         }
     }
 }
+
+void Movegen::generatePawnMoves(Bitboard b, const Bitboard &current, const Bitboard &enemy, const Bitboard& all) {
+    static int PAWN_PUSH[] = {8,16};
+    static int PAWN_ATTACKS[] = {7,9};
+    // vector<moves> pawnMoves;
+    int bit = -1;
+    while(bit <= 63){
+        bit++;
+        if(!b.getNthBit(bit)) continue;
+        auto rank = bit / 8;
+        auto sign = b.color == Bitboard::BLACK ? +1 : -1;
+
+        Bitboard moves; // will be removed, now only for printing
+
+        Bitboard tmpBitboard; tmpBitboard.value = AND_BITBOARDS[bit]; // Rays for valid move.
+
+        for(auto item: PAWN_PUSH){
+            auto tmpBit = bit + (sign*item);
+            // is oor, or taken or not in range.
+            if(tmpBit < 0 || tmpBit > 63 || all.getNthBit(tmpBit) || !tmpBitboard.getNthBit(tmpBit)){
+                break;
+            }
+            // pawnMoves.push_back(bit, tmpBit, MOVE);
+            // pawnMoves.push_back(bit, tmpBit, PROMOTION);  tmpBit/8 == 0 || tmpBit/8 == 7
+            moves.setNthBit(tmpBit);
+            if(rank != 1 && rank != 6 ) break;
+        }
+
+        for(auto item: PAWN_ATTACKS){
+            auto tmpBit = bit + (sign*item);
+            // is oor, or taken or not in range.
+            if(tmpBit < 0 || tmpBit > 63 || current.getNthBit(tmpBit) || !enemy.getNthBit(tmpBit) || !tmpBitboard.getNthBit(tmpBit)) continue;
+            // pawnMoves.push_back(bit, tmpBit, ATTACK);
+            // pawnMoves.push_back(bit, tmpBit, PROMOTION);  tmpBit/8 == 0 || tmpBit/8 == 7
+            moves.setNthBit(tmpBit);
+        }
+
+        moves.printBoard();
+
+        // EN-passant. TODO! WHEN Board.h implemented.
+    }
+}

@@ -7,21 +7,23 @@
 
 /*
     TODO LIST
-        -> pawn moves
-            -> en passant
-            -> normal moves
         -> king moves - DONE
         -> knight moves - DONE
-        -> slider moves (use magic bitboards)
-            -> bishop
-            -> rook
-                -> queen
+        -> slider moves (use magic bitboards) DONE
+            -> bishop DONE     TODO make "request to magic bitboard imp + collect moves"
+            -> rook  DONE      TODO make "request to magic bitboard imp + collect moves"
+                -> queen DONE  TODO make "request to magic bitboard imp + collect moves"
 
-        After simple moves
-        -> checks
+        -> pawn moves
+            -> normal moves DONE
+            -> en passant WHEN BOARD IMPLEMENTED
+
         -> pins
-        -> castling
+        -> checks
         -> king safe moves
+        -> castling
+        -> PERFT tests
+
 */
 struct Movegen {
     // Color, square
@@ -40,21 +42,29 @@ struct Movegen {
      * Initialization of all movegen tables - magic bitboards, knight bitboards, king bitboards.
      */
     static void initTables(){
-        magics::init();
+        Magics::init();
         initAndBitsForKKP();
         initKnightMoves();
         initKingMoves();
-        // initPawnMoves(); easier in runtime
     }
 
-    static void generateMoves(const std::vector<Bitboard>& currentBitboards, const std::vector<Bitboard>& enemyBitboards){
-        // TODO.
+    static void generateMoves(){
+        // TODO
     }
+
+    /***
+     * Pawn move generation
+     * Attacks + normal moves
+     * EN passant TODO.
+     * @param b pawn bitboard
+     * @param occupancy entire occupancy
+     */
+    static void generatePawnMoves(Bitboard b, const Bitboard &current, const Bitboard &enemy, const Bitboard& all);
 
     /***
      * ULL lookup tables for all king moves.
      */
-    static inline  int KING_OFFSETS[8] = {1,7,8,9,-1,-7,-8,-9};
+    static inline int KING_OFFSETS[8] = {1,7,8,9,-1,-7,-8,-9};
     static void initKingMoves();
 
     /***
