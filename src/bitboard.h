@@ -45,7 +45,7 @@ struct Bitboard {
     pieceType type;
     pieceColor color;
 
-    Bitboard(const uint64_t& _value, const pieceType& _type, const pieceColor& _pieceColor) : value(_value), type(_type), color(_pieceColor) {};
+    Bitboard(uint64_t _value, pieceType _type, pieceColor _pieceColor) : value(_value), type(_type), color(_pieceColor) {};
     Bitboard() = default;
     // Debug only.
     void printBoard(){

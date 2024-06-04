@@ -49,7 +49,15 @@ struct Movegen {
     }
 
     static void generateMoves(){
-        // TODO
+        // check if king is checked.
+            // do something.
+
+        // get pinned pieces.
+            // -> absolute - cant move
+            // -> relative - can move in pinned direction.
+                // -> pawns, rooks, bishops, queens.
+
+        // bitboards iteration.
     }
 
     /***

@@ -15,4 +15,6 @@ add_executable(Sentinel
         src/movegen.h
         src/movegen.cpp
         src/magics.h
-        src/magics.cpp)
+        src/magics.cpp
+        src/board.h
+        src/board.cpp)
