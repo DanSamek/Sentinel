@@ -66,7 +66,6 @@ void magics::generateRookBlockers(){
     }
 }
 
-
 void magics::generateBishopBlockers(){
     Bitboard tmp;
     for(int rank = 0; rank < 8; rank++ ){
