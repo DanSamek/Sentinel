@@ -1,7 +1,6 @@
 #ifndef SENTINEL_MAGICS_H
 #define SENTINEL_MAGICS_H
 
-
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
@@ -128,7 +127,7 @@ private:
     /***
      * Generates all possible moves for current board from file, rank.
      */
-    static uint64_t generateSliderMoves(int file, int rank, uint64_t bitboard, const std::vector<std::pair<int, int>> movement);
+    static uint64_t generateSliderMoves(int file, int rank, const uint64_t& bitboard, const std::vector<std::pair<int, int>>& movement);
 
     /***
      * Bruteforce search for magic numbers.

@@ -78,7 +78,7 @@ void Movegen::generatePawnMoves(Bitboard b, const Bitboard &current, const Bitbo
 
         Bitboard moves; // will be removed, now only for printing
 
-        Bitboard tmpBitboard; tmpBitboard.value = AND_BITBOARDS[bit]; // Rays for valid move.
+        Bitboard tmpBitboard(AND_BITBOARDS[bit]);// Rays for valid move.
 
         for(auto item: PAWN_PUSH){
             auto tmpBit = bit + (sign*item);

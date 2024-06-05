@@ -7,6 +7,7 @@ set(CMAKE_CXX_FLAGS "-Wall -pedantic")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
+include_directories(src/tests)
 include_directories(src)
 
 add_executable(Sentinel
@@ -17,4 +18,6 @@ add_executable(Sentinel
         src/magics.h
         src/magics.cpp
         src/board.h
-        src/board.cpp)
+        src/board.cpp
+        src/tests/boardTests.cpp
+)

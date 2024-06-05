@@ -32,3 +32,8 @@ Bitboard Bitboard::operator|(const Bitboard &bitboard) {
     auto val = value | bitboard.value;
     return Bitboard(val, type, color);
 }
+
+Bitboard Bitboard::operator^(const Bitboard &bitboard) {
+    auto val = value ^ bitboard.value;
+    return Bitboard(val, type, color);
+}

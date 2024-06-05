@@ -86,7 +86,7 @@ std::vector<std::pair<int, int>> Magics::generateMovesForDirections(const std::v
         int fileTmp = file + direction.first;
         bool added = false;
         while(rankTmp >= 0 && rankTmp <= 7 && fileTmp >= 0 && fileTmp <= 7){
-            result.push_back({rankTmp, fileTmp});
+            result.emplace_back(rankTmp, fileTmp);
             rankTmp += direction.second;
             fileTmp += direction.first;
             added = true;
@@ -107,13 +107,13 @@ std::vector<uint64_t> Magics::generateAllBlockerCombinations(uint64_t bitboard){
         move++;
     }
 
-    int n = bits.size();
+    size_t n = bits.size();
     int numCombinations = std::pow(2, n);
 
 
     for (int i = 0; i < numCombinations; ++i) {
         Bitboard b;
-        for (int j = 0; j < n; ++j) {
+        for (size_t j = 0; j < n; ++j) {
             if (i & (1 << j)) {
                 b.setNthBit(bits[j]);
             }
@@ -125,8 +125,8 @@ std::vector<uint64_t> Magics::generateAllBlockerCombinations(uint64_t bitboard){
     return result;
 }
 
-uint64_t Magics::generateSliderMoves(int file, int rank, uint64_t bitboard, const std::vector<std::pair<int, int>> movement){
-    Bitboard b; b.value = bitboard;
+uint64_t Magics::generateSliderMoves(int file, int rank, const uint64_t& bitboard, const std::vector<std::pair<int, int>>& movement){
+    Bitboard b(bitboard);
 
     auto board2d = b.generateBoardFromBitboard();
     std::vector<int> bits;
@@ -156,17 +156,16 @@ std::pair<std::vector<uint64_t>, uint64_t> Magics::findMagics(int file, int rank
     while(true){
         auto magic = randUInt64() & randUInt64() & randUInt64();
         auto table = tryBuildTable(sliderBlockers[square], file, rank, rook, magic, allBlockers);
-        if(table.size() != 0){
+        if(!table.empty()){
             return {table, magic};
         }
     }
 }
 
-std::vector<uint64_t> Magics::tryBuildTable(uint64_t blockerBitBoard, int file, int rank, bool rook,
-                                            uint64_t magic, const std::vector<uint64_t>& allBlockers){
+std::vector<uint64_t> Magics::tryBuildTable(uint64_t blockerBitBoard, int file, int rank, bool rook, uint64_t magic, const std::vector<uint64_t>& allBlockers){
     int indexBits = rook ?  ROOK_MAGICS_SHIFT[getSquare(rank, file)] : BISHOP_MAGICS_SHIFT[getSquare(rank, file)];
     std::vector<uint64_t> table(1 << indexBits, 0);
-    for(auto& blocker: allBlockers){
+    for(const auto& blocker: allBlockers){
         auto moves = generateSliderMoves(file, rank, blocker, rook ? rookDirections : bishopDirections);
         auto index = magic_index(blocker, blockerBitBoard, indexBits, magic);
         auto item = table[index];
