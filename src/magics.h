@@ -38,6 +38,15 @@ public:
      * @return
      */
     static uint64_t getSlidingMoves(uint64_t blockers, int square, bool rook);
+
+    /***
+     * Gets xrays for pins?
+     * @param blockers current blockers
+     * @param square square of piece
+     * @param rook if its rook
+     * @return
+     */
+    static uint64_t getXRay(uint64_t blockers, int square, bool rook);
 private:
 
     // Blocked masks for each square.

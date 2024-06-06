@@ -12,7 +12,7 @@ void Movegen::initKnightMoves() {
                 if(pos < 0 || pos > 63) continue;
                 tmp.setNthBit(pos);
             }
-            KNIGHT_MOVES[square] = tmp.value & AND_BITBOARDS[square];
+            KNIGHT_MOVES[square] = Bitboard(tmp.value & AND_BITBOARDS[square].value);
         }
     }
 }
@@ -28,7 +28,7 @@ void Movegen::initKingMoves() {
                 if(pos < 0 || pos > 63) continue;
                 tmp.setNthBit(pos);
             }
-            KING_MOVES[square] = tmp.value & AND_BITBOARDS[square];
+            KING_MOVES[square] = Bitboard(tmp.value & AND_BITBOARDS[square].value);
         }
     }
 }
@@ -60,12 +60,12 @@ void Movegen::initAndBitsForKKP(){
                 int pos = square.first * 8 + square.second;
                 tmp.setNthBit(pos);
             }
-            AND_BITBOARDS[rank * 8 + file] = tmp.value;
+            AND_BITBOARDS[rank * 8 + file] = Bitboard(tmp.value);
         }
     }
 }
 
-void Movegen::generatePawnMoves(Bitboard b, const Bitboard &current, const Bitboard &enemy, const Bitboard& all) {
+void Movegen::generatePawnMoves(Bitboard b, const Bitboard &current, const Bitboard &enemy, const Bitboard& all, int enPassantSquare) {
     static int PAWN_PUSH[] = {8,16};
     static int PAWN_ATTACKS[] = {7,9};
     // vector<moves> pawnMoves;
@@ -78,12 +78,12 @@ void Movegen::generatePawnMoves(Bitboard b, const Bitboard &current, const Bitbo
 
         Bitboard moves; // will be removed, now only for printing
 
-        Bitboard tmpBitboard(AND_BITBOARDS[bit]);// Rays for valid move.
+        const Bitboard* tmpBitboard = &AND_BITBOARDS[bit]; // Rays for valid move.
 
         for(auto item: PAWN_PUSH){
             auto tmpBit = bit + (sign*item);
             // is oor, or taken or not in range.
-            if(tmpBit < 0 || tmpBit > 63 || all.getNthBit(tmpBit) || !tmpBitboard.getNthBit(tmpBit)){
+            if(tmpBit < 0 || tmpBit > 63 || all.getNthBit(tmpBit) || !tmpBitboard->getNthBit(tmpBit)){
                 break;
             }
             // pawnMoves.push_back(bit, tmpBit, MOVE);
@@ -95,14 +95,36 @@ void Movegen::generatePawnMoves(Bitboard b, const Bitboard &current, const Bitbo
         for(auto item: PAWN_ATTACKS){
             auto tmpBit = bit + (sign*item);
             // is oor, or taken or not in range.
-            if(tmpBit < 0 || tmpBit > 63 || current.getNthBit(tmpBit) || !enemy.getNthBit(tmpBit) || !tmpBitboard.getNthBit(tmpBit)) continue;
+            if(tmpBit < 0 || tmpBit > 63 || current.getNthBit(tmpBit) || !enemy.getNthBit(tmpBit) || !tmpBitboard->getNthBit(tmpBit)) continue;
             // pawnMoves.push_back(bit, tmpBit, ATTACK);
             // pawnMoves.push_back(bit, tmpBit, PROMOTION);  tmpBit/8 == 0 || tmpBit/8 == 7
             moves.setNthBit(tmpBit);
         }
 
-        moves.printBoard();
-
+        if(enPassantSquare == -1) continue;
         // EN-passant. TODO! WHEN Board.h implemented.
+        // using tmpBitboard
+    }
+}
+
+Bitboard Movegen::generateBishopPins(const Bitboard &enemyBishops, const Bitboard& enemy, const Bitboard &all, const Bitboard& currentKing) {
+    int index = 0;
+    while(index <= 63){
+        if(!enemyBishops.getNthBit(index)) continue;
+        auto rays = Magics::getXRay(all.value, index, false);
+    }
+}
+
+Bitboard Movegen::generateRookPins(const Bitboard &enemyRooks, const Bitboard& enemy, const Bitboard &all, const Bitboard& currentKing) {
+    int index = 0;
+    while(index <= 63){
+        if(!enemyRooks.getNthBit(index)) continue;
+        auto rays = Magics::getXRay(all.value, index, true);
+        if(!(rays & currentKing.value)) continue; // not valid pins.
+
+        // we have pins.
+        auto tmp = (Bitboard(1 << index) ^ currentKing) & all;
+
+        tmp.printBoard();
     }
 }

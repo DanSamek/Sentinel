@@ -6,7 +6,8 @@ Board::Board() {
     initPieces(blackPieces, Bitboard::BLACK);
 }
 
-void Board::initPieces(Bitboard *pieces, Bitboard::pieceColor color) {
+void Board::initPieces(std::vector<Bitboard>& pieces, Bitboard::pieceColor color) {
+    pieces = std::vector<Bitboard>(6);
     // same as Bitboard::pieceType...
     pieces[0] = Bitboard(0, Bitboard::PAWN, color);
     pieces[1] = Bitboard(0, Bitboard::KNIGHT, color);
@@ -16,7 +17,6 @@ void Board::initPieces(Bitboard *pieces, Bitboard::pieceColor color) {
     pieces[5] = Bitboard(0, Bitboard::KING, color);
 }
 
-
 void Board::loadFEN(const std::string FEN) {
     castling[0][0] = false; castling[0][1] = false; castling[1][0] = false; castling[1][1] = false;
     initPieces(whitePieces, Bitboard::WHITE); initPieces(blackPieces, Bitboard::BLACK);
@@ -25,9 +25,8 @@ void Board::loadFEN(const std::string FEN) {
 
     std::istringstream iss(FEN);
 
-    if(!(iss >> board >> whoPlayTmp >> castlingRules >> enPassant >> halfMove >> fullMove)){
-        throw std::invalid_argument("not valid FEN.");
-    }
+    if(!(iss >> board >> whoPlayTmp >> castlingRules >> enPassant >> halfMove >> fullMove)) throw std::invalid_argument("not valid FEN.");
+
     // parse a board.
     int square = 0;
     for(auto character: board){

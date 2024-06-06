@@ -19,6 +19,13 @@ uint64_t Magics::getSlidingMoves(uint64_t blockers, int square, bool rook){
     return ROOK_TABLE[square][index];
 }
 
+uint64_t Magics::getXRay(uint64_t blockers, int square, bool rook){
+    uint64_t attacks = getSlidingMoves(blockers, square, rook);
+    uint64_t currentBlockers = blockers & (rook ? ROOK_BLOCKERS[square] : BISHOP_BLOCKERS[square]);
+    currentBlockers &= attacks;
+    return attacks ^ getSlidingMoves(blockers ^ currentBlockers, square, rook);
+}
+
 std::vector<uint64_t> Magics::getMagics(int file, int rank, uint64_t* sliderBlockers, bool rook, uint64_t magic){
     int square = getSquare(rank, file);
     auto allBlockers = generateAllBlockerCombinations(sliderBlockers[square]);

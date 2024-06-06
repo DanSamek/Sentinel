@@ -20,4 +20,6 @@ add_executable(Sentinel
         src/board.h
         src/board.cpp
         src/tests/boardTests.cpp
+        src/move.h
+        src/move.cpp
 )
