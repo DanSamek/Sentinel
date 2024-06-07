@@ -1,34 +1,36 @@
 
-#include "movegen.h"
+#include <movegen.h>
+#include "bit_ops.h"
 
 void Movegen::initKnightMoves() {
-    Bitboard tmp;
+
+    uint64_t tmp;
     for(int rank = 0; rank < 8; rank++ ){
         for(int file = 0; file < 8; file++){
             int square = rank * 8 + file;
-            tmp.value = 0ULL;
+            tmp = 0ULL;
             for(auto item: KNIGHT_OFFSETS){
                 int pos = square + item;
                 if(pos < 0 || pos > 63) continue;
-                tmp.setNthBit(pos);
+                bit_ops::setNthBit(tmp, pos);
             }
-            KNIGHT_MOVES[square] = Bitboard(tmp.value & AND_BITBOARDS[square].value);
+            KNIGHT_MOVES[square] = tmp & AND_BITBOARDS[square];
         }
     }
 }
 
 void Movegen::initKingMoves() {
-    Bitboard tmp;
+    uint64_t tmp;
     for(int rank = 0; rank < 8; rank++ ){
         for(int file = 0; file < 8; file++){
             int square = rank * 8 + file;
-            tmp.value = 0ULL;
+            tmp = 0ULL;
             for(auto item: KING_OFFSETS){
                 int pos = square + item;
                 if(pos < 0 || pos > 63) continue;
-                tmp.setNthBit(pos);
+                bit_ops::setNthBit(tmp, pos);
             }
-            KING_MOVES[square] = Bitboard(tmp.value & AND_BITBOARDS[square].value);
+            KING_MOVES[square] = tmp & AND_BITBOARDS[square];
         }
     }
 }
@@ -50,55 +52,54 @@ void Movegen::initAndBitsForKKP(){
         return result;
     };
 
-    Bitboard tmp;
-
+    uint64_t tmp;
     for(int rank = 0; rank < 8; rank++ ){
         for(int file = 0; file < 8; file++){
-            tmp.value = 0ULL;
+            tmp = 0ULL;
             auto squares = getSquares(file, rank);
             for(auto square: squares){
                 int pos = square.first * 8 + square.second;
-                tmp.setNthBit(pos);
+                bit_ops::setNthBit(tmp, pos);
             }
-            AND_BITBOARDS[rank * 8 + file] = Bitboard(tmp.value);
+            AND_BITBOARDS[rank * 8 + file] = tmp;
         }
     }
 }
 
-void Movegen::generatePawnMoves(Bitboard b, const Bitboard &current, const Bitboard &enemy, const Bitboard& all, int enPassantSquare) {
+void Movegen::generatePawnMoves(uint64_t b, const uint64_t &current, const uint64_t &enemy, const uint64_t& all, int enPassantSquare, bool color) {
     static int PAWN_PUSH[] = {8,16};
     static int PAWN_ATTACKS[] = {7,9};
     // vector<moves> pawnMoves;
     int bit = -1;
     while(bit <= 63){
         bit++;
-        if(!b.getNthBit(bit)) continue;
+        if(!bit_ops::getNthBit(b, bit)) continue;
         auto rank = bit / 8;
-        auto sign = b.color == Bitboard::BLACK ? +1 : -1;
+        auto sign = color == Bitboard::BLACK ? +1 : -1;
 
-        Bitboard moves; // will be removed, now only for printing
+        uint64_t moves; // will be removed, now only for printing
 
-        const Bitboard* tmpBitboard = &AND_BITBOARDS[bit]; // Rays for valid move.
+        const uint64_t* tmpBitboard = &AND_BITBOARDS[bit]; // Rays for valid move.
 
         for(auto item: PAWN_PUSH){
             auto tmpBit = bit + (sign*item);
             // is oor, or taken or not in range.
-            if(tmpBit < 0 || tmpBit > 63 || all.getNthBit(tmpBit) || !tmpBitboard->getNthBit(tmpBit)){
+            if(tmpBit < 0 || tmpBit > 63 || bit_ops::getNthBit(all, tmpBit) || !bit_ops::getNthBit(*tmpBitboard, tmpBit)){
                 break;
             }
             // pawnMoves.push_back(bit, tmpBit, MOVE);
             // pawnMoves.push_back(bit, tmpBit, PROMOTION);  tmpBit/8 == 0 || tmpBit/8 == 7
-            moves.setNthBit(tmpBit);
+            bit_ops::setNthBit(moves, tmpBit);
             if(rank != 1 && rank != 6 ) break;
         }
 
         for(auto item: PAWN_ATTACKS){
             auto tmpBit = bit + (sign*item);
             // is oor, or taken or not in range.
-            if(tmpBit < 0 || tmpBit > 63 || current.getNthBit(tmpBit) || !enemy.getNthBit(tmpBit) || !tmpBitboard->getNthBit(tmpBit)) continue;
+            if(tmpBit < 0 || tmpBit > 63 || bit_ops::getNthBit(current, tmpBit) || !bit_ops::getNthBit(enemy, tmpBit) || !bit_ops::getNthBit(*tmpBitboard, tmpBit)) continue;
             // pawnMoves.push_back(bit, tmpBit, ATTACK);
             // pawnMoves.push_back(bit, tmpBit, PROMOTION);  tmpBit/8 == 0 || tmpBit/8 == 7
-            moves.setNthBit(tmpBit);
+            bit_ops::setNthBit(moves, tmpBit);
         }
 
         if(enPassantSquare == -1) continue;
@@ -107,20 +108,20 @@ void Movegen::generatePawnMoves(Bitboard b, const Bitboard &current, const Bitbo
     }
 }
 
-Bitboard Movegen::generateBishopPins(const Bitboard &enemyBishops, const Bitboard& enemy, const Bitboard &all, const Bitboard& currentKing) {
+uint64_t Movegen::generateBishopPins(const uint64_t&enemyBishops, const uint64_t & enemy, const uint64_t  &all, const uint64_t & currentKing) {
     int index = 0;
     while(index <= 63){
-        if(!enemyBishops.getNthBit(index)) continue;
-        auto rays = Magics::getXRay(all.value, index, false);
+        if(!bit_ops::getNthBit(enemyBishops, index)) continue;
+        auto rays = Magics::getXRay(all, index, false);
     }
 }
 
-Bitboard Movegen::generateRookPins(const Bitboard &enemyRooks, const Bitboard& enemy, const Bitboard &all, const Bitboard& currentKing) {
+uint64_t Movegen::generateRookPins(const uint64_t  &enemyRooks, const uint64_t & enemy, const uint64_t  &all, const uint64_t & currentKing) {
     int index = 0;
     while(index <= 63){
-        if(!enemyRooks.getNthBit(index)) continue;
-        auto rays = Magics::getXRay(all.value, index, true);
-        if(!(rays & currentKing.value)) continue; // not valid pins.
+        if(!bit_ops::getNthBit(enemyRooks, index)) continue;
+        auto rays = Magics::getXRay(all, index, true);
+        if(!(rays & currentKing)) continue; // not valid pins.
 
         // we have pins.
         auto tmp = (Bitboard(1 << index) ^ currentKing) & all;

@@ -11,10 +11,24 @@ class Board {
     // lazy mapping.
     static inline std::map<char, int> files = {{'a', 0}, {'b', 1}, {'c', 2}, {'d',3}, {'e', 4}, {'f', 5}, {'g', 6}, {'h',7}};
     static inline std::map<char, int> ranks = {{'1',7}, {'2',6},{'3',5},{'4',4}, {'5',3}, {'6',2}, {'7',1}, {'8',0}};
+
 public:
+    enum pieceType{
+        PAWN,
+        KNIGHT,
+        BISHOP,
+        ROOK,
+        QUEEN,
+        KING
+    };
+
+    enum pieceColor{
+        BLACK,
+        WHITE
+    };
     // Bitboards
-    std::vector<Bitboard> whitePieces; // make it easy
-    std::vector<Bitboard> blackPieces;
+    std::vector<uint64_t> whitePieces; // make it easy
+    std::vector<uint64_t> blackPieces;
 
     // enPassantSquare is set to -1 if there is no enpassant
     int halfMove, fullMove, enPassantSquare;
@@ -42,9 +56,9 @@ public:
      * @param color
      * @return bitboard for a request.
      */
-    const Bitboard& getPieceBitboard(Bitboard::pieceType type, Bitboard::pieceColor color) const;
+    const uint64_t& getPieceBitboard(pieceType type, pieceColor color) const;
 private:
-    void initPieces(std::vector<Bitboard>& pieces, Bitboard::pieceColor color);
+    void initPieces(std::vector<uint64_t>& pieces, pieceColor color);
 };
 
 

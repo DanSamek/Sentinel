@@ -1,25 +1,25 @@
 #include <sstream>
 #include <board.h>
+#include "bit_ops.h"
 
 Board::Board() {
-    initPieces(whitePieces, Bitboard::WHITE);
-    initPieces(blackPieces, Bitboard::BLACK);
+    initPieces(whitePieces, WHITE);
+    initPieces(blackPieces, BLACK);
 }
 
-void Board::initPieces(std::vector<Bitboard>& pieces, Bitboard::pieceColor color) {
-    pieces = std::vector<Bitboard>(6);
-    // same as Bitboard::pieceType...
-    pieces[0] = Bitboard(0, Bitboard::PAWN, color);
-    pieces[1] = Bitboard(0, Bitboard::KNIGHT, color);
-    pieces[2] = Bitboard(0, Bitboard::BISHOP, color);
-    pieces[3] = Bitboard(0, Bitboard::ROOK, color);
-    pieces[4] = Bitboard(0, Bitboard::QUEEN, color);
-    pieces[5] = Bitboard(0, Bitboard::KING, color);
+void Board::initPieces(std::vector<uint64_t>& pieces, pieceColor color) {
+    pieces = std::vector<uint64_t>(6);
+    pieces[PAWN] = 0ULL;
+    pieces[KNIGHT] = 0ULL;
+    pieces[BISHOP] = 0ULL;
+    pieces[ROOK] = 0ULL;
+    pieces[QUEEN] = 0ULL;
+    pieces[KING] = 0ULL;
 }
 
 void Board::loadFEN(const std::string FEN) {
     castling[0][0] = false; castling[0][1] = false; castling[1][0] = false; castling[1][1] = false;
-    initPieces(whitePieces, Bitboard::WHITE); initPieces(blackPieces, Bitboard::BLACK);
+    initPieces(whitePieces, WHITE); initPieces(blackPieces, BLACK);
 
     std::string board, whoPlayTmp, castlingRules, enPassant;
 
@@ -38,8 +38,8 @@ void Board::loadFEN(const std::string FEN) {
         auto color = isupper(character) ?  Bitboard::WHITE  : Bitboard::BLACK;
         auto index = pieceIndexMap[tolower(character)];
 
-        if(color == Bitboard::WHITE) whitePieces[index].setNthBit(square);
-        else blackPieces[index].setNthBit(square);
+        if(color == Bitboard::WHITE)  bit_ops::setNthBit(whitePieces[index], square);
+        else   bit_ops::setNthBit(blackPieces[index], square);
         square++;
     }
     whoPlay = whoPlayTmp == "w" ? true : false;
@@ -54,6 +54,6 @@ void Board::loadFEN(const std::string FEN) {
     }
 }
 
-const Bitboard& Board::getPieceBitboard(Bitboard::pieceType type, Bitboard::pieceColor color) const {
-    return color == Bitboard::WHITE ? whitePieces[type] : blackPieces[type];
+const uint64_t & Board::getPieceBitboard(pieceType type, pieceColor color) const {
+    return color == WHITE ? whitePieces[type] : blackPieces[type];
 }

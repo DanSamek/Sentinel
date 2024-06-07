@@ -1,5 +1,7 @@
-#include "magics.h"
-#include "set"
+#include <magics.h>
+#include <set>
+#include <bit_ops.h>
+
 int getSquare(int rank, int file){
     return rank * 8 + file;
 }
@@ -16,7 +18,7 @@ uint64_t Magics::getSlidingMoves(uint64_t blockers, int square, bool rook){
     uint64_t hash;
     __builtin_umull_overflow(hashBlockers, magics, &hash);
     uint64_t index = (hash >> (uint64_t)(64ULL - (rook ? ROOK_MAGICS_SHIFT[square] : BISHOP_MAGICS_SHIFT[square])));
-    return ROOK_TABLE[square][index];
+    return rook ?ROOK_TABLE[square][index] : BISHOP_TABLE[square][index];
 }
 
 uint64_t Magics::getXRay(uint64_t blockers, int square, bool rook){
@@ -61,27 +63,27 @@ void Magics::initMagics() {
 }
 
 void Magics::generateRookBlockers(){
-    Bitboard tmp;
+    uint64_t tmp;
     for(int rank = 0; rank < 8; rank++ ){
         for(int file = 0; file < 8; file++){
             int square = getSquare(rank, file);
-            tmp.value = 0ULL;
+            tmp = 0ULL;
             auto moves = generateMovesForDirections(rookDirections, rank, file);
-            for(auto move: moves) tmp.setNthBit(move.first*8 + move.second);
-            ROOK_BLOCKERS[square] = tmp.value;
+            for(auto move: moves) bit_ops::setNthBit(tmp, move.first*8 + move.second);
+            ROOK_BLOCKERS[square] = tmp;
         }
     }
 }
 
 void Magics::generateBishopBlockers(){
-    Bitboard tmp;
+    uint64_t tmp;
     for(int rank = 0; rank < 8; rank++ ){
         for(int file = 0; file < 8; file++){
-            tmp.value = 0ULL;
+            tmp = 0ULL;
             int square = getSquare(rank, file);
             auto moves = generateMovesForDirections(bishopDirections, rank, file);
-            for(auto move: moves) tmp.setNthBit(move.first*8 + move.second);
-            BISHOP_BLOCKERS[square] = tmp.value;
+            for(auto move: moves) bit_ops::setNthBit(tmp, move.first*8 + move.second);
+            BISHOP_BLOCKERS[square] = tmp;
         }
     }
 }
@@ -119,13 +121,13 @@ std::vector<uint64_t> Magics::generateAllBlockerCombinations(uint64_t bitboard){
 
 
     for (int i = 0; i < numCombinations; ++i) {
-        Bitboard b;
+        uint64_t b = 0ULL;
         for (size_t j = 0; j < n; ++j) {
             if (i & (1 << j)) {
-                b.setNthBit(bits[j]);
+                bit_ops::setNthBit(b,bits[j]);
             }
         }
-        result.push_back(b.value);
+        result.push_back(b);
     }
     assert(result.size() == (size_t(1 << bits.size())));
 
@@ -150,10 +152,10 @@ uint64_t Magics::generateSliderMoves(int file, int rank, const uint64_t& bitboar
         }
     }
 
-    Bitboard resultB;
-    for(auto item: bits) resultB.setNthBit(item);
+    uint64_t resultB = 0ULL;
+    for(auto item: bits) bit_ops::setNthBit(resultB, item);
 
-    return resultB.value;
+    return resultB;
 }
 
 

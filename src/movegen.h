@@ -32,16 +32,16 @@
 */
 struct Movegen {
     // Color, square
-    static inline Bitboard PAWN_MOVES[2][64];
+    static inline uint64_t PAWN_MOVES[2][64];
 
     // Same for both colors.
-    static inline Bitboard KNIGHT_MOVES[64];
+    static inline uint64_t KNIGHT_MOVES[64];
 
     // Same for both colors.
-    static inline Bitboard KING_MOVES[64];
+    static inline uint64_t KING_MOVES[64];
 
     // used for "off range" move gen in bitboards.
-    static inline Bitboard AND_BITBOARDS[64];
+    static inline uint64_t AND_BITBOARDS[64];
 
     /***
      * Initialization of all movegen tables - magic bitboards, knight bitboards, king bitboards.
@@ -59,9 +59,9 @@ struct Movegen {
 
         std::vector<Move> moves;
 
-        Bitboard friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5];
-        Bitboard enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5];
-        Bitboard all = friendlyMerged | enemyMerged;
+        uint64_t friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5];
+        uint64_t enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5];
+        uint64_t all = friendlyMerged | enemyMerged;
 
         // check if king is checked.
             // do something.
@@ -73,7 +73,7 @@ struct Movegen {
 
 
         // generate moves.
-        generatePawnMoves(friendlyBits[0], friendlyMerged, enemyMerged, all, board.enPassantSquare);
+        generatePawnMoves(friendlyBits[0], friendlyMerged, enemyMerged, all, board.enPassantSquare, false);
     }
 
     /***
@@ -83,7 +83,7 @@ struct Movegen {
      * @param b pawn bitboard
      * @param occupancy entire occupancy
      */
-    static void generatePawnMoves(Bitboard b, const Bitboard &current, const Bitboard &enemy, const Bitboard& all, int enPassantSquare);
+    static void generatePawnMoves(uint64_t b, const uint64_t &current, const uint64_t &enemy, const uint64_t& all, int enPassantSquare, bool color);
 
     /***
      * ULL lookup tables for all king moves.
@@ -109,7 +109,7 @@ struct Movegen {
      * @param all
      * @return
      */
-    static Bitboard generateBishopPins(const Bitboard &enemyBishops, const Bitboard& enemy, const Bitboard &all, const Bitboard& currentKing);
+    static uint64_t generateBishopPins(const uint64_t &enemyBishops, const uint64_t& enemy, const uint64_t &all, const uint64_t& currentKing);
 
     /***
      * Ray generation for pinned pieces.
@@ -117,7 +117,7 @@ struct Movegen {
      * @param all
      * @return
      */
-    static Bitboard generateRookPins(const Bitboard &enemyRooks, const Bitboard& enemy, const Bitboard &all, const Bitboard& currentKing);
+    static uint64_t generateRookPins(const uint64_t &enemyRooks, const uint64_t& enemy, const uint64_t &all, const uint64_t& currentKing);
 };
 
 

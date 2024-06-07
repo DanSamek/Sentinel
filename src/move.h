@@ -1,8 +1,6 @@
 #ifndef SENTINEL_MOVE_H
 #define SENTINEL_MOVE_H
 
-#include <bitboard.h>
-
 struct Move {
     enum type{
         QUIET,
