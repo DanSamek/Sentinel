@@ -6,7 +6,7 @@
 #include <array>
 
 /***
- * DEPRECATED - unly for debug print.
+ * !!!! DEPRECATED - only for debug print.  !!!!
  * Bitboard struct - only for "easier" work with bitboards.
  * Represented from top:
  * black

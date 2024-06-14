@@ -9,6 +9,8 @@ struct bit_ops {
     static bool getNthBit(const uint64_t& value, int pos);
     static void setNthBit(uint64_t & value, int pos);
     static void popNthBit(uint64_t & value ,int pos);
+    static int bitScanForward(const uint64_t & value);
+    static int bitScanForwardPopLsb(uint64_t& value);
 };
 
 

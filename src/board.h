@@ -23,8 +23,8 @@ public:
     };
 
     enum pieceColor{
-        BLACK,
-        WHITE
+        WHITE,
+        BLACK
     };
     // Bitboards
     std::vector<uint64_t> whitePieces; // make it easy
@@ -58,7 +58,7 @@ public:
      */
     const uint64_t& getPieceBitboard(pieceType type, pieceColor color) const;
 private:
-    void initPieces(std::vector<uint64_t>& pieces, pieceColor color);
+    void initPieces(std::vector<uint64_t>& pieces);
 };
 
 

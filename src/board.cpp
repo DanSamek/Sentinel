@@ -3,11 +3,11 @@
 #include "bit_ops.h"
 
 Board::Board() {
-    initPieces(whitePieces, WHITE);
-    initPieces(blackPieces, BLACK);
+    initPieces(whitePieces);
+    initPieces(blackPieces);
 }
 
-void Board::initPieces(std::vector<uint64_t>& pieces, pieceColor color) {
+void Board::initPieces(std::vector<uint64_t>& pieces) {
     pieces = std::vector<uint64_t>(6);
     pieces[PAWN] = 0ULL;
     pieces[KNIGHT] = 0ULL;
@@ -19,7 +19,7 @@ void Board::initPieces(std::vector<uint64_t>& pieces, pieceColor color) {
 
 void Board::loadFEN(const std::string FEN) {
     castling[0][0] = false; castling[0][1] = false; castling[1][0] = false; castling[1][1] = false;
-    initPieces(whitePieces, WHITE); initPieces(blackPieces, BLACK);
+    initPieces(whitePieces); initPieces(blackPieces);
 
     std::string board, whoPlayTmp, castlingRules, enPassant;
 

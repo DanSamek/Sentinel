@@ -13,8 +13,21 @@
         -> knight moves - DONE
 
         PRIORITY
-        -> pins - generate rays, for sliding pieces [64][4] and rays.
+        -> pins and checks
+            -> precalculate direction table from each square (diagonal, horizontal)
+
         -> checks
+            -> simple check detection. DONE
+            -> get direction -> generate possible check blocks (!! knights !!) || king moves.
+        -> pins
+            -> XRays DONE
+            -> & king bitboard
+             if no -> continue;
+            if yes -> find a piece if its hard pinned
+                 -> knight hard pinned always.
+                        or soft pinned.
+                 -> if same direction as moves, we can generate em
+                     -> move dir != attack dir -> hard pin.
 
         -> slider moves (use magic bitboards) DONE
             -> bishop DONE     TODO make "request to magic bitboard imp + collect moves"
@@ -23,16 +36,19 @@
 
         -> pawn moves
             -> normal moves DONE
-            -> en passant WHEN BOARD IMPLEMENTED
+            -> en passant DONE
+                -> one edge case on en passant !
 
-        -> king safe moves
+        -> king safe moves DONE <=> we have enemy attacks.
         -> castling
+        -> moveBitboard convertor for all pieces.
+            -> DONE for all except pawns and kings.
         -> PERFT tests
 
 */
 struct Movegen {
     // Color, square
-    static inline uint64_t PAWN_MOVES[2][64];
+    static inline uint64_t PAWN_ATTACK_MOVES[2][64];
 
     // Same for both colors.
     static inline uint64_t KNIGHT_MOVES[64];
@@ -51,7 +67,10 @@ struct Movegen {
         initAndBitsForKKP();
         initKnightMoves();
         initKingMoves();
+        initPawnAttacks();
     }
+
+    static std::pair<int, uint64_t> getKingChecksAndAttacks(const uint64_t& king, const std::vector<uint64_t>& enemyPieces, const uint64_t& all, bool enemyColor);
 
     static void generateMoves(const Board& board){
         auto friendlyBits = board.whoPlay ? board.whitePieces : board.blackPieces;
@@ -63,19 +82,31 @@ struct Movegen {
         uint64_t enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5];
         uint64_t all = friendlyMerged | enemyMerged;
 
-        // check if king is checked.
-            // do something.
+        auto [enemyAttacks, checkCount] = getKingChecksAndAttacks(friendlyBits[Board::KING], enemyBits, all, !board.whoPlay);
 
-        // get pinned pieces.
-            // -> absolute - cant move
-            // -> relative - can move in pinned direction.
-                // -> pawns, rooks, bishops, queens.
+        // if moves.count() == 0 => win for an enemy.
+        if(checkCount == 2){
+            // generate only king moves, not possible to defend 2 checks by a another pieces.
+            return;
+        }
+        // now we will generate pinned pieces and directions.
+        // auto pins = getPinsAndDirMasks(friendlyMerged, enemyQueens, enemyRooks, enemyBishops);
 
 
-        // generate moves.
+        if(checkCount == 1){
+            // generate king moves and all possible blockers or captures of enemy attacker.
+            return;
+        }
+        // if moves.count() == 0 => draw.
+        // generate all possible moves.
+
+
         generatePawnMoves(friendlyBits[0], friendlyMerged, enemyMerged, all, board.enPassantSquare, false);
     }
 
+
+    static inline int PAWN_PUSH[] = {8,16};
+    static inline int PAWN_ATTACKS[] = {7,9};
     /***
      * Pawn move generation
      * Attacks + normal moves
@@ -98,6 +129,11 @@ struct Movegen {
     static void initKnightMoves();
 
     /***
+     * Ull lookup for all pawn attacks.
+     */
+    static void initPawnAttacks();
+
+    /***
      * Most idiotic initialization of AND-able bitboards for knight, king, pawn move generation.
      * Create maximally 4x4 area full of ones, and build bitboard.
      */
@@ -118,6 +154,27 @@ struct Movegen {
      * @return
      */
     static uint64_t generateRookPins(const uint64_t &enemyRooks, const uint64_t& enemy, const uint64_t &all, const uint64_t& currentKing);
+
+    /***
+     * @param king
+     * @param attacks
+     * @param checkCount used in enemy movegeneration - count checks -> we can simplify movegen.
+     * @return
+     */
+    static void incrementIfKingChecked(const uint64_t& king, const uint64_t& attacks, int& checkCount);
+
+    /***
+     * Converts moveBitboard and appends them into a move vector
+     * @param fromSquare bit index from square
+     * @param moveBitboard generated bitboard moves
+     * @param moves reference to all moves -> will be returned from movegen.
+     * @param enemies all bits for enemies
+     * @param enemyKing bitboard for an enemy king
+     * @param pieceType
+     * Reason for this -> move order by checks/capture, etc..
+     * @note for all except pawns and kings. This method handles captures, quiets, checks, no more.
+     */
+    static void bitboardToMoves(int fromSquare, uint64_t moveBitboard, std::vector<Move> &moves, const uint64_t& enemies, const uint64_t& enemyKing, Board::pieceType pieceType);
 };
 
 
