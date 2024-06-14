@@ -22,4 +22,6 @@ add_executable(Sentinel
         src/tests/boardTests.cpp
         src/move.h
         src/move.cpp
+        src/bit_ops.h
+        src/bit_ops.cpp
 )
