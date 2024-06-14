@@ -37,7 +37,9 @@ public:
      * @param rook if its rook
      * @return
      */
-    static uint64_t getSlidingMoves(uint64_t blockers, int square, bool rook);
+    //static uint64_t getSlidingMoves(const uint64_t& blockers, int square, bool rook);
+    static uint64_t getRookMoves(const uint64_t& blockers, int square);
+    static uint64_t getBishopMoves(const uint64_t& blockers, int square);
 
     /***
      * Gets xrays for pins?
@@ -46,7 +48,7 @@ public:
      * @param rook if its rook
      * @return
      */
-    static uint64_t getXRay(uint64_t blockers, int square, bool rook);
+    // static uint64_t getXRay(uint64_t blockers, int square, bool rook);
 private:
 
     // Blocked masks for each square.

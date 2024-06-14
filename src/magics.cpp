@@ -12,21 +12,43 @@ void Magics::init() {
     initMagics();
 }
 
-uint64_t Magics::getSlidingMoves(uint64_t blockers, int square, bool rook){
+/*
+uint64_t Magics::getSlidingMoves(const uint64_t& blockers, int square, bool rook){
     uint64_t hashBlockers = blockers & (rook ? ROOK_BLOCKERS[square] : BISHOP_BLOCKERS[square]);
     uint64_t magics = rook ? ROOK_MAGICS[square] : BISHOP_MAGICS[square];
     uint64_t hash;
     __builtin_umull_overflow(hashBlockers, magics, &hash);
     uint64_t index = (hash >> (uint64_t)(64ULL - (rook ? ROOK_MAGICS_SHIFT[square] : BISHOP_MAGICS_SHIFT[square])));
     return rook ?ROOK_TABLE[square][index] : BISHOP_TABLE[square][index];
+}*/
+
+uint64_t Magics::getRookMoves(const uint64_t& blockers, int square){
+    uint64_t hashBlockers = blockers & ROOK_BLOCKERS[square];
+    uint64_t magics = ROOK_MAGICS[square] ;
+    uint64_t hash;
+    __builtin_umull_overflow(hashBlockers, magics, &hash);
+    uint64_t index = (hash >> (uint64_t)(64ULL - ROOK_MAGICS_SHIFT[square]));
+    return ROOK_TABLE[square][index];
 }
 
+uint64_t Magics::getBishopMoves(const uint64_t& blockers, int square){
+    uint64_t hashBlockers = blockers & BISHOP_BLOCKERS[square];
+    uint64_t magics = BISHOP_MAGICS[square] ;
+    uint64_t hash;
+    __builtin_umull_overflow(hashBlockers, magics, &hash);
+    uint64_t index = (hash >> (uint64_t)(64ULL - BISHOP_MAGICS_SHIFT[square]));
+    return BISHOP_TABLE[square][index];
+}
+
+
+/*
 uint64_t Magics::getXRay(uint64_t blockers, int square, bool rook){
     uint64_t attacks = getSlidingMoves(blockers, square, rook);
     uint64_t currentBlockers = blockers & (rook ? ROOK_BLOCKERS[square] : BISHOP_BLOCKERS[square]);
     currentBlockers &= attacks;
     return attacks ^ getSlidingMoves(blockers ^ currentBlockers, square, rook);
 }
+*/
 
 std::vector<uint64_t> Magics::getMagics(int file, int rank, uint64_t* sliderBlockers, bool rook, uint64_t magic){
     int square = getSquare(rank, file);
