@@ -1,12 +1,11 @@
 #include <movegen.h>
-#include "bit_ops.h"
+#include <bit_ops.h>
 
 /*  */
 /* LOOKUP TABLES IMPLEMENTATIONS  */
 /*  */
 
 void Movegen::initKnightMoves() {
-
     uint64_t tmp;
     for(int rank = 0; rank < 8; rank++ ){
         for(int file = 0; file < 8; file++){
@@ -139,71 +138,52 @@ void Movegen::initAndBitsForKKP(){
         }
     }
 }
-
-/*  */
 /* LOOKUP TABLES IMPLEMENTATIONS  END */
-/*  */
 
 
-static void generatePromotions(std::vector<Move>& moves, int fromSq, int toSq){
-    moves[Movegen::index++] = {fromSq, toSq, Move::QUEEN, Move::PROMOTION, Board::PAWN};
-    moves[Movegen::index++] = {fromSq, toSq, Move::BISHOP, Move::PROMOTION, Board::PAWN};
-    moves[Movegen::index++] = {fromSq, toSq, Move::ROOK, Move::PROMOTION, Board::PAWN};
-    moves[Movegen::index++] = {fromSq, toSq, Move::KNIGHT, Move::PROMOTION, Board::PAWN};
-}
-
-void Movegen::generatePawnMoves(uint64_t b, const uint64_t &current, const uint64_t &enemy, const uint64_t& all, int enPassantSquare, bool color, std::vector<Move>& moves) {
+void Movegen::generatePawnMoves(uint64_t b, int enPassantSquare, bool color) {
+    uint64_t enPassantBB = enPassantSquare != -1 ? 1ULL << enPassantSquare : 0;
     while(b){
         int bit = bit_ops::bitScanForwardPopLsb(b);
         int rank = bit / 8;
+        bool promotion = (color == Bitboard::WHITE && rank == 1) ||(color == Bitboard::BLACK && rank == 6); // next move will be promotion on 100%!
 
         auto bb = PAWN_PUSH_MOVES[!color][bit];
         if(((color == Bitboard::WHITE && rank == 6) || (color == Bitboard::BLACK && rank == 1)) && (bb & all) != PAWN_ILLEGAL_AND[!color][bit]){
             bb &= ~all;
             while(bb){
                 auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
-                auto tmpRank = tmpBit/8;
-                if((color == Bitboard::WHITE && tmpRank == 0) || (color == Bitboard::BLACK && tmpRank == 7)){
-                    generatePromotions(moves, bit, tmpBit);
-                }
-                else{
-                    moves[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::QUIET, Board::PAWN};
-                }
+                tmpMoves[Movegen::index++] = {bit, tmpBit, Move::NONE, (tmpBit - bit) > 8 ? Move::DOUBLE_PAWN_UP : Move::QUIET, Board::PAWN};
             }
         }
         else{
             while(!(bb & all) && bb){
                 auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
-                auto tmpRank = tmpBit/8;
-                if((color == Bitboard::WHITE && tmpRank == 0) || (color == Bitboard::BLACK && tmpRank == 7)){
-                    generatePromotions(moves, bit, tmpBit);
-                }
-                else{
-                    moves[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::QUIET, Board::PAWN};
-                }
+                if(promotion) generatePromotions(bit, tmpBit);
+                else tmpMoves[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::QUIET, Board::PAWN};
             }
         }
 
-        bb = PAWN_ATTACK_MOVES[!color][bit];
+        bb = PAWN_ATTACK_MOVES[!color][bit] & (enemyMerged | enPassantBB);
         // normal captures || captures with promotions.
         while(bb){
             auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
-            auto capture = bit_ops::getNthBit(enemy, tmpBit);
-            if(((color == Bitboard::WHITE && tmpBit/8 == 0) || (color == Bitboard::BLACK && tmpBit/8 == 7)) && capture){
-                generatePromotions(moves, bit, tmpBit);
-            }
-            else if(tmpBit == enPassantSquare && !bit_ops::getNthBit(all, tmpBit)){
-                moves[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::EN_PASSANT, Board::PAWN};
-            }
-            else if(capture){
-                moves[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::CAPTURE, Board::PAWN};
-            }
+            if(tmpBit == enPassantSquare) tmpMoves[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::EN_PASSANT, Board::PAWN};
+            else if(promotion) generatePromotions(bit, tmpBit);
+            else tmpMoves[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::CAPTURE, Board::PAWN};
         }
     }
 }
 
+void Movegen::generatePromotions(int fromSq, int toSq){
+    tmpMoves[Movegen::index++] = {fromSq, toSq, Move::QUEEN, Move::PROMOTION, Board::PAWN};
+    tmpMoves[Movegen::index++] = {fromSq, toSq, Move::BISHOP, Move::PROMOTION, Board::PAWN};
+    tmpMoves[Movegen::index++] = {fromSq, toSq, Move::ROOK, Move::PROMOTION, Board::PAWN};
+    tmpMoves[Movegen::index++] = {fromSq, toSq, Move::KNIGHT, Move::PROMOTION, Board::PAWN};
+}
 
-uint64_t Movegen::generateConstantEnemyAttacks(const uint64_t& king, const std::vector<uint64_t>& enemyPieces, bool enemyColor) {
+
+uint64_t Movegen::generateConstantEnemyAttacks(const uint64_t& king, const uint64_t* enemyPieces, bool enemyColor) {
     int checkCount = 0;
     uint64_t attacks = 0ULL;
     uint64_t current = attacks;
@@ -240,60 +220,58 @@ void Movegen::incrementIfKingChecked(const uint64_t &king, const uint64_t &attac
 }
 
 // will be used for all except pawns || kings?
-void Movegen::bitboardToMoves(int fromSquare, uint64_t moveBitboard, std::vector<Move> &moves, const uint64_t& enemies, const uint64_t& enemyKing, Board::pieceType pieceType, const uint64_t& friendly) {
+void Movegen::bitboardToMoves(int fromSquare, uint64_t moveBitboard, Board::pieceType pieceType) {
     while(moveBitboard){
         int toSquare = bit_ops::bitScanForwardPopLsb(moveBitboard);
-        auto bitboard = 1ULL << toSquare;
-        if((bitboard & friendly)) continue; // cant go on friendly piece.
-        Move::type mt = bitboard & enemyKing ? Move::CHECK : enemies & bitboard ? Move::CAPTURE : Move::QUIET;
-        moves[Movegen::index++] = {fromSquare, toSquare, Move::NONE, mt, pieceType};
+        if (bit_ops::getNthBit(friendlyMerged, toSquare)) continue; // cant go on friendly piece.
+        Move::type mt = bit_ops::getNthBit(enemyMerged, toSquare) ? Move::CAPTURE : Move::QUIET;
+        tmpMoves[Movegen::index++] = {fromSquare, toSquare, Move::NONE, mt, pieceType};
     }
 }
 
-void Movegen::generateRookMoves(uint64_t rooks, const uint64_t& friendlyMerged, const uint64_t& enemyMerged, const uint64_t& all, std::vector<Move> &moves, const uint64_t& enemyKing) {
+void Movegen::generateRookMoves(uint64_t rooks) {
     while(rooks){
         int pos = bit_ops::bitScanForwardPopLsb(rooks);
         auto movesBitboard = Magics::getRookMoves(all, pos);
-        bitboardToMoves(pos, movesBitboard, moves, enemyMerged, enemyKing, Board::ROOK, friendlyMerged);
+        bitboardToMoves(pos, movesBitboard, Board::ROOK);
     }
 }
 
-void Movegen::generateBishopMoves(uint64_t bishops, const uint64_t& friendlyMerged, const uint64_t& enemyMerged, const uint64_t& all, std::vector<Move> &moves, const uint64_t& enemyKing) {
+void Movegen::generateBishopMoves(uint64_t bishops) {
     while(bishops){
         int pos = bit_ops::bitScanForwardPopLsb(bishops);
         auto movesBitboard = Magics::getBishopMoves(all, pos);
-        bitboardToMoves(pos, movesBitboard, moves, enemyMerged, enemyKing, Board::BISHOP, friendlyMerged);
+        bitboardToMoves(pos, movesBitboard, Board::BISHOP);
     }
 }
 
-void Movegen::generateQueenMoves(uint64_t queens, const uint64_t& friendlyMerged, const uint64_t& enemyMerged, const uint64_t& all, std::vector<Move> &moves, const uint64_t& enemyKing) {
+void Movegen::generateQueenMoves(uint64_t queens) {
     while (queens){
         int pos = bit_ops::bitScanForwardPopLsb(queens);
         auto movesBitboard = Magics::getBishopMoves(all, pos);
         movesBitboard |= Magics::getRookMoves(all, pos);
-        bitboardToMoves(pos, movesBitboard, moves, enemyMerged, enemyKing, Board::QUEEN, friendlyMerged);
+        bitboardToMoves(pos, movesBitboard, Board::QUEEN);
     }
 }
 
-void Movegen::generateKnightMoves(uint64_t knight, const uint64_t& friendlyMerged, const uint64_t& enemyMerged, const uint64_t& all, std::vector<Move> &moves, const uint64_t& enemyKing) {
+void Movegen::generateKnightMoves(uint64_t knight) {
     while(knight){
         int pos = bit_ops::bitScanForwardPopLsb(knight);
         auto bb = KNIGHT_MOVES[pos];
-        bitboardToMoves(pos, bb, moves, enemyMerged, enemyKing, Board::KNIGHT, friendlyMerged);
+        bitboardToMoves(pos, bb, Board::KNIGHT);
     }
 }
 
-void Movegen::generateKingMoves(uint64_t king, const uint64_t& friendlyMerged, const uint64_t& enemyMerged, const uint64_t& all, std::vector<Move> &moves, const bool castling[2], bool whoPlay) {
+void Movegen::generateKingMoves(uint64_t king,  const bool castling[2], bool whoPlay) {
     auto pos = bit_ops::bitScanForwardPopLsb(king);
     auto bb = KING_MOVES[pos];
-    bitboardToMoves(pos, bb, moves, enemyMerged, 0, Board::KING, friendlyMerged);
-    // board.makeMove will handle castling (if its possible)
-    // we can check, if something is between rooks and kings <-> not possible.
+    bitboardToMoves(pos, bb, Board::KING);
+    // Note, in board.cpp we handle castling rights !!!
     auto castlingMasks = CASTLING_FREE_MASKS[!whoPlay];
     if(castling[Board::K_CASTLE] && (castlingMasks[0] & all) == 0){
-        moves[Movegen::index++] = {pos, pos + 2, Move::NONE, Move::CASTLING, Board::KING};
+        tmpMoves[Movegen::index++] = {pos, pos + 2, Move::NONE, Move::CASTLING, Board::KING};
     }
     if(castling[Board::Q_CASTLE] && (castlingMasks[1] & all) == 0){
-        moves[Movegen::index++] = {pos, pos - 3, Move::NONE, Move::CASTLING, Board::KING};
+        tmpMoves[Movegen::index++] = {pos, pos - 3, Move::NONE, Move::CASTLING, Board::KING};
     }
 }

@@ -1,16 +1,14 @@
 #ifndef SENTINEL_MOVE_H
 #define SENTINEL_MOVE_H
 
-#include "board.h"
-
 struct Move {
     enum type{
         CAPTURE,
-        CHECK,
         PROMOTION,
         QUIET,
         EN_PASSANT,
-        CASTLING
+        CASTLING,
+        DOUBLE_PAWN_UP
     };
     enum promotionType{
         NONE,
@@ -19,11 +17,11 @@ struct Move {
         BISHOP,
         KNIGHT
     };
-    int fromSq;
-    int toSq;
+    int fromSq = 0;
+    int toSq = 0;
     promotionType promotionType = NONE;
     type moveType = QUIET;
-    Board::pieceType movePiece;
+    int movePiece;
 };
 
 #endif //SENTINEL_MOVE_H

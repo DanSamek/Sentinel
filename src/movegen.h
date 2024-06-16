@@ -4,51 +4,11 @@
 #include <vector>
 #include <bitboard.h>
 #include <magics.h>
+#include <move.h>
 #include <board.h>
-#include "move.h"
 
 /*
-
     !!! DOING PSEUDO LEGAL MOVE GENERATION !!!
-    TODO LIST
-        -> king moves - DONE
-        -> knight moves - DONE
-
-
-
-        PRIORITY
-        -> pins and checks
-            -> precalculate direction table from each square (diagonal, horizontal)
-
-        -> checks
-            -> simple check detection. DONE
-            -> get direction -> generate possible check blocks (!! knights !!) || king moves.
-        -> pins
-            -> XRays DONE
-            -> & king bitboard
-             if no -> continue;
-            if yes -> find a piece if its hard pinned
-                 -> knight hard pinned always.
-                        or soft pinned.
-                 -> if same direction as moves, we can generate em
-                     -> move dir != attack dir -> hard pin.
-
-        -> slider moves (use magic bitboards) DONE
-            -> bishop DONE     TODO make "request to magic bitboard imp + collect moves"
-            -> rook  DONE      TODO make "request to magic bitboard imp + collect moves"
-                -> queen DONE  TODO make "request to magic bitboard imp + collect moves"
-
-        -> pawn moves
-            -> normal moves DONE
-            -> en passant DONE
-                -> one edge case on en passant !
-
-        -> king safe moves DONE <=> we have enemy attacks.
-        -> castling
-        -> moveBitboard convertor for all pieces.
-            -> DONE for all except pawns and kings.
-        -> PERFT tests
-
 */
 struct Movegen {
     // Color, square
@@ -77,7 +37,6 @@ struct Movegen {
         initKingMoves();
         initPawnAttacks();
         initPawnPushes();
-        tmpMoves.resize(218); // max possible moves.
     }
 
     static inline int index = 0;
@@ -89,30 +48,45 @@ struct Movegen {
      * @param enemyColor true -> white, false -> black.
      * @return attack bitboard.
      */
-    static uint64_t generateConstantEnemyAttacks(const uint64_t& king, const std::vector<uint64_t>& enemyPieces, bool enemyColor);
+    static uint64_t generateConstantEnemyAttacks(const uint64_t& king, const uint64_t* enemyPieces, bool enemyColor);
 
-    static inline std::vector<Move> tmpMoves, resultMoves;
 
-    static std::vector<Move> generateMoves(const Board& board){
-        resultMoves.clear();
-        index = 0;
+    static inline Move tmpMoves[218];
+    static inline std::vector<Move> resultMoves;
+
+    static inline uint64_t all, friendlyMerged, enemyMerged;
+
+    static std::vector<Move> generateMoves(Board& board){
+        resultMoves.clear(); index = 0;
         auto friendlyBits = board.whoPlay ? board.whitePieces : board.blackPieces;
         auto enemyBits = board.whoPlay ? board.blackPieces : board.whitePieces;
-        uint64_t friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5];
-        uint64_t enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5];
-        uint64_t all = friendlyMerged | enemyMerged;
+        friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5];
+        enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5];
+        all = friendlyMerged | enemyMerged;
 
         // generate enemy king, pawn, knight moves -> constant bitboard of enemy attacks.
         auto constantEnemyBB = generateConstantEnemyAttacks(friendlyBits[Board::KING], enemyBits, !board.whoPlay);
 
         // generate all possible moves for current player.
-        generatePawnMoves(friendlyBits[Board::PAWN], friendlyMerged, enemyMerged, all, board.enPassantSquare, board.whoPlay, tmpMoves);
-        generateRookMoves(friendlyBits[Board::ROOK], friendlyMerged, enemyMerged, all, tmpMoves, enemyBits[Board::KING]);
-        generateBishopMoves(friendlyBits[Board::BISHOP], friendlyMerged, enemyMerged, all, tmpMoves, enemyBits[Board::KING]);
-        generateQueenMoves(friendlyBits[Board::QUEEN], friendlyMerged, enemyMerged, all, tmpMoves, enemyBits[Board::KING]);
-        generateKnightMoves(friendlyBits[Board::KNIGHT], friendlyMerged, enemyMerged, all, tmpMoves, enemyBits[Board::KING]);
-        generateKingMoves(friendlyBits[Board::KING], friendlyMerged, enemyMerged, all, tmpMoves, board.castling[!board.whoPlay], board.whoPlay);
+        generatePawnMoves(friendlyBits[Board::PAWN], board.enPassantSquare, board.whoPlay);
+        generateRookMoves(friendlyBits[Board::ROOK]);
+        generateBishopMoves(friendlyBits[Board::BISHOP]);
+        generateQueenMoves(friendlyBits[Board::QUEEN]);
+        generateKnightMoves(friendlyBits[Board::KNIGHT]);
+        generateKingMoves(friendlyBits[Board::KING], board.castling[!board.whoPlay], board.whoPlay);
 
+        // copy to a result.
+        for(int j = 0; j < index; j++){
+            // play move.
+            board.makeMove(tmpMoves[j]);
+            // check position <-> king no check.
+            // validate if mine king is checked.
+            bool valid = false;
+            if(valid) resultMoves.emplace_back(tmpMoves[j]);
+
+            // board.printBoard();
+            board.undoMove(tmpMoves[j]);
+        }
         // generate enemy attacks
         // play them on a board, check if there is no enemy check <-> handle current king as a queen, check all rays, if somewhere is slider | constantEb -> not a valid move.
         return resultMoves;
@@ -127,7 +101,7 @@ struct Movegen {
      * @param b pawn bitboard
      * @param occupancy entire occupancy
      */
-    static void generatePawnMoves(uint64_t b, const uint64_t &current, const uint64_t &enemy, const uint64_t& all, int enPassantSquare, bool color, std::vector<Move>& moves);
+    static void generatePawnMoves(uint64_t b, int enPassantSquare, bool color);
 
     /***
      * ULL lookup tables for all king moves.
@@ -166,13 +140,13 @@ struct Movegen {
      * @param fromSquare bit index from square
      * @param moveBitboard generated bitboard moves
      * @param moves reference to all moves -> will be returned from movegen.
-     * @param enemies all bits for enemies
+     * @param enemyMerged all bits for enemyMerged
      * @param enemyKing bitboard for an enemy king
      * @param pieceType
      * Reason for this -> move order by checks/capture, etc..
      * @note for all except pawns and kings. This method handles captures, quiets, checks, no more.
      */
-    static void bitboardToMoves(int fromSquare, uint64_t moveBitboard, std::vector<Move> &moves, const uint64_t& enemies, const uint64_t& enemyKing, Board::pieceType pieceType, const uint64_t& friendly);
+    static void bitboardToMoves(int fromSquare, uint64_t moveBitboard, Board::pieceType pieceType);
 
     /***
      * Slider move generation. for  generateRookMoves, generateBishopMoves, generateQueenMoves
@@ -185,12 +159,12 @@ struct Movegen {
      * @param moves
      * @param enemyKing
      */
-    static void generateRookMoves(uint64_t rooks, const uint64_t& friendlyMerged, const uint64_t& enemyMerged, const uint64_t& all, std::vector<Move> &moves, const uint64_t& enemyKing);
-    static void generateBishopMoves(uint64_t bishops, const uint64_t& friendlyMerged, const uint64_t& enemyMerged, const uint64_t& all, std::vector<Move> &moves, const uint64_t& enemyKing);
-    static void generateQueenMoves(uint64_t queens, const uint64_t& friendlyMerged, const uint64_t& enemyMerged, const uint64_t& all, std::vector<Move> &moves, const uint64_t& enemyKing);
-    static void generateKnightMoves(uint64_t knight, const uint64_t& friendlyMerged, const uint64_t& enemyMerged, const uint64_t& all, std::vector<Move> &moves, const uint64_t& enemyKing);
-    static void generateKingMoves(uint64_t king, const uint64_t& friendlyMerged, const uint64_t& enemyMerged, const uint64_t& all, std::vector<Move> &moves, const bool castling[2], bool whoPlay);
-
+    static void generateRookMoves(uint64_t rooks);
+    static void generateBishopMoves(uint64_t bishops);
+    static void generateQueenMoves(uint64_t queens);
+    static void generateKnightMoves(uint64_t knight);
+    static void generateKingMoves(uint64_t king,  const bool castling[2], bool whoPlay);
+    static void generatePromotions(int fromSq, int toSq);
 };
 
 

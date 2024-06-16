@@ -1,3 +1,4 @@
+
 #ifndef SENTINEL_BOARD_H
 #define SENTINEL_BOARD_H
 
@@ -5,9 +6,13 @@
 #include <string>
 #include <vector>
 #include <bitboard.h>
+#include <bit_ops.h>
+#include <move.h>
+
 
 class Board {
     static inline std::map<char, int> pieceIndexMap = {{'p',0}, {'n', 1}, {'b', 2}, {'r',3}, {'q',4}, {'k', 5}};
+    static inline std::map<int, char> reversedPieceIndexMap = {{0, 'p'}, {1, 'n'}, {2, 'b'}, {3, 'r'}, {4, 'q'}, {5, 'k'}};
     // lazy mapping.
     static inline std::map<char, int> files = {{'a', 0}, {'b', 1}, {'c', 2}, {'d',3}, {'e', 4}, {'f', 5}, {'g', 6}, {'h',7}};
     static inline std::map<char, int> ranks = {{'1',7}, {'2',6},{'3',5},{'4',4}, {'5',3}, {'6',2}, {'7',1}, {'8',0}};
@@ -26,9 +31,11 @@ public:
         WHITE,
         BLACK
     };
+
+
     // Bitboards
-    std::vector<uint64_t> whitePieces; // make it easy
-    std::vector<uint64_t> blackPieces;
+    uint64_t whitePieces[6]; // make it easy
+    uint64_t blackPieces[6];
 
     // enPassantSquare is set to -1 if there is no enpassant
     int halfMove, fullMove, enPassantSquare;
@@ -57,8 +64,28 @@ public:
      * @return bitboard for a request.
      */
     const uint64_t& getPieceBitboard(pieceType type, pieceColor color) const;
+
+    /***
+     * Makes a move on a board.
+     * Non const -> we will change move::capturePiece.
+     * @param move
+     */
+    void makeMove(const Move& move);
+
+    /***
+     * Undo a move.
+     * @param move
+     */
+    void undoMove(const Move& move);
+
+    /***
+     * Simple board print of a current state.
+     */
+    void printBoard();
+
 private:
-    void initPieces(std::vector<uint64_t>& pieces);
+    std::pair<Board::pieceType, bool> getPieceTypeFromSQ(int square, const uint64_t* bbs);
+    void initPieces(uint64_t* pieces);
 };
 
 

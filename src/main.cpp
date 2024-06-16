@@ -2,21 +2,23 @@
 #include <magics.h>
 #include <movegen.h>
 
+
+
 int main(){
-    boardTests::testBoard();
     Magics::init();
     Movegen::initTables();
-
+    boardTests::testBoard();
     Board board;
-    board.loadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    board.loadFEN("4kbn1/prpp4/Pp5r/Q3pppp/P1P4q/8/N2PPPPP/1R1K1BNR w - - 2 19");
+    board.printBoard();
 
-
+    // 10'000'000 * 33 => 330 000 000 moves / ~2.5 sec => ~~ 140 000 000 moves/sec
+    Movegen::generateMoves(board);
     int tc = 10'000'000;
     while(tc--){
         Movegen::generateMoves(board);
     }
     return 1;
-
     auto friendlyBits = board.whoPlay ? board.whitePieces : board.blackPieces;
     auto enemyBits = board.whoPlay ? board.blackPieces : board.whitePieces;
 
