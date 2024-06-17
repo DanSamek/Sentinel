@@ -29,7 +29,8 @@ struct Movegen {
     static inline uint64_t AND_BITBOARDS[64];
 
     // mask for piece checks - if its possible to make a castling (no pieces between)
-    static inline uint64_t CASTLING_FREE_MASKS[2][2] = {{0x6000000000000000, 0x600000000000000},{0x6,0x60}};
+
+    static inline uint64_t CASTLING_FREE_MASKS[2][2] = {{0xe00000000000000, 0x6000000000000000},{0xe,0x60}};
     /***
      * Initialization of all movegen tables - magic bitboards, knight bitboards, king bitboards.
      */
@@ -78,6 +79,11 @@ struct Movegen {
             // castling move, check 2 another squares.
             int kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
             if(tmpMoves[j].moveType == Move::CASTLING){
+                friendlyBits = board.whoPlay ? board.whitePieces : board.blackPieces;
+                enemyBits = board.whoPlay ? board.blackPieces : board.whitePieces;
+                friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5];
+                enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5];
+                all = friendlyMerged | enemyMerged;
                 bool valid = validateKingCheck(kingPos, board.whoPlay, enemyBits);
                 if(!valid) continue;
                 bool kingSide = tmpMoves[j].toSq > tmpMoves[j].fromSq;
@@ -99,7 +105,7 @@ struct Movegen {
             all = friendlyMerged | enemyMerged;
             kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
 
-            bool valid = validateKingCheck(kingPos, board.whoPlay, enemyBits);
+            bool valid = validateKingCheck(kingPos, !board.whoPlay, enemyBits);
             if(valid){
                 moves[resultSize] = std::move(tmpMoves[j]);
                 resultSize++;

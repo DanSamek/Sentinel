@@ -235,11 +235,11 @@ void Movegen::generateKingMoves(uint64_t king, const std::array<bool,2>& castlin
     bitboardToMoves(pos, bb, Board::KING);
     // Note, in board.cpp we handle castling rights !!!
     auto castlingMasks = CASTLING_FREE_MASKS[!whoPlay];
-    if(castling[Board::K_CASTLE] && (castlingMasks[0] & all) == 0){
+    if(castling[Board::K_CASTLE] && (castlingMasks[Board::K_CASTLE] & all) == 0){
         tmpMoves[Movegen::index++] = {pos, pos + 2, Move::NONE, Move::CASTLING, Board::KING};
     }
-    if(castling[Board::Q_CASTLE] && (castlingMasks[1] & all) == 0){
-        tmpMoves[Movegen::index++] = {pos, pos - 3, Move::NONE, Move::CASTLING, Board::KING};
+    if(castling[Board::Q_CASTLE] && (castlingMasks[Board::Q_CASTLE] & all) == 0){
+        tmpMoves[Movegen::index++] = {pos, pos - 2, Move::NONE, Move::CASTLING, Board::KING};
     }
 }
 
@@ -255,7 +255,7 @@ bool Movegen::validateKingCheck(int kingPos, bool whoPlay, uint64_t *enemyBits) 
     if(KNIGHT_MOVES[kingPos] & enemyBits[Board::KNIGHT]) return false;
 
     // pawns
-    if(PAWN_ATTACK_MOVES[whoPlay][kingPos] & enemyBits[Board::PAWN]) return false;
+    if(PAWN_ATTACK_MOVES[!whoPlay][kingPos] & enemyBits[Board::PAWN]) return false;
 
     // kings.
     if(KING_MOVES[kingPos] & enemyBits[Board::KING]) return false;

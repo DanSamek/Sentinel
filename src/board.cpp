@@ -135,6 +135,19 @@ void Board::makeMove(const Move &move, int depth) {
             if(type.second){
                 bit_ops::popNthBit(enemyPieces[type.first], move.toSq);
                 currentState.captureType = type.first;
+                // pawn can capture rook -> no castling.
+                if(type.first == ROOK){
+                    // black enemy
+                    if(whoPlay){
+                        if(move.toSq == 0) enemyCastling[Q_CASTLE] = false;
+                        else if(move.toSq == 7) enemyCastling[K_CASTLE] = false;
+                    }
+                        // white enemy
+                    else{
+                        if(move.toSq == 56) enemyCastling[Q_CASTLE] = false;
+                        else if(move.toSq == 63) enemyCastling[K_CASTLE] = false;
+                    }
+                }
             }
             break;
         case Move::QUIET:
@@ -172,7 +185,7 @@ void Board::makeMove(const Move &move, int depth) {
             }
             // queenSide
             else{
-                bit_ops::popNthBit(currentPieces[ROOK], move.toSq - 1);
+                bit_ops::popNthBit(currentPieces[ROOK], move.toSq - 2);
                 bit_ops::setNthBit(currentPieces[ROOK], move.toSq + 1);
                 bit_ops::popNthBit(currentPieces[KING], move.fromSq);
                 bit_ops::setNthBit(currentPieces[KING], move.toSq);
@@ -256,7 +269,7 @@ void Board::undoMove(const Move &move, int depth) {
             // queenSide
             else{
                 bit_ops::popNthBit(currentPieces[ROOK], move.toSq + 1);
-                bit_ops::setNthBit(currentPieces[ROOK], move.toSq - 1);
+                bit_ops::setNthBit(currentPieces[ROOK], move.toSq - 2);
                 bit_ops::popNthBit(currentPieces[KING], move.toSq);
                 bit_ops::setNthBit(currentPieces[KING], move.fromSq);
             }
