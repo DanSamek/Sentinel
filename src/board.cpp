@@ -60,10 +60,10 @@ void Board::makeMove(const Move &move, int depth) {
     auto currentPieces = whoPlay ? whitePieces : blackPieces;
     auto enemyPieces = !whoPlay ? whitePieces : blackPieces;
 
-    auto currentCastling = whoPlay ? castling[0] : castling[1];
+    auto currentCastling = whoPlay ? castling[0].data() : castling[1].data();
+    auto enemyCastling = whoPlay ? castling[1].data() : castling[0].data();
 
     bool setEnPassant = false;
-    int maybeCastle = (move.fromSq % 8 == 0) ? Q_CASTLE : K_CASTLE;
 
     State currentState;
     currentState.enPassantSquare = enPassantSquare;
@@ -81,12 +81,31 @@ void Board::makeMove(const Move &move, int depth) {
             bit_ops::popNthBit(enemyPieces[type.first], move.toSq);
 
             currentState.captureType = type.first;
-
-            // same as in quiet.
-            if(move.movePiece == ROOK && castling[!whoPlay][maybeCastle]){
-                currentCastling[maybeCastle] = false;
+            // !! castling !! <-> for enemy !!
+            if(type.first == ROOK){
+                // black enemy
+                if(whoPlay){
+                    if(move.toSq == 0) enemyCastling[Q_CASTLE] = false;
+                    else if(move.toSq == 7) enemyCastling[K_CASTLE] = false;
+                }
+                // white enemy
+                else{
+                    if(move.toSq == 56) enemyCastling[Q_CASTLE] = false;
+                    else if(move.toSq == 63) enemyCastling[K_CASTLE] = false;
+                }
             }
-            else if(move.movePiece == KING){
+            // same as in quiet.
+            if(move.movePiece == ROOK){
+                if(whoPlay){
+                    if(move.fromSq == 56) currentCastling[Q_CASTLE] = false;
+                    else if(move.fromSq== 63) currentCastling[K_CASTLE] = false;
+                }
+                else{
+                    if(move.fromSq == 0) currentCastling[Q_CASTLE] = false;
+                    else if(move.fromSq == 7) currentCastling[K_CASTLE] = false;
+                }
+            }
+            if(move.movePiece == KING){
                 currentCastling[0] = false;
                 currentCastling[1] = false;
             }
@@ -122,8 +141,15 @@ void Board::makeMove(const Move &move, int depth) {
             // !!! rooks  !!! <-> disable castling.
             bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
             bit_ops::setNthBit(currentPieces[move.movePiece], move.toSq);
-            if(move.movePiece == ROOK && castling[!whoPlay][maybeCastle]){
-                castling[!whoPlay][maybeCastle] = false;
+            if(move.movePiece == ROOK){
+                if(whoPlay){
+                    if(move.fromSq == 56) currentCastling[Q_CASTLE] = false;
+                    else if(move.fromSq== 63) currentCastling[K_CASTLE] = false;
+                }
+                else{
+                    if(move.fromSq == 0) currentCastling[Q_CASTLE] = false;
+                    else if(move.fromSq == 7) currentCastling[K_CASTLE] = false;
+                }
             }
             // disable castling.
             else if(move.movePiece == KING){
@@ -151,8 +177,8 @@ void Board::makeMove(const Move &move, int depth) {
                 bit_ops::popNthBit(currentPieces[KING], move.fromSq);
                 bit_ops::setNthBit(currentPieces[KING], move.toSq);
             }
-            currentCastling[0] = 0;
-            currentCastling[1] = 0;
+            currentCastling[0] = false;
+            currentCastling[1] = false;
             break;
         case Move::DOUBLE_PAWN_UP:
             bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
@@ -170,21 +196,21 @@ void Board::makeMove(const Move &move, int depth) {
 }
 
 void Board::undoMove(const Move &move, int depth) {
-    auto state = std::move(STACK[depth]); // just move, wont be used anymore on stack.
+    auto prevState = std::move(STACK[depth]);
     whoPlay = !whoPlay;
 
     auto currentPieces = whoPlay ? whitePieces : blackPieces;
     auto enemyPieces = !whoPlay ? whitePieces : blackPieces;
 
-    castling = std::move(state.castling); // set prev castling rules.
-    enPassantSquare = state.enPassantSquare; // reset of an en passant square.
+    castling = std::move(prevState.castling); // set prev castling rules.
+    enPassantSquare = prevState.enPassantSquare; // reset of an en passant square.
 
     switch (move.moveType) {
         case Move::CAPTURE:
             bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
             bit_ops::popNthBit(currentPieces[move.movePiece], move.toSq);
 
-            bit_ops::setNthBit(enemyPieces[state.captureType], move.toSq);
+            bit_ops::setNthBit(enemyPieces[prevState.captureType], move.toSq);
             break;
         case Move::PROMOTION:
             // undo a promotion
@@ -206,7 +232,7 @@ void Board::undoMove(const Move &move, int depth) {
                     throw std::out_of_range("UNEXPECTED UNDER-PROMOTION!");
             }
             // undo capture.
-            if(state.captureType != -1) bit_ops::setNthBit(enemyPieces[state.captureType], move.toSq);
+            if(prevState.captureType != -1) bit_ops::setNthBit(enemyPieces[prevState.captureType], move.toSq);
             break;
         case Move::QUIET:
             bit_ops::popNthBit(currentPieces[move.movePiece], move.toSq);

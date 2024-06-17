@@ -153,7 +153,7 @@ void Movegen::generatePawnMoves(uint64_t b, int enPassantSquare, bool color) {
             bb &= ~all;
             while(bb){
                 auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
-                tmpMoves[Movegen::index++] = {bit, tmpBit, Move::NONE, (tmpBit - bit) > 8 ? Move::DOUBLE_PAWN_UP : Move::QUIET, Board::PAWN};
+                tmpMoves[Movegen::index++] = {bit, tmpBit, Move::NONE, abs(tmpBit - bit) > 8 ? Move::DOUBLE_PAWN_UP : Move::QUIET, Board::PAWN};
             }
         }
         else{
@@ -180,39 +180,6 @@ void Movegen::generatePromotions(int fromSq, int toSq){
     tmpMoves[Movegen::index++] = {fromSq, toSq, Move::BISHOP, Move::PROMOTION, Board::PAWN};
     tmpMoves[Movegen::index++] = {fromSq, toSq, Move::ROOK, Move::PROMOTION, Board::PAWN};
     tmpMoves[Movegen::index++] = {fromSq, toSq, Move::KNIGHT, Move::PROMOTION, Board::PAWN};
-}
-
-
-uint64_t Movegen::generateConstantEnemyAttacks(const uint64_t& king, const uint64_t* enemyPieces, bool enemyColor) {
-    int checkCount = 0;
-    uint64_t attacks = 0ULL;
-    uint64_t current = attacks;
-    // enemy king attack gen
-    auto enemyKing = enemyPieces[Board::KING];
-    while(enemyKing){
-        int pos = bit_ops::bitScanForwardPopLsb(enemyKing);
-        attacks |= KING_MOVES[pos];
-    }
-
-    auto knights = enemyPieces[Board::KNIGHT];
-    while(knights){
-        int pos = bit_ops::bitScanForwardPopLsb(knights);
-        current = KNIGHT_MOVES[pos];
-        incrementIfKingChecked(king, current, checkCount);
-        attacks |= current;
-    }
-
-    auto pawns = enemyPieces[Board::PAWN];
-    auto color = enemyColor ? 0 : 1;
-
-    while(pawns){
-        int pos = bit_ops::bitScanForwardPopLsb(pawns);
-        current = PAWN_ATTACK_MOVES[color][pos];
-        incrementIfKingChecked(king, current, checkCount);
-        attacks |= current;
-    }
-
-    return attacks;
 }
 
 void Movegen::incrementIfKingChecked(const uint64_t &king, const uint64_t &attacks, int& checkCount) {

@@ -44,15 +44,6 @@ struct Movegen {
 
     static inline int index = 0;
 
-    /***
-     * Generates enemy constant attacks - king, knights, pawns.
-     * @param king bitboard
-     * @param enemyPieces
-     * @param enemyColor true -> white, false -> black.
-     * @return attack bitboard.
-     */
-    static uint64_t generateConstantEnemyAttacks(const uint64_t& king, const uint64_t* enemyPieces, bool enemyColor);
-
     static inline Move tmpMoves[MAX_LEGAL_MOVES];
 
     static inline uint64_t all, friendlyMerged, enemyMerged;
@@ -85,10 +76,13 @@ struct Movegen {
         int resultSize = 0;
         for(int j = 0; j < index; j++){
             // castling move, check 2 another squares.
+            int kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
             if(tmpMoves[j].moveType == Move::CASTLING){
+                bool valid = validateKingCheck(kingPos, board.whoPlay, enemyBits);
+                if(!valid) continue;
                 bool kingSide = tmpMoves[j].toSq > tmpMoves[j].fromSq;
                 int sqToCheck = kingSide ? tmpMoves[j].fromSq + 1 : tmpMoves[j].fromSq - 1;
-                bool valid = validateKingCheck(sqToCheck, board.whoPlay, enemyBits);
+                valid = validateKingCheck(sqToCheck, board.whoPlay, enemyBits);
                 if(!valid) continue;
                 sqToCheck =  kingSide ? tmpMoves[j].fromSq + 2 : tmpMoves[j].fromSq - 2;
                 valid = validateKingCheck(sqToCheck, board.whoPlay, enemyBits);
@@ -103,11 +97,11 @@ struct Movegen {
             friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5];
             enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5];
             all = friendlyMerged | enemyMerged;
-            int kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
+            kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
 
             bool valid = validateKingCheck(kingPos, board.whoPlay, enemyBits);
             if(valid){
-                moves[resultSize] = std::move(tmpMoves[resultSize]);
+                moves[resultSize] = std::move(tmpMoves[j]);
                 resultSize++;
             }
             board.undoMove(tmpMoves[j], Board::MAX_DEPTH);
