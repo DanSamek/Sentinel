@@ -6,12 +6,15 @@
 #include <magics.h>
 #include <move.h>
 #include <board.h>
+#include <span>
 
 /*
     !!! DOING PSEUDO LEGAL MOVE GENERATION !!!
+        AKA generate all moves, check if moves are legal - king not checked.
 */
 struct Movegen {
     // Color, square
+    static constexpr int MAX_LEGAL_MOVES = 218;
     static inline uint64_t PAWN_ATTACK_MOVES[2][64];
     static inline uint64_t PAWN_PUSH_MOVES[2][64];
     static inline uint64_t PAWN_ILLEGAL_AND[2][64];
@@ -50,22 +53,25 @@ struct Movegen {
      */
     static uint64_t generateConstantEnemyAttacks(const uint64_t& king, const uint64_t* enemyPieces, bool enemyColor);
 
-
-    static inline Move tmpMoves[218];
-    static inline std::vector<Move> resultMoves;
+    static inline Move tmpMoves[MAX_LEGAL_MOVES];
 
     static inline uint64_t all, friendlyMerged, enemyMerged;
 
-    static std::vector<Move> generateMoves(Board& board){
-        resultMoves.clear(); index = 0;
+    static bool validateKingCheck(int kingPos, bool whoPlay, uint64_t enemyBits[6]);
+
+/***
+     * @param board Board for movegen.
+     * @param moves Result valid moves.
+     * @return totalNumber of moves.
+     */
+    static int generateMoves(Board& board, Move moves[MAX_LEGAL_MOVES]){
+        index = 0;
         auto friendlyBits = board.whoPlay ? board.whitePieces : board.blackPieces;
         auto enemyBits = board.whoPlay ? board.blackPieces : board.whitePieces;
         friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5];
         enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5];
         all = friendlyMerged | enemyMerged;
 
-        // generate enemy king, pawn, knight moves -> constant bitboard of enemy attacks.
-        auto constantEnemyBB = generateConstantEnemyAttacks(friendlyBits[Board::KING], enemyBits, !board.whoPlay);
 
         // generate all possible moves for current player.
         generatePawnMoves(friendlyBits[Board::PAWN], board.enPassantSquare, board.whoPlay);
@@ -76,20 +82,38 @@ struct Movegen {
         generateKingMoves(friendlyBits[Board::KING], board.castling[!board.whoPlay], board.whoPlay);
 
         // copy to a result.
+        int resultSize = 0;
         for(int j = 0; j < index; j++){
+            // castling move, check 2 another squares.
+            if(tmpMoves[j].moveType == Move::CASTLING){
+                bool kingSide = tmpMoves[j].toSq > tmpMoves[j].fromSq;
+                int sqToCheck = kingSide ? tmpMoves[j].fromSq + 1 : tmpMoves[j].fromSq - 1;
+                bool valid = validateKingCheck(sqToCheck, board.whoPlay, enemyBits);
+                if(!valid) continue;
+                sqToCheck =  kingSide ? tmpMoves[j].fromSq + 2 : tmpMoves[j].fromSq - 2;
+                valid = validateKingCheck(sqToCheck, board.whoPlay, enemyBits);
+                if(!valid) continue;
+            }
             // play move.
-            board.makeMove(tmpMoves[j]);
-            // check position <-> king no check.
-            // validate if mine king is checked.
-            bool valid = false;
-            if(valid) resultMoves.emplace_back(tmpMoves[j]);
+            board.makeMove(tmpMoves[j], Board::MAX_DEPTH);
+            // we need updated pieces.
+            // !! changed move !! (whoplay).
+            enemyBits = !board.whoPlay ? board.blackPieces : board.whitePieces;
+            friendlyBits = !board.whoPlay ? board.whitePieces : board.blackPieces;
+            friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5];
+            enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5];
+            all = friendlyMerged | enemyMerged;
+            int kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
 
-            // board.printBoard();
-            board.undoMove(tmpMoves[j]);
+            bool valid = validateKingCheck(kingPos, board.whoPlay, enemyBits);
+            if(valid){
+                moves[resultSize] = std::move(tmpMoves[resultSize]);
+                resultSize++;
+            }
+            board.undoMove(tmpMoves[j], Board::MAX_DEPTH);
         }
-        // generate enemy attacks
-        // play them on a board, check if there is no enemy check <-> handle current king as a queen, check all rays, if somewhere is slider | constantEb -> not a valid move.
-        return resultMoves;
+
+        return resultSize;
     }
 
 
@@ -163,7 +187,7 @@ struct Movegen {
     static void generateBishopMoves(uint64_t bishops);
     static void generateQueenMoves(uint64_t queens);
     static void generateKnightMoves(uint64_t knight);
-    static void generateKingMoves(uint64_t king,  const bool castling[2], bool whoPlay);
+    static void generateKingMoves(uint64_t king,  const std::array<bool, 2>& castling, bool whoPlay);
     static void generatePromotions(int fromSq, int toSq);
 };
 

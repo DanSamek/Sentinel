@@ -4,7 +4,7 @@ project(Sentinel)
 set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_CXX_FLAGS "-Wall -pedantic")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address,undefined")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 include_directories(src/tests)
@@ -24,4 +24,6 @@ add_executable(Sentinel
         src/move.cpp
         src/bit_ops.h
         src/bit_ops.cpp
+        src/State.h
+        src/tests/perftTests.cpp
 )

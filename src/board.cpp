@@ -56,7 +56,7 @@ const uint64_t & Board::getPieceBitboard(pieceType type, pieceColor color) const
     return color == WHITE ? whitePieces[type] : blackPieces[type];
 }
 
-void Board::makeMove(const Move &move) {
+void Board::makeMove(const Move &move, int depth) {
     auto currentPieces = whoPlay ? whitePieces : blackPieces;
     auto enemyPieces = !whoPlay ? whitePieces : blackPieces;
 
@@ -64,6 +64,11 @@ void Board::makeMove(const Move &move) {
 
     bool setEnPassant = false;
     int maybeCastle = (move.fromSq % 8 == 0) ? Q_CASTLE : K_CASTLE;
+
+    State currentState;
+    currentState.enPassantSquare = enPassantSquare;
+    currentState.castling = castling;
+
     std::pair<uint64_t , bool> type;
     switch (move.moveType) {
         case Move::CAPTURE:
@@ -75,9 +80,11 @@ void Board::makeMove(const Move &move) {
             type = getPieceTypeFromSQ(move.toSq, enemyPieces);
             bit_ops::popNthBit(enemyPieces[type.first], move.toSq);
 
+            currentState.captureType = type.first;
+
             // same as in quiet.
             if(move.movePiece == ROOK && castling[!whoPlay][maybeCastle]){
-                castling[!whoPlay][maybeCastle] = false;
+                currentCastling[maybeCastle] = false;
             }
             else if(move.movePiece == KING){
                 currentCastling[0] = false;
@@ -105,8 +112,11 @@ void Board::makeMove(const Move &move) {
             }
 
             // find enemy piece and pop bit.
-            type =getPieceTypeFromSQ(move.toSq, enemyPieces);
-            if(type.second) bit_ops::popNthBit(type.first,move.toSq);
+            type = getPieceTypeFromSQ(move.toSq, enemyPieces);
+            if(type.second){
+                bit_ops::popNthBit(enemyPieces[type.first], move.toSq);
+                currentState.captureType = type.first;
+            }
             break;
         case Move::QUIET:
             // !!! rooks  !!! <-> disable castling.
@@ -125,7 +135,6 @@ void Board::makeMove(const Move &move) {
             bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
             bit_ops::setNthBit(currentPieces[move.movePiece], move.toSq);
             bit_ops::popNthBit(enemyPieces[move.movePiece], whoPlay ? move.toSq + 8 : move.toSq - 8);
-            setEnPassant = true;
             break;
         case Move::CASTLING:
             // kingSide
@@ -142,7 +151,6 @@ void Board::makeMove(const Move &move) {
                 bit_ops::popNthBit(currentPieces[KING], move.fromSq);
                 bit_ops::setNthBit(currentPieces[KING], move.toSq);
             }
-
             currentCastling[0] = 0;
             currentCastling[1] = 0;
             break;
@@ -150,22 +158,88 @@ void Board::makeMove(const Move &move) {
             bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
             bit_ops::setNthBit(currentPieces[move.movePiece], move.toSq);
             enPassantSquare = (move.fromSq + move.toSq) / 2;
+            setEnPassant = true;
             break;
     }
+
+    // save state to a current depth
+    STACK[depth] = std::move(currentState);
 
     whoPlay = !whoPlay;
     enPassantSquare = setEnPassant ? enPassantSquare : -1;
 }
 
-void Board::undoMove(const Move &move) {
-
-
-
-
-
-
+void Board::undoMove(const Move &move, int depth) {
+    auto state = std::move(STACK[depth]); // just move, wont be used anymore on stack.
     whoPlay = !whoPlay;
 
+    auto currentPieces = whoPlay ? whitePieces : blackPieces;
+    auto enemyPieces = !whoPlay ? whitePieces : blackPieces;
+
+    castling = std::move(state.castling); // set prev castling rules.
+    enPassantSquare = state.enPassantSquare; // reset of an en passant square.
+
+    switch (move.moveType) {
+        case Move::CAPTURE:
+            bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
+            bit_ops::popNthBit(currentPieces[move.movePiece], move.toSq);
+
+            bit_ops::setNthBit(enemyPieces[state.captureType], move.toSq);
+            break;
+        case Move::PROMOTION:
+            // undo a promotion
+            bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
+            switch (move.promotionType) {
+                case Move::QUEEN:
+                    bit_ops::popNthBit(currentPieces[QUEEN], move.toSq);
+                    break;
+                case Move::ROOK:
+                    bit_ops::popNthBit(currentPieces[ROOK], move.toSq);
+                    break;
+                case Move::BISHOP:
+                    bit_ops::popNthBit(currentPieces[BISHOP], move.toSq);
+                    break;
+                case Move::KNIGHT:
+                    bit_ops::popNthBit(currentPieces[KNIGHT], move.toSq);
+                    break;
+                default:
+                    throw std::out_of_range("UNEXPECTED UNDER-PROMOTION!");
+            }
+            // undo capture.
+            if(state.captureType != -1) bit_ops::setNthBit(enemyPieces[state.captureType], move.toSq);
+            break;
+        case Move::QUIET:
+            bit_ops::popNthBit(currentPieces[move.movePiece], move.toSq);
+            bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
+            break;
+        case Move::EN_PASSANT:
+            // move back pawn, "respawn" enemyPawn.
+            bit_ops::setNthBit(enemyPieces[move.movePiece], whoPlay ? move.toSq + 8 : move.toSq - 8);
+            bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
+            bit_ops::popNthBit(currentPieces[move.movePiece], move.toSq);
+            break;
+        case Move::CASTLING:
+            // move rook and king to original squares.
+            // kingSide
+            if(move.fromSq < move.toSq){
+                bit_ops::popNthBit(currentPieces[ROOK], move.toSq - 1);
+                bit_ops::setNthBit(currentPieces[ROOK], move.toSq + 1);
+                bit_ops::popNthBit(currentPieces[KING], move.toSq);
+                bit_ops::setNthBit(currentPieces[KING], move.fromSq);
+            }
+            // queenSide
+            else{
+                bit_ops::popNthBit(currentPieces[ROOK], move.toSq + 1);
+                bit_ops::setNthBit(currentPieces[ROOK], move.toSq - 1);
+                bit_ops::popNthBit(currentPieces[KING], move.toSq);
+                bit_ops::setNthBit(currentPieces[KING], move.fromSq);
+            }
+            break;
+        case Move::DOUBLE_PAWN_UP:
+            bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
+            bit_ops::popNthBit(currentPieces[move.movePiece], move.toSq);
+            break;
+    }
 }
 
 std::pair<Board::pieceType, bool> Board::getPieceTypeFromSQ(int square, const uint64_t* bbs) {
@@ -176,16 +250,21 @@ std::pair<Board::pieceType, bool> Board::getPieceTypeFromSQ(int square, const ui
 }
 
 void Board::printBoard() {
+    std::vector<bool> seen(64, false);
     for(int rank = 0; rank < 8; rank++){
         for(int file = 0; file < 8; file++){
             int square = rank * 8 + file;
             auto res = getPieceTypeFromSQ(square, whitePieces);
             if(res.second){
+                if(seen[square]) throw "??";
+                seen[square] = true;
                 std::cout << (char)toupper(reversedPieceIndexMap[res.first]) << " ";
                 continue;
             }
             res = getPieceTypeFromSQ(square, blackPieces);
             if(res.second){
+                if(seen[square]) throw "??";
+                seen[square] = true;
                 std::cout << reversedPieceIndexMap[res.first] << " ";
             }
             else{

@@ -12,7 +12,7 @@ struct boardTests {
         for(auto bit: bits) bit_ops::setNthBit(b, bit);
     }
 
-    static bool sameCastling(bool tmp1[2][2], bool tmp2[2][2]){
+    static bool sameCastling(std::array<std::array<bool,2>,2> tmp1, std::array<std::array<bool,2>,2> tmp2){
         for(int j = 0; j < 2; j++) for(int i = 0; i < 2; i++) if(tmp1[i][j] != tmp2[i][j]) return false;
         return true;
     }
@@ -22,7 +22,9 @@ struct boardTests {
         Board board;
         board.loadFEN("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 
-        bool tmp[2][2] = {{true, true}, {true, true}};
+        std::array<std::array<bool, 2>, 2> tmp;
+        tmp[0] = {true, true};
+        tmp[1]= {true, true};
         assert(sameCastling(board.castling ,tmp));
         assert(board.enPassantSquare == 44);
         assert(board.halfMove == 0);
@@ -43,7 +45,9 @@ struct boardTests {
         assert(board.getPieceBitboard(Board::ROOK, Board::BLACK)  == tmpBit );
 
         board.loadFEN("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50");
-        bool tmp2[2][2] = {{false, false}, {false, false}};
+        std::array<std::array<bool,2>,2> tmp2;
+        tmp2[0]= {false, false};
+        tmp2[1]= {false, false};
         assert(board.enPassantSquare  == -1);
         assert(board.halfMove == 99);
         assert(board.fullMove == 50);
@@ -64,7 +68,9 @@ struct boardTests {
 
         // WHITE, BLACK {queen, king}
         board.loadFEN("4k2r/6r1/8/8/8/8/3R4/R3K3 w Qk - 0 1");
-        bool tmp3[2][2] = {{true, false}, {false, true}};
+        std::array<std::array<bool,2>,2> tmp3;
+        tmp3[0] = {true, false};
+        tmp3[1] = {false, true};
         assert(board.enPassantSquare  == -1);
         assert(board.halfMove == 0);
         assert(board.fullMove == 1);

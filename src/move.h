@@ -12,10 +12,10 @@ struct Move {
     };
     enum promotionType{
         NONE,
-        QUEEN,
-        ROOK,
+        KNIGHT,
         BISHOP,
-        KNIGHT
+        ROOK,
+        QUEEN,
     };
     int fromSq = 0;
     int toSq = 0;

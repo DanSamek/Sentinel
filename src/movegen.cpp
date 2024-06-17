@@ -85,7 +85,7 @@ void Movegen::initPawnPushes(){
             PAWN_PUSH_MOVES[Board::WHITE][square] = tmp;
             tmp = PAWN_PUSH_MOVES[Board::WHITE][square];
 
-            bit_ops::popNthBit(tmp, first);
+            if(first >= 0 && first <= 63) bit_ops::popNthBit(tmp, first);
             PAWN_ILLEGAL_AND[Board::WHITE][square] = rank != 6 ? 1ULL : tmp;
 
 
@@ -102,7 +102,7 @@ void Movegen::initPawnPushes(){
             }
             PAWN_PUSH_MOVES[Board::BLACK][square] = tmp;
             tmp = PAWN_PUSH_MOVES[Board::BLACK][square];
-            bit_ops::popNthBit(tmp, first);
+            if(first >= 0 && first <= 63) bit_ops::popNthBit(tmp, first);
             PAWN_ILLEGAL_AND[Board::BLACK][square] = rank != 1 ? 1ULL : tmp;
         }
     }
@@ -262,7 +262,7 @@ void Movegen::generateKnightMoves(uint64_t knight) {
     }
 }
 
-void Movegen::generateKingMoves(uint64_t king,  const bool castling[2], bool whoPlay) {
+void Movegen::generateKingMoves(uint64_t king, const std::array<bool,2>& castling, bool whoPlay) {
     auto pos = bit_ops::bitScanForwardPopLsb(king);
     auto bb = KING_MOVES[pos];
     bitboardToMoves(pos, bb, Board::KING);
@@ -274,4 +274,23 @@ void Movegen::generateKingMoves(uint64_t king,  const bool castling[2], bool who
     if(castling[Board::Q_CASTLE] && (castlingMasks[1] & all) == 0){
         tmpMoves[Movegen::index++] = {pos, pos - 3, Move::NONE, Move::CASTLING, Board::KING};
     }
+}
+
+bool Movegen::validateKingCheck(int kingPos, bool whoPlay, uint64_t *enemyBits) {
+    // generate all possible moves FROM a king perspective.
+    // sliders
+    // rook || queen
+    if(Magics::getRookMoves(all, kingPos) & (enemyBits[Board::ROOK] | enemyBits[Board::QUEEN])) return false;
+
+    if(Magics::getBishopMoves(all, kingPos) & (enemyBits[Board::BISHOP] | enemyBits[Board::QUEEN])) return false;
+
+    // knights.
+    if(KNIGHT_MOVES[kingPos] & enemyBits[Board::KNIGHT]) return false;
+
+    // pawns
+    if(PAWN_ATTACK_MOVES[whoPlay][kingPos] & enemyBits[Board::PAWN]) return false;
+
+    // kings.
+    if(KING_MOVES[kingPos] & enemyBits[Board::KING]) return false;
+    return true;
 }

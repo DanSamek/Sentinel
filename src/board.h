@@ -8,6 +8,7 @@
 #include <bitboard.h>
 #include <bit_ops.h>
 #include <move.h>
+#include <State.h>
 
 
 class Board {
@@ -45,7 +46,10 @@ public:
     // WHITE, BLACK {queen, king}
     static inline int K_CASTLE = 1;
     static inline int Q_CASTLE = 0;
-    bool castling [2][2];
+    std::array<std::array<bool, 2>,2> castling;
+
+    static constexpr int MAX_DEPTH = 100;
+    static inline State STACK[MAX_DEPTH + 1];
 
     /***
      * Loads a fen to a board.
@@ -69,14 +73,16 @@ public:
      * Makes a move on a board.
      * Non const -> we will change move::capturePiece.
      * @param move
+     * @param depth Depth of a current state in search/movegen <-> static size stack (array)
      */
-    void makeMove(const Move& move);
+    void makeMove(const Move& move, int depth = 0);
 
     /***
      * Undo a move.
      * @param move
+     * @param depth Depth of a current state in search/movegen <-> static size stack (array)
      */
-    void undoMove(const Move& move);
+    void undoMove(const Move& move, int depth = 0);
 
     /***
      * Simple board print of a current state.
