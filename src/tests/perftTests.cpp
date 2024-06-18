@@ -23,26 +23,23 @@ struct perftTests{
         Board b;
         b.loadFEN(position);
         int res;
-        if(legal)res = generateMoves(b, depth);
+        if(legal) res = generateMoves(b, depth);
         else res = generateMovesPStoLG(b, depth);
         return res;
     }
 
     static int generateMoves(Board& b, int depth){
-        if(depth == 0) return 1;
         Move moves[Movegen::MAX_LEGAL_MOVES];
         int count = Movegen::generateMoves(b, moves);
+        if(depth == 1) return count;
         int res = 0;
         for(int j = 0; j < count; j++){
-
             b.makeMove(moves[j], depth);
-            res +=  generateMoves(b, depth-1);
+            res += generateMoves(b, depth-1);
             b.undoMove(moves[j], depth);
-
         }
         return res;
     }
-
 
     static int generateMovesPStoLG(Board& b, int depth){
         if(depth == 0) return 1;
@@ -61,7 +58,7 @@ struct perftTests{
             UPDATE_BOARD_STATE(b, !b.whoPlay);
             int kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
             bool valid = Movegen::validateKingCheck(kingPos, !b.whoPlay, enemyBits);
-            if(valid) res += generateMoves(b, depth-1);
+            if(valid) res += generateMovesPStoLG(b, depth-1);
             b.undoMove(moves[j], depth);
         }
         return res;

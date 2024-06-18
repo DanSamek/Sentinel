@@ -8,7 +8,7 @@
 #include <bitboard.h>
 #include <bit_ops.h>
 #include <move.h>
-#include <State.h>
+#include <state.h>
 
 
 class Board {
