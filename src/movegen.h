@@ -56,7 +56,7 @@ struct Movegen {
      * @param moves Result valid moves.
      * @return totalNumber of moves.
      */
-    static int generateMoves(Board& board, Move moves[MAX_LEGAL_MOVES]){
+    static int generateMoves(Board& board, Move moves[MAX_LEGAL_MOVES], bool legalOnly = true){
         index = 0;
         auto friendlyBits = board.whoPlay ? board.whitePieces : board.blackPieces;
         auto enemyBits = board.whoPlay ? board.blackPieces : board.whitePieces;
@@ -74,6 +74,13 @@ struct Movegen {
         generateKingMoves(friendlyBits[Board::KING], board.castling[!board.whoPlay], board.whoPlay);
 
         // copy to a result.
+
+        if(!legalOnly){
+            for(int j = 0; j < index; j++){
+                moves[j] = std::move(tmpMoves[j]);
+            }
+            return index;
+        }
         int resultSize = 0;
         for(int j = 0; j < index; j++){
             // castling move, check 2 another squares.

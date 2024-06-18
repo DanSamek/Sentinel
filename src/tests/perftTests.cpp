@@ -57,6 +57,8 @@ struct perftTests{
 
     static void runTests(){
         // r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7
+        runCase("8/8/8/1PpK4/5p2/4k3/8/8 b - - 0 24", 1, 7);
+        runCase("8/8/8/1PpK4/5p2/4k3/8/8 b - - 0 24", 9, 133225511);
         runCase("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7", 3, 81066);
 
         runCase("r3k2r/p1ppqpb1/bn2p1p1/3PN3/1p2P1n1/5Q1p/PPPBBPPP/R2NK2R w KQkq - 2 7", 1, 48);

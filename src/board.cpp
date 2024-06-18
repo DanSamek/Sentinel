@@ -1,6 +1,88 @@
 #include <sstream>
 #include <board.h>
 
+/*Macros for simplier code, don't want to create some functions to make it slower*/
+#define MOVE_PIECE(currentPieces, movePiece, fromSq, toSq) \
+    bit_ops::setNthBit(currentPieces[movePiece], toSq); \
+    bit_ops::popNthBit(currentPieces[movePiece], fromSq)
+
+
+#define HANDLE_CASTLING(move, whoPlay, currentCastling) \
+    switch (move.movePiece) { \
+        case ROOK: \
+            if (whoPlay) { \
+                switch (move.fromSq) { \
+                    case 56: \
+                        currentCastling[Q_CASTLE] = false; \
+                        break; \
+                    case 63: \
+                        currentCastling[K_CASTLE] = false; \
+                        break; \
+                    default: \
+                        break; \
+                } \
+            } else { \
+                switch (move.fromSq) { \
+                    case 0: \
+                        currentCastling[Q_CASTLE] = false; \
+                        break; \
+                    case 7: \
+                        currentCastling[K_CASTLE] = false; \
+                        break; \
+                    default: \
+                        break; \
+                } \
+            } \
+            break; \
+        case KING: \
+            currentCastling[0] = false; \
+            currentCastling[1] = false; \
+            break; \
+        default: \
+            break; \
+    }
+
+#define HANDLE_ENEMY_CASTLING(type, move, whoPlay, enemyCastling) \
+    switch (type.first) { \
+        case ROOK: \
+            if (whoPlay) { \
+                switch (move.toSq) { \
+                    case 0: \
+                        enemyCastling[Q_CASTLE] = false; \
+                        break; \
+                    case 7: \
+                        enemyCastling[K_CASTLE] = false; \
+                        break; \
+                    default: \
+                        break; \
+                } \
+            } else { \
+                switch (move.toSq) { \
+                    case 56: \
+                        enemyCastling[Q_CASTLE] = false; \
+                        break; \
+                    case 63: \
+                        enemyCastling[K_CASTLE] = false; \
+                        break; \
+                    default: \
+                        break; \
+                } \
+            } \
+            break; \
+        default: \
+            break; \
+    }
+
+
+
+
+
+
+
+
+
+
+
 Board::Board() {
     initPieces(whitePieces);
     initPieces(blackPieces);
@@ -73,8 +155,7 @@ void Board::makeMove(const Move &move, int depth) {
     switch (move.moveType) {
         case Move::CAPTURE:
             // simple move.
-            bit_ops::setNthBit(currentPieces[move.movePiece], move.toSq);
-            bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
+            MOVE_PIECE(currentPieces, move.movePiece, move.fromSq, move.toSq);
 
             // find enemy piece and pop bit.
             type = getPieceTypeFromSQ(move.toSq, enemyPieces);
@@ -82,33 +163,9 @@ void Board::makeMove(const Move &move, int depth) {
 
             currentState.captureType = type.first;
             // !! castling !! <-> for enemy !!
-            if(type.first == ROOK){
-                // black enemy
-                if(whoPlay){
-                    if(move.toSq == 0) enemyCastling[Q_CASTLE] = false;
-                    else if(move.toSq == 7) enemyCastling[K_CASTLE] = false;
-                }
-                // white enemy
-                else{
-                    if(move.toSq == 56) enemyCastling[Q_CASTLE] = false;
-                    else if(move.toSq == 63) enemyCastling[K_CASTLE] = false;
-                }
-            }
-            // same as in quiet.
-            if(move.movePiece == ROOK){
-                if(whoPlay){
-                    if(move.fromSq == 56) currentCastling[Q_CASTLE] = false;
-                    else if(move.fromSq== 63) currentCastling[K_CASTLE] = false;
-                }
-                else{
-                    if(move.fromSq == 0) currentCastling[Q_CASTLE] = false;
-                    else if(move.fromSq == 7) currentCastling[K_CASTLE] = false;
-                }
-            }
-            if(move.movePiece == KING){
-                currentCastling[0] = false;
-                currentCastling[1] = false;
-            }
+
+            HANDLE_ENEMY_CASTLING(type, move, whoPlay, enemyCastling);
+            HANDLE_CASTLING(move, whoPlay, currentCastling);
             break;
         case Move::PROMOTION:
             bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
@@ -136,66 +193,33 @@ void Board::makeMove(const Move &move, int depth) {
                 bit_ops::popNthBit(enemyPieces[type.first], move.toSq);
                 currentState.captureType = type.first;
                 // pawn can capture rook -> no castling.
-                if(type.first == ROOK){
-                    // black enemy
-                    if(whoPlay){
-                        if(move.toSq == 0) enemyCastling[Q_CASTLE] = false;
-                        else if(move.toSq == 7) enemyCastling[K_CASTLE] = false;
-                    }
-                        // white enemy
-                    else{
-                        if(move.toSq == 56) enemyCastling[Q_CASTLE] = false;
-                        else if(move.toSq == 63) enemyCastling[K_CASTLE] = false;
-                    }
-                }
+                HANDLE_ENEMY_CASTLING(type, move, whoPlay, enemyCastling);
             }
             break;
         case Move::QUIET:
             // !!! rooks  !!! <-> disable castling.
-            bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
-            bit_ops::setNthBit(currentPieces[move.movePiece], move.toSq);
-            if(move.movePiece == ROOK){
-                if(whoPlay){
-                    if(move.fromSq == 56) currentCastling[Q_CASTLE] = false;
-                    else if(move.fromSq== 63) currentCastling[K_CASTLE] = false;
-                }
-                else{
-                    if(move.fromSq == 0) currentCastling[Q_CASTLE] = false;
-                    else if(move.fromSq == 7) currentCastling[K_CASTLE] = false;
-                }
-            }
-            // disable castling.
-            else if(move.movePiece == KING){
-                currentCastling[0] = false;
-                currentCastling[1] = false;
-            }
+            MOVE_PIECE(currentPieces, move.movePiece, move.fromSq, move.toSq);
+            HANDLE_CASTLING(move, whoPlay, currentCastling);
             break;
         case Move::EN_PASSANT:
-            bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
-            bit_ops::setNthBit(currentPieces[move.movePiece], move.toSq);
+            MOVE_PIECE(currentPieces, move.movePiece, move.fromSq, move.toSq);
             bit_ops::popNthBit(enemyPieces[move.movePiece], whoPlay ? move.toSq + 8 : move.toSq - 8);
             break;
         case Move::CASTLING:
             // kingSide
+            MOVE_PIECE(currentPieces, KING, move.fromSq, move.toSq);
             if(move.fromSq < move.toSq){
-                bit_ops::popNthBit(currentPieces[ROOK], move.toSq + 1);
-                bit_ops::setNthBit(currentPieces[ROOK], move.toSq - 1);
-                bit_ops::popNthBit(currentPieces[KING], move.fromSq);
-                bit_ops::setNthBit(currentPieces[KING], move.toSq);
+                MOVE_PIECE(currentPieces, ROOK, move.toSq + 1, move.toSq - 1);
             }
             // queenSide
             else{
-                bit_ops::popNthBit(currentPieces[ROOK], move.toSq - 2);
-                bit_ops::setNthBit(currentPieces[ROOK], move.toSq + 1);
-                bit_ops::popNthBit(currentPieces[KING], move.fromSq);
-                bit_ops::setNthBit(currentPieces[KING], move.toSq);
+                MOVE_PIECE(currentPieces, ROOK,  move.toSq - 2, move.toSq + 1);
             }
             currentCastling[0] = false;
             currentCastling[1] = false;
             break;
         case Move::DOUBLE_PAWN_UP:
-            bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
-            bit_ops::setNthBit(currentPieces[move.movePiece], move.toSq);
+            MOVE_PIECE(currentPieces, move.movePiece, move.fromSq, move.toSq);
             enPassantSquare = (move.fromSq + move.toSq) / 2;
             setEnPassant = true;
             break;
@@ -220,9 +244,7 @@ void Board::undoMove(const Move &move, int depth) {
 
     switch (move.moveType) {
         case Move::CAPTURE:
-            bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
-            bit_ops::popNthBit(currentPieces[move.movePiece], move.toSq);
-
+            MOVE_PIECE(currentPieces, move.movePiece, move.toSq, move.fromSq);
             bit_ops::setNthBit(enemyPieces[prevState.captureType], move.toSq);
             break;
         case Move::PROMOTION:
@@ -248,35 +270,27 @@ void Board::undoMove(const Move &move, int depth) {
             if(prevState.captureType != -1) bit_ops::setNthBit(enemyPieces[prevState.captureType], move.toSq);
             break;
         case Move::QUIET:
-            bit_ops::popNthBit(currentPieces[move.movePiece], move.toSq);
-            bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
+            MOVE_PIECE(currentPieces, move.movePiece, move.toSq, move.fromSq);
             break;
         case Move::EN_PASSANT:
             // move back pawn, "respawn" enemyPawn.
             bit_ops::setNthBit(enemyPieces[move.movePiece], whoPlay ? move.toSq + 8 : move.toSq - 8);
-            bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
-            bit_ops::popNthBit(currentPieces[move.movePiece], move.toSq);
+            MOVE_PIECE(currentPieces, move.movePiece, move.toSq, move.fromSq);
             break;
         case Move::CASTLING:
             // move rook and king to original squares.
             // kingSide
+            MOVE_PIECE(currentPieces, KING, move.toSq, move.fromSq);
             if(move.fromSq < move.toSq){
-                bit_ops::popNthBit(currentPieces[ROOK], move.toSq - 1);
-                bit_ops::setNthBit(currentPieces[ROOK], move.toSq + 1);
-                bit_ops::popNthBit(currentPieces[KING], move.toSq);
-                bit_ops::setNthBit(currentPieces[KING], move.fromSq);
+                MOVE_PIECE(currentPieces, ROOK, move.toSq - 1, move.toSq + 1);
             }
             // queenSide
             else{
-                bit_ops::popNthBit(currentPieces[ROOK], move.toSq + 1);
-                bit_ops::setNthBit(currentPieces[ROOK], move.toSq - 2);
-                bit_ops::popNthBit(currentPieces[KING], move.toSq);
-                bit_ops::setNthBit(currentPieces[KING], move.fromSq);
+                MOVE_PIECE(currentPieces, ROOK, move.toSq + 1,  move.toSq - 2);
             }
             break;
         case Move::DOUBLE_PAWN_UP:
-            bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
-            bit_ops::popNthBit(currentPieces[move.movePiece], move.toSq);
+            MOVE_PIECE(currentPieces, move.movePiece, move.toSq, move.fromSq);
             break;
     }
 }
