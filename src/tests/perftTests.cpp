@@ -5,19 +5,7 @@
 #include <chrono>
 
 struct perftTests{
-    static std::string  indexToChessSquare(int index) {
-        int row = 8 - index / 8;
-        int col = index % 8;
 
-        char file = 'a' + col;
-        char rank = '1' + row - 1; // Adjusted to start from '1'
-
-        std::string chessSquare = "";
-        chessSquare += file;
-        chessSquare += rank;
-
-        return chessSquare;
-    }
 
     static int perft(std::string position, int depth,  bool legal = true){
         Board b;
@@ -64,12 +52,9 @@ struct perftTests{
         return res;
     }
 
-    static bool isSquare(std::string pos, int from, int to){
-        return pos == (indexToChessSquare(from)+ indexToChessSquare(to));
-    }
 
     static void runTests(bool legalGen){
-        // r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7
+          // r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7
         runCase("8/8/8/1PpK4/5p2/4k3/8/8 b - - 0 24", 1, 7, legalGen);
         runCase("8/8/8/1PpK4/5p2/4k3/8/8 b - - 0 24", 9, 133225511,legalGen);
         runCase("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7", 3, 81066,legalGen);

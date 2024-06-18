@@ -25,4 +25,6 @@ add_executable(Sentinel
         src/move.cpp
         src/tests/perftTests.cpp
         src/state.h
+        src/uci.h
+        src/uci.cpp
 )

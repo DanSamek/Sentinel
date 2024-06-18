@@ -48,7 +48,8 @@ public:
     static inline int Q_CASTLE = 0;
     std::array<std::array<bool, 2>,2> castling;
 
-    static constexpr int MAX_DEPTH = 100;
+    // static stack for a performance.
+    static constexpr int MAX_DEPTH = 1000;
     static inline State STACK[MAX_DEPTH + 1];
 
     /***

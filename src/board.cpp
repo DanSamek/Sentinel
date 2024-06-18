@@ -230,6 +230,7 @@ void Board::makeMove(const Move &move, int depth) {
 
     whoPlay = !whoPlay;
     enPassantSquare = setEnPassant ? enPassantSquare : -1;
+    halfMove--;
 }
 
 void Board::undoMove(const Move &move, int depth) {
@@ -293,6 +294,7 @@ void Board::undoMove(const Move &move, int depth) {
             MOVE_PIECE(currentPieces, move.movePiece, move.toSq, move.fromSq);
             break;
     }
+    halfMove++;
 }
 
 std::pair<Board::pieceType, bool> Board::getPieceTypeFromSQ(int square, const uint64_t* bbs) {

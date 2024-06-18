@@ -50,16 +50,21 @@ struct Movegen {
     // mask for piece checks - if its possible to make a castling (no pieces between)
 
     static inline uint64_t CASTLING_FREE_MASKS[2][2] = {{0xe00000000000000, 0x6000000000000000},{0xe,0x60}};
+
+
+    static inline bool _initDone = false;
     /***
      * Initialization of all movegen tables - magic bitboards, knight bitboards, king bitboards.
      */
     static void initTables(){
+        if(_initDone) return;
         Magics::init();
         initAndBitsForKKP();
         initKnightMoves();
         initKingMoves();
         initPawnAttacks();
         initPawnPushes();
+        _initDone = true;
     }
 
     static inline int index = 0;
@@ -71,7 +76,7 @@ struct Movegen {
 
     static bool validateKingCheck(int kingPos, bool whoPlay, uint64_t enemyBits[6]);
 
-/***
+    /***
      * @param board Board for movegen.
      * @param moves Result valid moves.
      * @return totalNumber of moves.
