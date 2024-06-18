@@ -12,7 +12,7 @@ int main(){
 
 
     auto start = std::chrono::high_resolution_clock::now();
-    perftTests::runTests();
+    perftTests::runTests(true);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
 
@@ -21,6 +21,16 @@ int main(){
     std::cout << "Elapsed time: " << microseconds << " ms" << std::endl;
 
 
+
+
+    start = std::chrono::high_resolution_clock::now();
+    perftTests::runTests(false);
+    end = std::chrono::high_resolution_clock::now();
+    duration = end - start;
+
+    // Convert duration to microseconds for better readability
+    microseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    std::cout << "Elapsed time: " << microseconds << " ms" << std::endl;
 
     return 6;
 

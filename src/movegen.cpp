@@ -153,14 +153,14 @@ void Movegen::generatePawnMoves(uint64_t b, int enPassantSquare, bool color) {
             bb &= ~all;
             while(bb){
                 auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
-                tmpMoves[Movegen::index++] = {bit, tmpBit, Move::NONE, abs(tmpBit - bit) > 8 ? Move::DOUBLE_PAWN_UP : Move::QUIET, Board::PAWN};
+                tmpMovesPtr[Movegen::index++] = {bit, tmpBit, Move::NONE, abs(tmpBit - bit) > 8 ? Move::DOUBLE_PAWN_UP : Move::QUIET, Board::PAWN};
             }
         }
         else{
             while(!(bb & all) && bb){
                 auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
                 if(promotion) generatePromotions(bit, tmpBit);
-                else tmpMoves[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::QUIET, Board::PAWN};
+                else tmpMovesPtr[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::QUIET, Board::PAWN};
             }
         }
 
@@ -168,18 +168,18 @@ void Movegen::generatePawnMoves(uint64_t b, int enPassantSquare, bool color) {
         // normal captures || captures with promotions.
         while(bb){
             auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
-            if(tmpBit == enPassantSquare) tmpMoves[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::EN_PASSANT, Board::PAWN};
+            if(tmpBit == enPassantSquare) tmpMovesPtr[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::EN_PASSANT, Board::PAWN};
             else if(promotion) generatePromotions(bit, tmpBit);
-            else tmpMoves[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::CAPTURE, Board::PAWN};
+            else tmpMovesPtr[Movegen::index++] = {bit, tmpBit, Move::NONE, Move::CAPTURE, Board::PAWN};
         }
     }
 }
 
 void Movegen::generatePromotions(int fromSq, int toSq){
-    tmpMoves[Movegen::index++] = {fromSq, toSq, Move::QUEEN, Move::PROMOTION, Board::PAWN};
-    tmpMoves[Movegen::index++] = {fromSq, toSq, Move::BISHOP, Move::PROMOTION, Board::PAWN};
-    tmpMoves[Movegen::index++] = {fromSq, toSq, Move::ROOK, Move::PROMOTION, Board::PAWN};
-    tmpMoves[Movegen::index++] = {fromSq, toSq, Move::KNIGHT, Move::PROMOTION, Board::PAWN};
+    tmpMovesPtr[Movegen::index++] = {fromSq, toSq, Move::QUEEN, Move::PROMOTION, Board::PAWN};
+    tmpMovesPtr[Movegen::index++] = {fromSq, toSq, Move::BISHOP, Move::PROMOTION, Board::PAWN};
+    tmpMovesPtr[Movegen::index++] = {fromSq, toSq, Move::ROOK, Move::PROMOTION, Board::PAWN};
+    tmpMovesPtr[Movegen::index++] = {fromSq, toSq, Move::KNIGHT, Move::PROMOTION, Board::PAWN};
 }
 
 void Movegen::incrementIfKingChecked(const uint64_t &king, const uint64_t &attacks, int& checkCount) {
@@ -192,7 +192,7 @@ void Movegen::bitboardToMoves(int fromSquare, uint64_t moveBitboard, Board::piec
         int toSquare = bit_ops::bitScanForwardPopLsb(moveBitboard);
         if (bit_ops::getNthBit(friendlyMerged, toSquare)) continue; // cant go on friendly piece.
         Move::type mt = bit_ops::getNthBit(enemyMerged, toSquare) ? Move::CAPTURE : Move::QUIET;
-        tmpMoves[Movegen::index++] = {fromSquare, toSquare, Move::NONE, mt, pieceType};
+        tmpMovesPtr[Movegen::index++] = {fromSquare, toSquare, Move::NONE, mt, pieceType};
     }
 }
 
@@ -236,10 +236,10 @@ void Movegen::generateKingMoves(uint64_t king, const std::array<bool,2>& castlin
     // Note, in board.cpp we handle castling rights !!!
     auto castlingMasks = CASTLING_FREE_MASKS[!whoPlay];
     if(castling[Board::K_CASTLE] && (castlingMasks[Board::K_CASTLE] & all) == 0){
-        tmpMoves[Movegen::index++] = {pos, pos + 2, Move::NONE, Move::CASTLING, Board::KING};
+        tmpMovesPtr[Movegen::index++] = {pos, pos + 2, Move::NONE, Move::CASTLING, Board::KING};
     }
     if(castling[Board::Q_CASTLE] && (castlingMasks[Board::Q_CASTLE] & all) == 0){
-        tmpMoves[Movegen::index++] = {pos, pos - 2, Move::NONE, Move::CASTLING, Board::KING};
+        tmpMovesPtr[Movegen::index++] = {pos, pos - 2, Move::NONE, Move::CASTLING, Board::KING};
     }
 }
 

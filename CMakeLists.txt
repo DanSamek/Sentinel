@@ -11,6 +11,8 @@ include_directories(src/tests)
 include_directories(src)
 
 add_executable(Sentinel
+        src/bit_ops.h
+        src/bit_ops.cpp
         src/main.cpp
         src/bitboard.cpp
         src/movegen.h
@@ -22,8 +24,6 @@ add_executable(Sentinel
         src/tests/boardTests.cpp
         src/move.h
         src/move.cpp
-        src/bit_ops.h
-        src/bit_ops.cpp
         src/State.h
         src/tests/perftTests.cpp
 )
