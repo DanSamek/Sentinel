@@ -1,6 +1,7 @@
 #include <magics.h>
 #include <set>
 #include <bit_ops.h>
+#include <iostream>
 
 int getSquare(int rank, int file){
     return rank * 8 + file;
@@ -157,9 +158,7 @@ std::vector<uint64_t> Magics::generateAllBlockerCombinations(uint64_t bitboard){
 }
 
 uint64_t Magics::generateSliderMoves(int file, int rank, const uint64_t& bitboard, const std::vector<std::pair<int, int>>& movement){
-    Bitboard b(bitboard);
-
-    auto board2d = b.generateBoardFromBitboard();
+    auto board2d = bit_ops::generateBoardFromBitboard(bitboard);
     std::vector<int> bits;
 
     for(const auto& direction : movement) {

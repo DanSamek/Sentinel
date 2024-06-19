@@ -2,7 +2,6 @@
 #define SENTINEL_MOVEGEN_H
 
 #include <vector>
-#include <bitboard.h>
 #include <magics.h>
 #include <move.h>
 #include <board.h>

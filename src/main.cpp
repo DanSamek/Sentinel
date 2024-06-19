@@ -1,12 +1,11 @@
-#include <tests/boardTests.cpp>
-#include <magics.h>
 #include <movegen.h>
 #include <tests/perftTests.cpp>
+#include <tests/boardTests.cpp>
 
 #include <chrono>
-#include "uci.h"
+#include <uci.h>
 
-#define RUN_TESTS false
+#define RUN_TESTS true
 
 int main(){
 
@@ -34,8 +33,9 @@ int main(){
         std::cout << "Elapsed time: " << microseconds << " ms" << std::endl;
 
     }else{
+        srand(time(nullptr));
         std::string command;
-        while((std::cin >> command)){
+        while(getline(std::cin, command)){
             size_t commandEnd = command.find(" ");
             std::string commandName = command.substr(0, commandEnd);
 
@@ -56,6 +56,9 @@ int main(){
             }
             else if(commandName == "go"){
                 UCI::go(command);
+            }
+            else if(commandName == "printPos"){
+                UCI::printPos();
             }
 
         }

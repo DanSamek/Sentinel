@@ -5,7 +5,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <bitboard.h>
 #include <bit_ops.h>
 #include <move.h>
 #include <state.h>

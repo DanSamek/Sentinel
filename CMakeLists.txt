@@ -13,7 +13,6 @@ include_directories(src)
 add_executable(Sentinel
         src/bit_ops.h
         src/main.cpp
-        src/bitboard.cpp
         src/movegen.h
         src/movegen.cpp
         src/magics.h

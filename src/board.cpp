@@ -115,10 +115,10 @@ void Board::loadFEN(const std::string FEN) {
             continue;
         } else if(character == '/') continue;
         // parse a piece
-        auto color = isupper(character) ?  Bitboard::WHITE  : Bitboard::BLACK;
+        auto color = isupper(character) ?  WHITE  : BLACK;
         auto index = pieceIndexMap[tolower(character)];
 
-        if(color == Bitboard::WHITE)  bit_ops::setNthBit(whitePieces[index], square);
+        if(color == WHITE)  bit_ops::setNthBit(whitePieces[index], square);
         else   bit_ops::setNthBit(blackPieces[index], square);
         square++;
     }
@@ -230,7 +230,7 @@ void Board::makeMove(const Move &move, int depth) {
 
     whoPlay = !whoPlay;
     enPassantSquare = setEnPassant ? enPassantSquare : -1;
-    halfMove--;
+    halfMove++;
 }
 
 void Board::undoMove(const Move &move, int depth) {
@@ -294,7 +294,7 @@ void Board::undoMove(const Move &move, int depth) {
             MOVE_PIECE(currentPieces, move.movePiece, move.toSq, move.fromSq);
             break;
     }
-    halfMove++;
+    halfMove--;
 }
 
 std::pair<Board::pieceType, bool> Board::getPieceTypeFromSQ(int square, const uint64_t* bbs) {

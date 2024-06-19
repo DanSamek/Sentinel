@@ -1,6 +1,5 @@
 
 #include <board.h>
-#include <bitboard.h>
 #include <vector>
 #include <cassert>
 #include <bit_ops.h>

@@ -143,13 +143,14 @@ void Movegen::initAndBitsForKKP(){
 
 void Movegen::generatePawnMoves(uint64_t b, int enPassantSquare, bool color) {
     uint64_t enPassantBB = enPassantSquare != -1 ? 1ULL << enPassantSquare : 0;
+    auto tmpColor = !color;
     while(b){
         int bit = bit_ops::bitScanForwardPopLsb(b);
         int rank = bit / 8;
-        bool promotion = (color == Bitboard::WHITE && rank == 1) ||(color == Bitboard::BLACK && rank == 6); // next move will be promotion on 100%!
+        bool promotion = (tmpColor == Board::WHITE && rank == 1) ||(tmpColor == Board::BLACK && rank == 6); // next move will be promotion on 100%!
 
         auto bb = PAWN_PUSH_MOVES[!color][bit];
-        if(((color == Bitboard::WHITE && rank == 6) || (color == Bitboard::BLACK && rank == 1)) && (bb & all) != PAWN_ILLEGAL_AND[!color][bit]){
+        if(((tmpColor == Board::WHITE && rank == 6) || (tmpColor == Board::BLACK && rank == 1)) && (bb & all) != PAWN_ILLEGAL_AND[!color][bit]){
             bb &= ~all;
             while(bb){
                 auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);

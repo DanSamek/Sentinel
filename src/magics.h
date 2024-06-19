@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
-#include <bitboard.h>
 #include <cassert>
 #include <algorithm>
 #include <valarray>
