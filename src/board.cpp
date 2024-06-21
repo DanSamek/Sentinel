@@ -74,13 +74,26 @@
     }
 
 
+int Board::eval() {
+    int whiteScore = evalSide(whitePieces);
+    int blackScore = evalSide(blackPieces);
+    return (whiteScore - blackScore) * (whoPlay ? 1 : -1);
+}
 
 
-
-
-
-
-
+int Board::evalSide(uint64_t *bbs) {
+    int eval = 0;
+    for(int j = 0; j < 6; j++){
+        auto bb = bbs[j];
+        int cnt = 0;
+        while(bb){
+            cnt++;
+            bit_ops::bitScanForwardPopLsb(bb);
+        }
+        eval += cnt * PIECE_EVAL[j];
+    }
+    return eval;
+}
 
 
 Board::Board() {
@@ -138,7 +151,7 @@ const uint64_t & Board::getPieceBitboard(pieceType type, pieceColor color) const
     return color == WHITE ? whitePieces[type] : blackPieces[type];
 }
 
-void Board::makeMove(const Move &move, int depth) {
+void Board::makeMove(const Move &move) {
     auto currentPieces = whoPlay ? whitePieces : blackPieces;
     auto enemyPieces = !whoPlay ? whitePieces : blackPieces;
 
@@ -226,15 +239,15 @@ void Board::makeMove(const Move &move, int depth) {
     }
 
     // save state to a current depth
-    STACK[depth] = std::move(currentState);
+    halfMove++;
+    STACK[halfMove] = std::move(currentState);
 
     whoPlay = !whoPlay;
     enPassantSquare = setEnPassant ? enPassantSquare : -1;
-    halfMove++;
 }
 
-void Board::undoMove(const Move &move, int depth) {
-    auto prevState = std::move(STACK[depth]);
+void Board::undoMove(const Move &move) {
+    auto prevState = std::move(STACK[halfMove]);
     whoPlay = !whoPlay;
 
     auto currentPieces = whoPlay ? whitePieces : blackPieces;

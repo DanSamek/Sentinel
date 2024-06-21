@@ -18,13 +18,13 @@ struct perftTests{
 
     static int generateMoves(Board& b, int depth){
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        int count = Movegen::generateMoves(b, moves);
-        if(depth == 1) return count;
+        auto result = Movegen::generateMoves(b, moves);
+        if(depth == 1) return result.first;
         int res = 0;
-        for(int j = 0; j < count; j++){
-            b.makeMove(moves[j], depth);
+        for(int j = 0; j < result.first; j++){
+            b.makeMove(moves[j]);
             res += generateMoves(b, depth-1);
-            b.undoMove(moves[j], depth);
+            b.undoMove(moves[j]);
         }
         return res;
     }
@@ -32,29 +32,29 @@ struct perftTests{
     static int generateMovesPStoLG(Board& b, int depth){
         if(depth == 0) return 1;
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        int count = Movegen::generateMoves(b, moves, false);
+        auto result = Movegen::generateMoves(b, moves, false);
         int res = 0;
-        for(int j = 0; j < count; j++){
+        for(int j = 0; j < result.first; j++){
             if(moves[j].moveType == Move::CASTLING){
                 UPDATE_BOARD_STATE(b, b.whoPlay);
                 int kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
                 VALIDATE_KING_CHECKS(kingPos, b, moves, j, enemyBits);
             }
-            b.makeMove(moves[j], depth);
+            b.makeMove(moves[j]);
             // we need updated pieces.
             // !! changed move !! (whoplay).
             UPDATE_BOARD_STATE(b, !b.whoPlay);
             int kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
             bool valid = Movegen::validateKingCheck(kingPos, !b.whoPlay, enemyBits);
             if(valid) res += generateMovesPStoLG(b, depth-1);
-            b.undoMove(moves[j], depth);
+            b.undoMove(moves[j]);
         }
         return res;
     }
 
-
     static void runTests(bool legalGen){
-          // r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7
+
+        // r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7
         runCase("8/8/8/1PpK4/5p2/4k3/8/8 b - - 0 24", 1, 7, legalGen);
         runCase("8/8/8/1PpK4/5p2/4k3/8/8 b - - 0 24", 9, 133225511,legalGen);
         runCase("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7", 3, 81066,legalGen);

@@ -32,6 +32,9 @@ public:
         BLACK
     };
 
+    // simple piece eval.
+    // Todo maybe add endgame/middle game tables?
+    static constexpr int PIECE_EVAL[6] = {100,285,310,500,930,10000};
 
     // Bitboards
     uint64_t whitePieces[6]; // make it easy
@@ -75,23 +78,42 @@ public:
      * @param move
      * @param depth Depth of a current state in search/movegen <-> static size stack (array)
      */
-    void makeMove(const Move& move, int depth = 0);
+    void makeMove(const Move& move);
 
     /***
      * Undo a move.
      * @param move
      * @param depth Depth of a current state in search/movegen <-> static size stack (array)
      */
-    void undoMove(const Move& move, int depth = 0);
+    void undoMove(const Move& move);
 
     /***
      * Simple board print of a current state.
      */
     void printBoard();
 
+
+    /***
+     * Evaluation function of a current position.
+     * @note whoplay = 1 (white), whoplay = -1 (black)
+     * @return
+     */
+    int eval();
+
 private:
     std::pair<Board::pieceType, bool> getPieceTypeFromSQ(int square, const uint64_t* bbs);
     void initPieces(uint64_t* pieces);
+    /***
+     * Side evaluation
+     * -> Piece count
+     * TODO
+     * -> PESTO's
+     * -> Mobility
+     * -> maybe king safety/pawn structure + passed pawns.
+     * @param bbs
+     * @return eval.
+     */
+    int evalSide(uint64_t* bbs);
 };
 
 

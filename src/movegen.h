@@ -78,15 +78,19 @@ struct Movegen {
     /***
      * @param board Board for movegen.
      * @param moves Result valid moves.
-     * @return totalNumber of moves.
+     * @return totalNumber of moves + if king is checked.
      */
-    static int generateMoves(Board& board, Move* moves, bool legalOnly = true){
+    static std::pair<int, bool> generateMoves(Board& board, Move* moves, bool legalOnly = true){
         index = 0;
         // movegen ptrs.
         if(legalOnly) tmpMovesPtr = tmpMoves;
         else tmpMovesPtr = moves;
 
         UPDATE_BOARD_STATE(board, board.whoPlay);
+
+        auto kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
+        // if its not valid <-> checked king !!!
+        bool checked = ! validateKingCheck(kingPos, !board.whoPlay, enemyBits);
 
         // generate all possible moves for current player.
         generatePawnMoves(friendlyBits[Board::PAWN], board.enPassantSquare, board.whoPlay);
@@ -97,32 +101,32 @@ struct Movegen {
         generateKingMoves(friendlyBits[Board::KING], board.castling[!board.whoPlay], board.whoPlay);
 
         // copy to a result, if we want all pseudolegal moves <-> we will check it in search/perft (just a performance try).
-        if(!legalOnly) return index;
+        if(!legalOnly) return {index, checked};
 
         int resultSize = 0;
         for(int j = 0; j < index; j++){
             // castling move, check 2 another squares.
-            int kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
+            auto kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
             if(tmpMovesPtr[j].moveType == Move::CASTLING){
                 UPDATE_BOARD_STATE(board, board.whoPlay);
                 VALIDATE_KING_CHECKS(kingPos, board, tmpMovesPtr, j, enemyBits);
             }
             // play move.
-            board.makeMove(tmpMovesPtr[j], Board::MAX_DEPTH);
+            board.makeMove(tmpMovesPtr[j]);
             // we need updated pieces.
             // !! changed move !! (whoplay).
             UPDATE_BOARD_STATE(board, !board.whoPlay);
             kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
 
-            bool valid = validateKingCheck(kingPos, !board.whoPlay, enemyBits);
+            auto valid = validateKingCheck(kingPos, !board.whoPlay, enemyBits);
             if(valid){
                 moves[resultSize] = std::move(tmpMovesPtr[j]);
                 resultSize++;
             }
-            board.undoMove(tmpMovesPtr[j], Board::MAX_DEPTH);
+            board.undoMove(tmpMovesPtr[j]);
         }
 
-        return resultSize;
+        return {resultSize, checked};
     }
 
 

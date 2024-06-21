@@ -26,4 +26,6 @@ add_executable(Sentinel
         src/state.h
         src/uci.h
         src/uci.cpp
+        src/search.h
+        src/search.cpp
 )

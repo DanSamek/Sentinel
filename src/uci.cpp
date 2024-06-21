@@ -1,11 +1,11 @@
-#include "uci.h"
+#include <uci.h>
+#include <search.h>
 
 void UCI::uciInit() {
     std::cout << "id name Sentinel" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl;
     std::cout << "uciok" << std::endl;
 }
-
 
 void UCI::isReady() {
     Movegen::initTables(); // prop do sentinel::init();
@@ -53,12 +53,10 @@ void UCI::position(std::string command) {
 }
 
 void UCI::go(std::string command) {
-    Move moves[Movegen::MAX_LEGAL_MOVES];
-    int size = Movegen::generateMoves(board, moves);
-    // print move, now random for test.
-    auto randomMove = moves[rand() % size];
+
+    auto move = Search::search(-69420, board);
     std::cout << "bestmove ";
-    randomMove.print();
+    move.print();
 }
 
 
@@ -92,11 +90,11 @@ void UCI::makeStringMove(std::string move) {
     }
     // make move
     Move moves[Movegen::MAX_LEGAL_MOVES];
-    int size = Movegen::generateMoves(board, moves);
+    auto result = Movegen::generateMoves(board, moves);
     bool played = false;
-    for(int j = 0; j < size; j++){
+    for(int j = 0; j < result.first; j++){
         if(moves[j].promotionType == t && moves[j].fromSq == fromSquare && moves[j].toSq == toSquare){
-            board.makeMove(moves[j], board.halfMove);
+            board.makeMove(moves[j]);
             played = true;
             break;
         }
