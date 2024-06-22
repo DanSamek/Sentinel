@@ -387,7 +387,7 @@ bool Board::isDraw() {
     if(threeFoldRepetition[zobristKey] >= 3) return true;
 
     // 50 move rule.
-    if(fiftyMoveRule[0] >= 50 || fiftyMoveRule[1] >= 50) return true;
+    if(fiftyMoveRule[0] >= 50 && fiftyMoveRule[1] >= 50) return true;
 
     // count material from bbs
     return isInsufficientMaterial(whitePieces) || isInsufficientMaterial(blackPieces);
