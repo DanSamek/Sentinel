@@ -48,6 +48,11 @@ public:
      * @return
      */
     // static uint64_t getXRay(uint64_t blockers, int square, bool rook);
+
+    /***
+     * Random uint64t number for Magics.
+     */
+    static uint64_t randUInt64();
 private:
 
     // Blocked masks for each square.
@@ -149,11 +154,6 @@ private:
      * Part of bruteforcing part for magic numbers
      */
     static std::vector<uint64_t> tryBuildTable(uint64_t blockerBitBoard, int file, int rank, bool rook, uint64_t magic, const std::vector<uint64_t>& allBlockers);
-
-    /***
-     * Random uint64t number for Magics.
-     */
-    static uint64_t randUInt64();
 
     /***
      * For each square, for each blocker combination -> move board.

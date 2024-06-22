@@ -8,7 +8,7 @@
 #include <bit_ops.h>
 #include <move.h>
 #include <state.h>
-
+#include <unordered_map>
 
 class Board {
     static inline std::map<char, int> pieceIndexMap = {{'p',0}, {'n', 1}, {'b', 2}, {'r',3}, {'q',4}, {'k', 5}};
@@ -18,6 +18,7 @@ class Board {
     static inline std::map<char, int> ranks = {{'1',7}, {'2',6},{'3',5},{'4',4}, {'5',3}, {'6',2}, {'7',1}, {'8',0}};
 
 public:
+
     enum pieceType{
         PAWN,
         KNIGHT,
@@ -34,7 +35,7 @@ public:
 
     // simple piece eval.
     // Todo maybe add endgame/middle game tables?
-    static constexpr int PIECE_EVAL[6] = {100,285,310,500,930,10000};
+    static constexpr int PIECE_EVAL_EARLY[6] = {100, 285, 310, 500, 930, 10000};
 
     // Bitboards
     uint64_t whitePieces[6]; // make it easy
@@ -50,9 +51,17 @@ public:
     static inline int Q_CASTLE = 0;
     std::array<std::array<bool, 2>,2> castling;
 
-    // static stack for a performance.
-    static constexpr int MAX_DEPTH = 1000;
+    // static array for a performance
+    // Simple hack for multithreading <-> make it 2D :ez:
+    static constexpr int MAX_DEPTH = 1000; // Fuck it, we ball
     static inline State STACK[MAX_DEPTH + 1];
+
+    // i love draws by repetitions.
+    static inline std::unordered_map<uint64_t, int> threeFoldRepetition;
+
+    static inline std::array<int, 2> fiftyMoveRule = {0,0};
+
+    uint64_t zobristKey;
 
     /***
      * Loads a fen to a board.
@@ -78,14 +87,14 @@ public:
      * @param move
      * @param depth Depth of a current state in search/movegen <-> static size stack (array)
      */
-    void makeMove(const Move& move);
+    void makeMove(const Move& move, bool updateHash = true);
 
     /***
      * Undo a move.
      * @param move
      * @param depth Depth of a current state in search/movegen <-> static size stack (array)
      */
-    void undoMove(const Move& move);
+    void undoMove(const Move& move, bool updateHash = true);
 
     /***
      * Simple board print of a current state.
@@ -100,8 +109,22 @@ public:
      */
     int eval();
 
+
+    /***
+     * Checks, if there is a draw on the board.
+     * @return
+     */
+    bool isDraw();
+
+    inline std::pair<Board::pieceType, bool> getPieceTypeFromSQ(int square, const uint64_t* bbs) const{
+        for(int j = 0; j < 6; j++){
+            if(bit_ops::getNthBit(bbs[j], square)) return {(Board::pieceType)j, true};
+        }
+        return {(Board::pieceType)0, false};
+    }
+
 private:
-    std::pair<Board::pieceType, bool> getPieceTypeFromSQ(int square, const uint64_t* bbs);
+
     void initPieces(uint64_t* pieces);
     /***
      * Side evaluation
@@ -114,6 +137,8 @@ private:
      * @return eval.
      */
     int evalSide(uint64_t* bbs);
+
+    bool isInsufficientMaterial(uint64_t* bbs);
 };
 
 

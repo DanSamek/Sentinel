@@ -188,7 +188,7 @@ void Movegen::incrementIfKingChecked(const uint64_t &king, const uint64_t &attac
 }
 
 // will be used for all except pawns || kings?
-void Movegen::bitboardToMoves(int fromSquare, uint64_t moveBitboard, Board::pieceType pieceType) {
+void Movegen::bitboardToMoves(int fromSquare, uint64_t& moveBitboard, Board::pieceType pieceType) {
     while(moveBitboard){
         int toSquare = bit_ops::bitScanForwardPopLsb(moveBitboard);
         if (bit_ops::getNthBit(friendlyMerged, toSquare)) continue; // cant go on friendly piece.

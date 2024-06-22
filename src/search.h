@@ -15,7 +15,7 @@ public:
         Move bestMove;
         for(int j = 0; j < result.first; j++){
             // play moves.
-            int score = negamax(3,0,0, board);
+            int score = negamax(3, board);
             // its better?
             if(score > bestScore){
                 bestScore = score;
@@ -27,7 +27,8 @@ public:
 
 private:
     static constexpr int CHECKMATE = 100000000;
-    static int negamax(int depth, int alpha, int beta, Board& board){
+    static int negamax(int depth, Board& board){
+        if(board.isDraw()) return 0;
         if(depth == 0) return board.eval();
         int best = INT_MIN;
 
@@ -37,37 +38,25 @@ private:
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
         // generate non legal moves, validate them here.
-        auto result = Movegen::generateMoves(board, moves, false);
+        auto result = Movegen::generateMoves(board, moves);
+        // TODO move order for alpha beta
 
         for(int j = 0; j < result.first; j++){
-            if(moves[j].moveType == Move::CASTLING){
-                UPDATE_BOARD_STATE(board, board.whoPlay);
-                int kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
-                VALIDATE_KING_CHECKS(kingPos, board, moves, j, enemyBits);
-            }
-
             board.makeMove(moves[j]);
-
-
-            UPDATE_BOARD_STATE(board, !board.whoPlay);
-            int kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
-            bool valid = Movegen::validateKingCheck(kingPos, !board.whoPlay, enemyBits);
-
-
-            if(valid) best = std::max(best, -negamax(depth - 1, alpha , beta, board));
-
-
+            best = std::max(best, -negamax(depth - 1, board));
             board.undoMove(moves[j]);
         }
 
         // movegen returns cnt of moves total and if king is checked.
         // if there is no move - best == INT_MIN, we can easily return if it's draw or checkmate (for checkmate we use value < INT_MIN).
         // checkmate || draw.
-        if(best == INT_MIN && !result.second) return (board.whoPlay ? 1 : -1) * CHECKMATE; // checkmate.
+        if(best == INT_MIN && !result.second) return ((board.whoPlay ? 1 : -1) * CHECKMATE) + depth; // checkmate.
         if(best == INT_MIN && result.second) return 0; // draw
 
         return best;
     }
+
+    // TODO qsearch
 };
 
 #endif //SENTINEL_SEARCH_H

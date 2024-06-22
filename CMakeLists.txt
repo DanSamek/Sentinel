@@ -28,4 +28,5 @@ add_executable(Sentinel
         src/uci.cpp
         src/search.h
         src/search.cpp
+        src/tests/zobristTests.cpp
 )

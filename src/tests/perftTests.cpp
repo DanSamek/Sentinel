@@ -22,9 +22,14 @@ struct perftTests{
         if(depth == 1) return result.first;
         int res = 0;
         for(int j = 0; j < result.first; j++){
+            uint64_t hashPrev = b.zobristKey;
             b.makeMove(moves[j]);
+            uint64_t hash = b.zobristKey;
             res += generateMoves(b, depth-1);
+            assert(hash== b.zobristKey);
             b.undoMove(moves[j]);
+            assert(hashPrev == b.zobristKey);
+
         }
         return res;
     }

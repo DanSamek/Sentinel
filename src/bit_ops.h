@@ -38,6 +38,15 @@ struct bit_ops {
         }
         return result;
     }
+
+    static inline int countBits(uint64_t& bb){
+        int cnt = 0;
+        while(bb){
+            cnt++;
+            bit_ops::bitScanForwardPopLsb(bb);
+        }
+        return cnt;
+    }
 };
 
 

@@ -112,7 +112,7 @@ struct Movegen {
                 VALIDATE_KING_CHECKS(kingPos, board, tmpMovesPtr, j, enemyBits);
             }
             // play move.
-            board.makeMove(tmpMovesPtr[j]);
+            board.makeMove(tmpMovesPtr[j], false);
             // we need updated pieces.
             // !! changed move !! (whoplay).
             UPDATE_BOARD_STATE(board, !board.whoPlay);
@@ -123,7 +123,7 @@ struct Movegen {
                 moves[resultSize] = std::move(tmpMovesPtr[j]);
                 resultSize++;
             }
-            board.undoMove(tmpMovesPtr[j]);
+            board.undoMove(tmpMovesPtr[j], false);
         }
 
         return {resultSize, checked};
@@ -183,7 +183,7 @@ struct Movegen {
      * Reason for this -> move order by checks/capture, etc..
      * @note for all except pawns and kings. This method handles captures, quiets, checks, no more.
      */
-    static void bitboardToMoves(int fromSquare, uint64_t moveBitboard, Board::pieceType pieceType);
+    static void bitboardToMoves(int fromSquare, uint64_t& moveBitboard, Board::pieceType pieceType);
 
     /***
      * Slider move generation. for  generateRookMoves, generateBishopMoves, generateQueenMoves
