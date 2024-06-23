@@ -407,9 +407,5 @@ bool Board::isInsufficientMaterial(uint64_t* bbs){
     cnt = bit_ops::countBits(bb);
     if(cnt >= 2) return false;
 
-    bb = bbs[KNIGHT];
-    cnt = bit_ops::countBits(bb);
-    if(cnt >= 2) return false;
-
     return true;
 }
