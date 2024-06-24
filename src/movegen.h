@@ -55,7 +55,7 @@ struct Movegen {
     /***
      * Initialization of all movegen tables - magic bitboards, knight bitboards, king bitboards.
      */
-    static void initTables(){
+    static void init(){
         if(_initDone) return;
         Magics::init();
         initAndBitsForKKP();

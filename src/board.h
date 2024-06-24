@@ -9,6 +9,7 @@
 #include <move.h>
 #include <state.h>
 #include <unordered_map>
+#include <pst.h>
 
 class Board {
     static inline std::map<char, int> pieceIndexMap = {{'p',0}, {'n', 1}, {'b', 2}, {'r',3}, {'q',4}, {'k', 5}};
@@ -33,10 +34,6 @@ public:
         BLACK
     };
 
-    // simple piece eval.
-    // Todo maybe add endgame/middle game tables?
-    static constexpr int PIECE_EVAL_EARLY[6] = {100, 285, 310, 500, 930, 10000};
-
     // Bitboards
     uint64_t whitePieces[6]; // make it easy
     uint64_t blackPieces[6];
@@ -47,8 +44,8 @@ public:
     bool whoPlay;
 
     // WHITE, BLACK {queen, king}
-    static inline int K_CASTLE = 1;
-    static inline int Q_CASTLE = 0;
+    static inline constexpr int K_CASTLE = 1;
+    static inline constexpr int Q_CASTLE = 0;
     std::array<std::array<bool, 2>,2> castling;
 
     // static array for a performance
@@ -63,6 +60,8 @@ public:
     static inline std::array<int, 2> fiftyMoveRule = {0,0};
 
     uint64_t zobristKey;
+    int piecesTotal;
+    static constexpr int END_GAME_PIECE_MAX = 12;
 
     /***
      * Loads a fen to a board.
@@ -102,8 +101,7 @@ public:
     /***
      * Simple board print of a current state.
      */
-    void printBoard();
-
+    void printBoard() const;
 
     /***
      * Evaluation function of a current position.
@@ -131,15 +129,13 @@ private:
     void initPieces(uint64_t* pieces);
     /***
      * Side evaluation
-     * -> Piece count
-     * TODO
-     * -> PESTO's
+     * -> PST (custom+inspired) - DONE
      * -> Mobility
      * -> maybe king safety/pawn structure + passed pawns.
      * @param bbs
      * @return eval.
      */
-    int evalSide(uint64_t* bbs) const;
+    int evalSide(uint64_t* bbs, bool white) const;
     bool isInsufficientMaterial(uint64_t* bbs) const;
     bool isSquareAttacked(int square, bool isWhiteEnemy);
 

@@ -15,7 +15,13 @@ public:
         Move bestMove;
         for(int j = 0; j < result.first; j++){
             // play moves.
-            int score = negamax(3, board);
+            if(!board.makeMove(moves[j])) continue; // pseudolegal movegen.
+
+            int score = -negamax(4, board);
+            std::cout << score << std::endl;
+            board.printBoard();
+
+            board.undoMove(moves[j]);
             // its better?
             if(score > bestScore){
                 bestScore = score;
@@ -30,19 +36,13 @@ private:
     static int negamax(int depth, Board& board){
         if(board.isDraw()) return 0;
         if(depth == 0) return board.eval();
-        int best = INT_MIN;
-
-        // kinda sussy move gen, but it's for a performance.
-        // used in perftTests.cpp ~~20-30 MNps (little bit faster +(5-10) MNps)
-        // It's from movegen implementation, but used here.
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        // generate non legal moves, validate them here.
         auto result = Movegen::generateMoves(board, moves);
-        // TODO move order for alpha beta
 
+        int best = INT_MIN;
         for(int j = 0; j < result.first; j++){
-            board.makeMove(moves[j]);
+            if(!board.makeMove(moves[j])) continue; // pseudolegal movegen.
             best = std::max(best, -negamax(depth - 1, board));
             board.undoMove(moves[j]);
         }
@@ -55,8 +55,6 @@ private:
 
         return best;
     }
-
-    // TODO qsearch
 };
 
 #endif //SENTINEL_SEARCH_H

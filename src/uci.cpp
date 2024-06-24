@@ -1,5 +1,7 @@
 #include <uci.h>
 #include <search.h>
+#include <zobrist.h>
+#include <pst.h>
 
 void UCI::uciInit() {
     std::cout << "id name Sentinel" << std::endl;
@@ -8,7 +10,9 @@ void UCI::uciInit() {
 }
 
 void UCI::isReady() {
-    Movegen::initTables(); // prop do sentinel::init();
+    Movegen::init();
+    Zobrist::init();
+    PST::init();
     std::cout << "readyok" << std::endl;
 }
 
@@ -17,12 +21,12 @@ void UCI::newGame() {
 }
 
 void UCI::position(std::string command) {
-    std::transform(command.begin(), command.end(), command.begin(), [](unsigned char c) { return std::tolower(c); });
+    //std::transform(command.begin(), command.end(), command.begin(), [](unsigned char c) { return std::tolower(c); });
 
-    if(command.find("startpos")){
+    if(command.find("startpos") != std::string::npos ){
         board.loadFEN(startPos);
     }
-    else if(command.find("fen")){
+    else if(command.find("fen") != std::string::npos){
         size_t posFEN = command.find("fen");
         size_t posMoves = command.find("moves");
 
@@ -57,6 +61,10 @@ void UCI::go(std::string command) {
     auto move = Search::search(-69420, board);
     std::cout << "bestmove ";
     move.print();
+
+    board.makeMove(move);
+
+    board.printBoard();
 }
 
 

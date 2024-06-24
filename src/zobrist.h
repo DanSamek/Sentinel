@@ -82,7 +82,7 @@ public:
 
     static inline void updateEnPassantHash(uint64_t& hash, const Move& move, const Board& board, const State& state){
         int piece = move.movePiece + (board.whoPlay ? 0 : 6);
-        int capturedPiece = state.captureType + (board.whoPlay ? 6 : 0);
+        int capturedPiece = (board.whoPlay ? 6 : 0);
 
         // normal capture
         hash ^= zobristTable[capturedPiece][move.toSq + (board.whoPlay ? +8 : -8)];

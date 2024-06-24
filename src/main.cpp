@@ -6,12 +6,14 @@
 #include <chrono>
 #include <uci.h>
 
-#define RUN_TESTS true
+#define RUN_TESTS false
 
 int main(){
 
+
     if(RUN_TESTS){
-        Movegen::initTables();
+        PST::init();
+        Movegen::init();
         boardTests::testBoard();
         zobristTests::runTests();
         auto start = std::chrono::high_resolution_clock::now();

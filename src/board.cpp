@@ -77,22 +77,20 @@
 
 
 int Board::eval() {
-    int whiteScore = evalSide(whitePieces);
-    int blackScore = evalSide(blackPieces);
+    int whiteScore = evalSide(whitePieces, true);
+    int blackScore = evalSide(blackPieces, false);
     return (whiteScore - blackScore) * (whoPlay ? 1 : -1);
 }
 
 
-int Board::evalSide(uint64_t *bbs) const{
+int Board::evalSide(uint64_t *bbs, bool white) const{
     int eval = 0;
     for(int j = 0; j < 6; j++){
         auto bb = bbs[j];
-        int cnt = 0;
         while(bb){
-            cnt++;
-            bit_ops::bitScanForwardPopLsb(bb);
+            auto pos = bit_ops::bitScanForwardPopLsb(bb);
+            eval += PST::getValue(white, j, pos, piecesTotal > END_GAME_PIECE_MAX);
         }
-        eval += cnt * PIECE_EVAL_EARLY[j];
     }
     return eval;
 }
@@ -116,6 +114,7 @@ void Board::loadFEN(const std::string FEN) {
     // reset repetitions.
     fiftyMoveRule[0] = 0; fiftyMoveRule[1] = 0;
     repetitionIndex = 0;
+    piecesTotal = 0;
 
     castling[0][0] = false; castling[0][1] = false; castling[1][0] = false; castling[1][1] = false;
     initPieces(whitePieces); initPieces(blackPieces);
@@ -133,6 +132,9 @@ void Board::loadFEN(const std::string FEN) {
             square += (int)(character - '0');
             continue;
         } else if(character == '/') continue;
+
+        piecesTotal++; // total cnt of pieces
+
         // parse a piece
         auto color = isupper(character) ?  WHITE  : BLACK;
         auto index = pieceIndexMap[tolower(character)];
@@ -277,6 +279,9 @@ bool Board::makeMove(const Move &move) {
         return false;
     }
 
+    //                                                   promo+capture and capture
+    piecesTotal -= (move.moveType == Move::EN_PASSANT || type.second ); // was a capture.
+
     // update and add to a move "stack".
     // save state to a current depth
     switch (move.moveType) {
@@ -327,6 +332,8 @@ void Board::undoMove(const Move &move) {
 
     zobristKey = prevState.zobristHash;
     fiftyMoveRule = prevState.fiftyMoveRule;
+
+    piecesTotal += (move.moveType == Move::EN_PASSANT || prevState.captureType != -1); // reset a captured piece
 
     switch (move.moveType) {
         case Move::CAPTURE:
@@ -382,7 +389,7 @@ void Board::undoMove(const Move &move) {
     halfMove--;
 }
 
-void Board::printBoard() {
+void Board::printBoard() const{
     std::vector<bool> seen(64, false);
     for(int rank = 0; rank < 8; rank++){
         for(int file = 0; file < 8; file++){
