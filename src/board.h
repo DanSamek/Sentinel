@@ -57,7 +57,8 @@ public:
     static inline State STACK[MAX_DEPTH + 1];
 
     // i love draws by repetitions.
-    static inline std::unordered_map<uint64_t, int> threeFoldRepetition;
+    static inline uint64_t threeFoldRepetition[MAX_DEPTH];
+    static inline int repetitionIndex = 0;
 
     static inline std::array<int, 2> fiftyMoveRule = {0,0};
 
@@ -83,18 +84,20 @@ public:
 
     /***
      * Makes a move on a board.
+     * Validates a move - from a pseudolegal movegen.
      * Non const -> we will change move::capturePiece.
      * @param move
      * @param depth Depth of a current state in search/movegen <-> static size stack (array)
+     * @return if move was actually played - because of pseudolegal movegen
      */
-    void makeMove(const Move& move, bool updateHash = true);
+    bool makeMove(const Move& move);
 
     /***
      * Undo a move.
      * @param move
      * @param depth Depth of a current state in search/movegen <-> static size stack (array)
      */
-    void undoMove(const Move& move, bool updateHash = true);
+    void undoMove(const Move& move);
 
     /***
      * Simple board print of a current state.
@@ -136,9 +139,13 @@ private:
      * @param bbs
      * @return eval.
      */
-    int evalSide(uint64_t* bbs);
+    int evalSide(uint64_t* bbs) const;
+    bool isInsufficientMaterial(uint64_t* bbs) const;
+    bool isSquareAttacked(int square, bool isWhiteEnemy);
 
-    bool isInsufficientMaterial(uint64_t* bbs);
+    void push(bool setEnPassant, State &currentState);
+
+    bool isThreeFoldRepetition() const;
 };
 
 

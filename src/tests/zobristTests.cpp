@@ -13,7 +13,7 @@ struct zobristTests{
         Movegen::generateMoves(b, moves);
 
         auto zobrist = b.zobristKey;
-        b.makeMove(moves[0]);
+        assert(b.makeMove(moves[0]) == true);
         assert(zobrist != b.zobristKey);
         b.undoMove(moves[0]);
         assert(zobrist == b.zobristKey);
@@ -22,13 +22,13 @@ struct zobristTests{
 
 
         // 2 MOVES.
-        b.makeMove(moves[0]);
+        assert(b.makeMove(moves[0]) == true);
         auto zobrist1 = b.zobristKey;
 
         Move moves2[Movegen::MAX_LEGAL_MOVES];
         Movegen::generateMoves(b, moves2);
 
-        b.makeMove(moves2[0]);
+        assert(b.makeMove(moves2[0]) == true);
         auto zobrist2 = b.zobristKey; // uniq
         b.undoMove(moves2[0]);
 
@@ -118,6 +118,26 @@ struct zobristTests{
         b.printBoard();
 
         assert(initHash == b.zobristKey);
+        assert(!b.isDraw());
+        // try 3-fold repetition.
+
+        cnt = Movegen::generateMoves(b, Moves).first;
+        b.makeMove(trySearchMove(Moves, cnt, 56,0)); // UP w rook
+
+        cnt = Movegen::generateMoves(b, Moves).first;
+        b.makeMove(trySearchMove(Moves, cnt, 7,63)); // DOWN b rook
+        assert(initHash != b.zobristKey);
+        b.printBoard();
+
+        cnt = Movegen::generateMoves(b, Moves).first;
+        b.makeMove(trySearchMove(Moves, cnt, 0,56)); // DOWN w rook
+
+        cnt = Movegen::generateMoves(b, Moves).first;
+        b.makeMove(trySearchMove(Moves, cnt, 63,7)); // UP b rook
+
+        b.printBoard();
+        assert(initHash == b.zobristKey);
+        assert(b.isDraw());
     }
 
     static Move trySearchMove(Move* moves, int cnt, int from, int to){

@@ -15,23 +15,12 @@ int main(){
         boardTests::testBoard();
         zobristTests::runTests();
         auto start = std::chrono::high_resolution_clock::now();
-        perftTests::runTests(true);
+        perftTests::runTests();
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = end - start;
 
         // Convert duration to microseconds for better readability
         double microseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-        std::cout << "Elapsed time: " << microseconds << " ms" << std::endl;
-
-
-
-        start = std::chrono::high_resolution_clock::now();
-        perftTests::runTests(false);
-        end = std::chrono::high_resolution_clock::now();
-        duration = end - start;
-
-        // Convert duration to microseconds for better readability
-        microseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         std::cout << "Elapsed time: " << microseconds << " ms" << std::endl;
 
     }else{

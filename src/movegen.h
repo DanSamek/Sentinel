@@ -82,9 +82,7 @@ struct Movegen {
      */
     static std::pair<int, bool> generateMoves(Board& board, Move* moves, bool legalOnly = true){
         index = 0;
-        // movegen ptrs.
-        if(legalOnly) tmpMovesPtr = tmpMoves;
-        else tmpMovesPtr = moves;
+        tmpMovesPtr = moves;
 
         UPDATE_BOARD_STATE(board, board.whoPlay);
 
@@ -101,6 +99,8 @@ struct Movegen {
         generateKingMoves(friendlyBits[Board::KING], board.castling[!board.whoPlay], board.whoPlay);
 
         // copy to a result, if we want all pseudolegal moves <-> we will check it in search/perft (just a performance try).
+        return {index, checked};
+
         if(!legalOnly) return {index, checked};
 
         int resultSize = 0;
@@ -112,7 +112,7 @@ struct Movegen {
                 VALIDATE_KING_CHECKS(kingPos, board, tmpMovesPtr, j, enemyBits);
             }
             // play move.
-            board.makeMove(tmpMovesPtr[j], false);
+            board.makeMove(tmpMovesPtr[j]);
             // we need updated pieces.
             // !! changed move !! (whoplay).
             UPDATE_BOARD_STATE(board, !board.whoPlay);
@@ -123,13 +123,10 @@ struct Movegen {
                 moves[resultSize] = std::move(tmpMovesPtr[j]);
                 resultSize++;
             }
-            board.undoMove(tmpMovesPtr[j], false);
+            board.undoMove(tmpMovesPtr[j]);
         }
-
         return {resultSize, checked};
     }
-
-
     static inline int PAWN_PUSH[] = {8,16};
     static inline int PAWN_ATTACKS[] = {7,9};
     /***

@@ -1,6 +1,7 @@
 #include <sstream>
 #include <board.h>
-#include "zobrist.h"
+#include <zobrist.h>
+#include <movegen.h>
 
 /*Macros for simplier code, don't want to create some functions to make it slower*/
 #define MOVE_PIECE(currentPieces, movePiece, fromSq, toSq) \
@@ -82,7 +83,7 @@ int Board::eval() {
 }
 
 
-int Board::evalSide(uint64_t *bbs) {
+int Board::evalSide(uint64_t *bbs) const{
     int eval = 0;
     for(int j = 0; j < 6; j++){
         auto bb = bbs[j];
@@ -113,8 +114,8 @@ void Board::initPieces(uint64_t* pieces) {
 
 void Board::loadFEN(const std::string FEN) {
     // reset repetitions.
-    threeFoldRepetition.clear();
     fiftyMoveRule[0] = 0; fiftyMoveRule[1] = 0;
+    repetitionIndex = 0;
 
     castling[0][0] = false; castling[0][1] = false; castling[1][0] = false; castling[1][1] = false;
     initPieces(whitePieces); initPieces(blackPieces);
@@ -152,14 +153,16 @@ void Board::loadFEN(const std::string FEN) {
     }
     // get zobrist key.
     zobristKey = Zobrist::getHash(*this);
-
+    threeFoldRepetition[repetitionIndex] = zobristKey;
 }
 
 const uint64_t & Board::getPieceBitboard(pieceType type, pieceColor color) const {
     return color == WHITE ? whitePieces[type] : blackPieces[type];
 }
 
-void Board::makeMove(const Move &move, bool updateHash) {
+bool Board::makeMove(const Move &move) {
+    // validate move if king is checked, return false
+
     auto currentPieces = whoPlay ? whitePieces : blackPieces;
     auto enemyPieces = !whoPlay ? whitePieces : blackPieces;
 
@@ -168,11 +171,7 @@ void Board::makeMove(const Move &move, bool updateHash) {
 
     bool setEnPassant = false;
 
-    State currentState;
-    currentState.enPassantSquare = enPassantSquare;
-    currentState.castling = castling;
-    currentState.zobristHash = zobristKey;
-    currentState.fiftyMoveRule = fiftyMoveRule;
+    State currentState{-1,enPassantSquare, castling, fiftyMoveRule, zobristKey};
 
     std::pair<uint64_t , bool> type;
     switch (move.moveType) {
@@ -190,8 +189,6 @@ void Board::makeMove(const Move &move, bool updateHash) {
             HANDLE_ENEMY_CASTLING(type, move, whoPlay, enemyCastling);
             HANDLE_CASTLING(move, whoPlay, currentCastling);
             fiftyMoveRule[whoPlay] = 0;
-
-            if(updateHash) Zobrist::updateHashMove(zobristKey, move,*this, currentState);
             break;
         case Move::PROMOTION:
             bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
@@ -222,8 +219,6 @@ void Board::makeMove(const Move &move, bool updateHash) {
                 HANDLE_ENEMY_CASTLING(type, move, whoPlay, enemyCastling);
             }
             fiftyMoveRule[whoPlay] = 0;
-
-            if(updateHash) Zobrist::updatePromotionHash(zobristKey, move, *this, currentState);
             break;
         case Move::QUIET:
             // !!! rooks  !!! <-> disable castling.
@@ -232,15 +227,12 @@ void Board::makeMove(const Move &move, bool updateHash) {
 
             if(move.movePiece == Board::PAWN) fiftyMoveRule[whoPlay] = 0;
             else fiftyMoveRule[whoPlay]++;
-
-            if(updateHash) Zobrist::updateHashMove(zobristKey, move,*this, currentState);
             break;
         case Move::EN_PASSANT:
             MOVE_PIECE(currentPieces, move.movePiece, move.fromSq, move.toSq);
             bit_ops::popNthBit(enemyPieces[move.movePiece], whoPlay ? move.toSq + 8 : move.toSq - 8);
 
             fiftyMoveRule[whoPlay] = 0;
-            if(updateHash) Zobrist::updateEnPassantHash(zobristKey, move,*this, currentState);
             break;
         case Move::CASTLING:
             // kingSide
@@ -256,7 +248,6 @@ void Board::makeMove(const Move &move, bool updateHash) {
             currentCastling[1] = false;
 
             fiftyMoveRule[whoPlay]++;
-            if(updateHash) Zobrist::updateCastlingHash(zobristKey, move,*this, currentState);
             break;
         case Move::DOUBLE_PAWN_UP:
             MOVE_PIECE(currentPieces, move.movePiece, move.fromSq, move.toSq);
@@ -264,39 +255,76 @@ void Board::makeMove(const Move &move, bool updateHash) {
             setEnPassant = true;
 
             fiftyMoveRule[whoPlay] = 0;
-            if(updateHash) Zobrist::updateHashMove(zobristKey, move, *this, currentState);
             break;
     }
 
+    // validate castling.
+    if(move.moveType == Move::CASTLING){
+        int from = move.fromSq, to = move.toSq;
+        if(move.fromSq > move.toSq) std::swap(from, to);
+
+        for(int j = from; j <= to; j++){
+            if(isSquareAttacked(j, !whoPlay)){
+                push(setEnPassant, currentState);
+                undoMove(move);
+                return false;
+            }
+        }
+    }
+    else if(isSquareAttacked(bit_ops::bitScanForward(currentPieces[KING]), !whoPlay)){
+        push(setEnPassant, currentState);
+        undoMove(move);
+        return false;
+    }
+
+    // update and add to a move "stack".
     // save state to a current depth
+    switch (move.moveType) {
+        case Move::CAPTURE:
+            Zobrist::updateHashMove(zobristKey, move,*this, currentState);
+            break;
+        case Move::PROMOTION:
+            Zobrist::updatePromotionHash(zobristKey, move, *this, currentState);
+            break;
+        case Move::EN_PASSANT:
+            Zobrist::updateEnPassantHash(zobristKey, move,*this, currentState);
+            break;
+        case Move::CASTLING:
+            Zobrist::updateCastlingHash(zobristKey, move,*this, currentState);
+            break;
+        case Move::DOUBLE_PAWN_UP:
+            Zobrist::updateHashMove(zobristKey, move,*this, currentState);
+            break;
+        case Move::QUIET:
+            Zobrist::updateHashMove(zobristKey, move,*this, currentState);
+            break;
+    }
+
+    push(setEnPassant, currentState);
+    threeFoldRepetition[repetitionIndex] = zobristKey; // just add key to an array.
+    return true;
+}
+
+void Board::push(bool setEnPassant, State &currentState) {
     halfMove++;
+    repetitionIndex++;
     STACK[halfMove] = std::move(currentState);
 
     whoPlay = !whoPlay;
     enPassantSquare = setEnPassant ? enPassantSquare : -1;
-    if(updateHash){
-        if(threeFoldRepetition.find(zobristKey) != threeFoldRepetition.end()){
-            threeFoldRepetition[zobristKey]++;
-        }else{
-            threeFoldRepetition.insert({zobristKey, 1});
-        }
-    }
 }
 
-void Board::undoMove(const Move &move, bool updateHash) {
+void Board::undoMove(const Move &move) {
     auto prevState = std::move(STACK[halfMove]);
     whoPlay = !whoPlay;
+    repetitionIndex--;
 
     auto currentPieces = whoPlay ? whitePieces : blackPieces;
     auto enemyPieces = !whoPlay ? whitePieces : blackPieces;
 
     castling = std::move(prevState.castling); // set prev castling rules.
-
     enPassantSquare = prevState.enPassantSquare; // reset of an en passant square.
-    if(updateHash){
-        threeFoldRepetition[zobristKey]--;
-        if(threeFoldRepetition[zobristKey] == 0) threeFoldRepetition.erase(zobristKey);
-    }
+
     zobristKey = prevState.zobristHash;
     fiftyMoveRule = prevState.fiftyMoveRule;
 
@@ -382,20 +410,26 @@ void Board::printBoard() {
 }
 
 
-bool Board::isDraw() {
-    // 3-fold repetition.
-    if(threeFoldRepetition[zobristKey] >= 3) return true;
+bool Board::isDraw(){
+    if(isThreeFoldRepetition()) return true;
 
-    // 50 move rule.
     if(fiftyMoveRule[0] >= 50 && fiftyMoveRule[1] >= 50) return true;
 
     // count material from bbs
     return isInsufficientMaterial(whitePieces) || isInsufficientMaterial(blackPieces);
 }
 
+bool Board::isThreeFoldRepetition() const {
+    int cnt = 0;
+    for(int j = 0; j < repetitionIndex; j++){
+        if(threeFoldRepetition[j] == zobristKey) cnt++;
+        if(cnt == 2) return true; // 1 me + 2 in history.
+    }
+    return false;
+}
 
 
-bool Board::isInsufficientMaterial(uint64_t* bbs){
+bool Board::isInsufficientMaterial(uint64_t* bbs) const{
     // pawns, rooks, queens.
     if(bbs[PAWN] || bbs[ROOK] || bbs[QUEEN]) return false;
 
@@ -408,4 +442,28 @@ bool Board::isInsufficientMaterial(uint64_t* bbs){
     if(cnt >= 2) return false;
 
     return true;
+}
+
+bool Board::isSquareAttacked(int square, bool isWhiteEnemy) {
+    auto enemies = isWhiteEnemy ? whitePieces : blackPieces;
+    auto current = isWhiteEnemy ? blackPieces : whitePieces;
+    uint64_t all = 0ULL;
+    for(int j = 0; j < 6; j++){
+        all |= enemies[j];
+        all |= current[j];
+    }
+    // validate checks.
+    if(Magics::getRookMoves(all, square) & (enemies[Board::ROOK] | enemies[Board::QUEEN])) return true;
+
+    if(Magics::getBishopMoves(all, square) & (enemies[Board::BISHOP] | enemies[Board::QUEEN])) return true;
+
+    // knights.
+    if(Movegen::KNIGHT_MOVES[square] & enemies[Board::KNIGHT]) return true;
+
+    // pawns
+    if(Movegen::PAWN_ATTACK_MOVES[!whoPlay][square] & enemies[Board::PAWN]) return true;
+
+    // kings.
+    if(Movegen::KING_MOVES[square] & enemies[Board::KING]) return true;
+    return false;
 }
