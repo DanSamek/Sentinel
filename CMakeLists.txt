@@ -30,4 +30,6 @@ add_executable(Sentinel
         src/search.cpp
         src/tests/zobristTests.cpp
         src/pst.h
+        src/movepick.h
+        src/movepick.cpp
 )

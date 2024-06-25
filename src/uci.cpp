@@ -21,8 +21,6 @@ void UCI::newGame() {
 }
 
 void UCI::position(std::string command) {
-    //std::transform(command.begin(), command.end(), command.begin(), [](unsigned char c) { return std::tolower(c); });
-
     if(command.find("startpos") != std::string::npos ){
         board.loadFEN(startPos);
     }
@@ -49,8 +47,8 @@ void UCI::position(std::string command) {
 
     // no moves, ok.
     if(moves.size() == 0) return;
-    // play all moves.
 
+    // play all moves.
     for(auto move: moves){
         makeStringMove(move);
     }

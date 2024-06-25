@@ -124,14 +124,22 @@ public:
         return {(Board::pieceType)0, false};
     }
 
+
+    inline Board::pieceType getPieceType(int square){
+        for(int j = 0; j < 6; j++){
+            if(bit_ops::getNthBit(whitePieces[j], square) || bit_ops::getNthBit(blackPieces[j], square)) return (Board::pieceType)j;
+        }
+        assert(false);
+    }
+
 private:
 
     void initPieces(uint64_t* pieces);
     /***
      * Side evaluation
      * -> PST (custom+inspired) - DONE
-     * -> Mobility
-     * -> maybe king safety/pawn structure + passed pawns.
+     * -> Mobility - TODO
+     * -> maybe king safety/pawn structure + passed pawns. - TODO
      * @param bbs
      * @return eval.
      */

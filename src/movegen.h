@@ -10,9 +10,9 @@
 #define UPDATE_BOARD_STATE(board, whoPlay) \
     auto friendlyBits = whoPlay ? board.whitePieces : board.blackPieces; \
     auto enemyBits = whoPlay ? board.blackPieces : board.whitePieces; \
-    Movegen::friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5]; \
-    Movegen::enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5]; \
-    Movegen::all = Movegen::friendlyMerged | Movegen::enemyMerged
+    Movegen::_friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5]; \
+    Movegen::_enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5]; \
+    Movegen::_all = Movegen::_friendlyMerged | Movegen::_enemyMerged
 
 #define VALIDATE_KING_CHECKS(kingPos, board, tmpMoves, j, enemyBits) \
     bool valid = Movegen::validateKingCheck(kingPos, board.whoPlay, enemyBits); \
@@ -66,30 +66,40 @@ struct Movegen {
         _initDone = true;
     }
 
-    static inline int index = 0;
+    static inline int _index = 0;
+    static inline Move* _tmpMovesPtr;
 
-    static inline  Move tmpMoves[MAX_LEGAL_MOVES];
-    static inline Move* tmpMovesPtr;
+    static inline uint64_t _all, _friendlyMerged, _enemyMerged;
 
-    static inline uint64_t all, friendlyMerged, enemyMerged;
-
-    static bool validateKingCheck(int kingPos, bool whoPlay, uint64_t enemyBits[6]);
+    static inline bool _capturesOnly;
 
     /***
      * @param board Board for movegen.
      * @param moves Result valid moves.
      * @return totalNumber of moves + if king is checked.
      */
-    static std::pair<int, bool> generateMoves(Board& board, Move* moves, bool legalOnly = true){
-        index = 0;
-        tmpMovesPtr = moves;
+    static std::pair<int, bool> generateMoves(Board& board, Move* moves, bool capturesOnly = false){
+        _index = 0;
+        _tmpMovesPtr = moves;
+        _capturesOnly = capturesOnly;
 
         UPDATE_BOARD_STATE(board, board.whoPlay);
 
         auto kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
         // if its not valid <-> checked king !!!
-        bool checked = ! validateKingCheck(kingPos, !board.whoPlay, enemyBits);
+        bool checked = !validateKingCheck(kingPos, !board.whoPlay, enemyBits);
 
+        if(capturesOnly){
+            // generate only captures
+            // Yea, maybe copy paste kinda, but dont waste time on every if statement.
+            generatePawnCaptures(friendlyBits[Board::PAWN], board.enPassantSquare, board.whoPlay);
+            generateRookCaptures(friendlyBits[Board::ROOK]);
+            generateBishopCaptures(friendlyBits[Board::BISHOP]);
+            generateQueenCaptures(friendlyBits[Board::QUEEN]);
+            generateKnightCaptures(friendlyBits[Board::KNIGHT]);
+            generateKingCaptures(friendlyBits[Board::KING]);
+            return {_index, checked};
+        }
         // generate all possible moves for current player.
         generatePawnMoves(friendlyBits[Board::PAWN], board.enPassantSquare, board.whoPlay);
         generateRookMoves(friendlyBits[Board::ROOK]);
@@ -99,34 +109,12 @@ struct Movegen {
         generateKingMoves(friendlyBits[Board::KING], board.castling[!board.whoPlay], board.whoPlay);
 
         // copy to a result, if we want all pseudolegal moves <-> we will check it in search/perft (just a performance try).
-        return {index, checked};
-
-        if(!legalOnly) return {index, checked};
-
-        int resultSize = 0;
-        for(int j = 0; j < index; j++){
-            // castling move, check 2 another squares.
-            auto kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
-            if(tmpMovesPtr[j].moveType == Move::CASTLING){
-                UPDATE_BOARD_STATE(board, board.whoPlay);
-                VALIDATE_KING_CHECKS(kingPos, board, tmpMovesPtr, j, enemyBits);
-            }
-            // play move.
-            board.makeMove(tmpMovesPtr[j]);
-            // we need updated pieces.
-            // !! changed move !! (whoplay).
-            UPDATE_BOARD_STATE(board, !board.whoPlay);
-            kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
-
-            auto valid = validateKingCheck(kingPos, !board.whoPlay, enemyBits);
-            if(valid){
-                moves[resultSize] = std::move(tmpMovesPtr[j]);
-                resultSize++;
-            }
-            board.undoMove(tmpMovesPtr[j]);
-        }
-        return {resultSize, checked};
+        return {_index, checked};
     }
+
+
+    static bool validateKingCheck(int kingPos, bool whoPlay, uint64_t enemyBits[6]);
+
     static inline int PAWN_PUSH[] = {8,16};
     static inline int PAWN_ATTACKS[] = {7,9};
     /***
@@ -162,19 +150,11 @@ struct Movegen {
     static void initAndBitsForKKP();
 
     /***
-     * @param king
-     * @param attacks
-     * @param checkCount used in enemy movegeneration - count checks -> we can simplify movegen.
-     * @return
-     */
-    static void incrementIfKingChecked(const uint64_t& king, const uint64_t& attacks, int& checkCount);
-
-    /***
      * Converts moveBitboard and appends them into a move vector
-     * @param fromSquare bit index from square
+     * @param fromSquare bit _index from square
      * @param moveBitboard generated bitboard moves
      * @param moves reference to all moves -> will be returned from movegen.
-     * @param enemyMerged all bits for enemyMerged
+     * @param enemyMerged all bits for _enemyMerged
      * @param enemyKing bitboard for an enemy king
      * @param pieceType
      * Reason for this -> move order by checks/capture, etc..
@@ -199,6 +179,18 @@ struct Movegen {
     static void generateKnightMoves(uint64_t knight);
     static void generateKingMoves(uint64_t king,  const std::array<bool, 2>& castling, bool whoPlay);
     static void generatePromotions(int fromSq, int toSq);
+
+
+    /*
+        All capture generations.
+    */
+    static void generateRookCaptures(uint64_t rooks);
+    static void generateBishopCaptures(uint64_t bishops);
+    static void generateQueenCaptures(uint64_t queens);
+    static void generateKnightCaptures(uint64_t knight);
+    static void generateKingCaptures(uint64_t king);
+    static void generatePawnCaptures(uint64_t b, int enPassantSquare, bool color);
+    static void captureBitboardToMoves(int fromSquare, uint64_t& moveBitboard, Board::pieceType pieceType);
 };
 
 

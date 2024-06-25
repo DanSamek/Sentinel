@@ -75,27 +75,6 @@
             break; \
     }
 
-
-int Board::eval() {
-    int whiteScore = evalSide(whitePieces, true);
-    int blackScore = evalSide(blackPieces, false);
-    return (whiteScore - blackScore) * (whoPlay ? 1 : -1);
-}
-
-
-int Board::evalSide(uint64_t *bbs, bool white) const{
-    int eval = 0;
-    for(int j = 0; j < 6; j++){
-        auto bb = bbs[j];
-        while(bb){
-            auto pos = bit_ops::bitScanForwardPopLsb(bb);
-            eval += PST::getValue(white, j, pos, piecesTotal > END_GAME_PIECE_MAX);
-        }
-    }
-    return eval;
-}
-
-
 Board::Board() {
     initPieces(whitePieces);
     initPieces(blackPieces);
@@ -423,7 +402,7 @@ bool Board::isDraw(){
     if(fiftyMoveRule[0] >= 50 && fiftyMoveRule[1] >= 50) return true;
 
     // count material from bbs
-    return isInsufficientMaterial(whitePieces) || isInsufficientMaterial(blackPieces);
+    return isInsufficientMaterial(whitePieces) && isInsufficientMaterial(blackPieces);
 }
 
 bool Board::isThreeFoldRepetition() const {
@@ -459,18 +438,33 @@ bool Board::isSquareAttacked(int square, bool isWhiteEnemy) {
         all |= enemies[j];
         all |= current[j];
     }
-    // validate checks.
     if(Magics::getRookMoves(all, square) & (enemies[Board::ROOK] | enemies[Board::QUEEN])) return true;
 
     if(Magics::getBishopMoves(all, square) & (enemies[Board::BISHOP] | enemies[Board::QUEEN])) return true;
 
-    // knights.
     if(Movegen::KNIGHT_MOVES[square] & enemies[Board::KNIGHT]) return true;
 
-    // pawns
     if(Movegen::PAWN_ATTACK_MOVES[!whoPlay][square] & enemies[Board::PAWN]) return true;
 
-    // kings.
     if(Movegen::KING_MOVES[square] & enemies[Board::KING]) return true;
     return false;
+}
+
+int Board::eval() {
+    int whiteScore = evalSide(whitePieces, true);
+    int blackScore = evalSide(blackPieces, false);
+    return (whiteScore - blackScore) * (whoPlay ? 1 : -1);
+}
+
+
+int Board::evalSide(uint64_t *bbs, bool white) const{
+    int eval = 0;
+    for(int j = 0; j < 6; j++){
+        auto bb = bbs[j];
+        while(bb){
+            auto pos = bit_ops::bitScanForwardPopLsb(bb);
+            eval += PST::getValue(white, j, pos, piecesTotal > END_GAME_PIECE_MAX);
+        }
+    }
+    return eval;
 }

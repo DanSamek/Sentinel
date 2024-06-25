@@ -9,7 +9,7 @@ struct PST{
 
     // Handcrafted PST's - inspired from chessboard (my brain) + pst avg values to have normal values.
     // All white perspective (from bottom)
-    
+
     static constexpr inline int MG_PAWN_TABLE[64] = {
             0,     0,   0,   0,   0,   0,   0,   0,
             -34, -24, -20, -15, -15, -20, -24, -34,
@@ -17,7 +17,7 @@ struct PST{
             -16, -12,  4,   7,  7, 4, -12, -16,
             -12,  -8,  5,  20,  20,  5,  -8, -12,
             -6,   -4,  4,  15,  15,  4,  -4,  -6,
-            15,   20,  10,  5,  5,  10,  20,  15,
+            10,   15,  10,  5,  5,  10,  15,  10,
             0,     0,   0,   0,   0,   0,   0,   0,
     };
 
@@ -85,7 +85,7 @@ struct PST{
             -5,   -5,   -5,   -5,   -5,   -5,   -5,   -5,
              2,    4,    8,    2,    2,    8,    4,    2,
              0,    3,    12,   20,   20,    12,    3,    0,
-            -8,   -3,   21,   35,   35,   21,   -3,   -8
+            -8,   -3,   8,   35,   35,   8,   -3,   -8
     };
 
     static constexpr inline int EG_ROOK_TABLE[64] = {
@@ -129,7 +129,7 @@ struct PST{
             -10,  -10,  -10,  -10,  -10,  -10,  -10,  -10,
             -8,   -8,   -15,  -25,  -25,  -15,  -8,   -8,
             24,    7,    -7,  -15,  -15,   -7,   7,   24,
-            33,   50,    27,   -7,   -7,   27,   50,   33
+            33,   43,    27,   0,   0,   27,   43,   33
     };
 
     static constexpr inline int EG_KING_TABLE[64] = {

@@ -26,6 +26,10 @@ struct Move {
     type moveType = QUIET;
     int movePiece;
 
+
+    // Move score for movepick in search.
+    int score = 0;
+
     void print(){
         std::cout << indexToChessSquare(fromSq) << indexToChessSquare(toSq);
         switch (promotionType) {
