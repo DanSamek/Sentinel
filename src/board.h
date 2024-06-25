@@ -64,7 +64,7 @@ public:
     static constexpr int END_GAME_PIECE_MAX = 12;
 
     /***
-     * Loads a fen to a board.
+     * Loads a fen to a _board.
      * @param FEN
      */
     void loadFEN(const std::string FEN);
@@ -82,7 +82,7 @@ public:
     const uint64_t& getPieceBitboard(pieceType type, pieceColor color) const;
 
     /***
-     * Makes a move on a board.
+     * Makes a move on a _board.
      * Validates a move - from a pseudolegal movegen.
      * Non const -> we will change move::capturePiece.
      * @param move
@@ -99,7 +99,7 @@ public:
     void undoMove(const Move& move);
 
     /***
-     * Simple board print of a current state.
+     * Simple _board print of a current state.
      */
     void printBoard() const;
 
@@ -112,7 +112,7 @@ public:
 
 
     /***
-     * Checks, if there is a draw on the board.
+     * Checks, if there is a draw on the _board.
      * @return
      */
     bool isDraw();

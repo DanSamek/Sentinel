@@ -3,13 +3,16 @@
 #include <iostream>
 #include <movegen.h>
 #include <sstream>
+#include <tt.h>
 
 /***
  * Simple implementation of UCI protocol for a chess guis (only needed co)
  */
 struct UCI {
-    static inline Board board;
-    static inline std::string startPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    static inline Board _board;
+    static inline TranspositionTable _TT;
+    static inline int _hashSize = 128;
+    static inline const std::string START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     /***
      * Prints info about an engine
@@ -34,7 +37,7 @@ struct UCI {
 
     /***
      * movetime 10
-     * wtime 1000 btime 1000 winc 10 binc 10 TODO!
+     * wtime 1000 btime 1000 winc 10 binc 10
      * times are for searching.
      * @param command
      */
@@ -44,6 +47,8 @@ struct UCI {
      * Only for debug, if position is equal to a actual position in a GUI.
      */
     static void printPos();
+
+    ~UCI();
 private:
     static std::vector<std::string> parseMoves(std::string command);
     static void makeStringMove(std::string move);

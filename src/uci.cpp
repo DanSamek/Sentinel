@@ -13,16 +13,18 @@ void UCI::isReady() {
     Movegen::init();
     Zobrist::init();
     PST::init();
+    _TT = TranspositionTable(_hashSize, _board);
+    Search::TT = &_TT;
     std::cout << "readyok" << std::endl;
 }
 
 void UCI::newGame() {
-    board.loadFEN(startPos);
+    _board.loadFEN(START_POS);
 }
 
 void UCI::position(std::string command) {
     if(command.find("startpos") != std::string::npos ){
-        board.loadFEN(startPos);
+        _board.loadFEN(START_POS);
     }
     else if(command.find("fen") != std::string::npos){
         size_t posFEN = command.find("fen");
@@ -36,7 +38,7 @@ void UCI::position(std::string command) {
         } else{
             fen = command.substr(start);
         }
-        board.loadFEN(fen);
+        _board.loadFEN(fen);
     }
     else{
         std::cout << "Invalid position command (startpos || fen expected)" << std::endl;
@@ -56,18 +58,40 @@ void UCI::position(std::string command) {
 
 void UCI::go(std::string command) {
 
-    auto move = Search::search(-69420, board);
+    /*
+         movetime 10 mseconds - exactly.
+         wtime 1000 btime 1000 winc 10 binc 10
+     */
+    std::istringstream iss(command);
+    int miliseconds; std::string tmp;
+    bool exact = false;
+    if(command.find("movetime") != std::string::npos){
+        iss >> tmp >> tmp >> miliseconds;
+        exact = true;
+    }
+    else if(command.find("wtime") != std::string::npos){
+        if(_board.whoPlay){
+            iss >> tmp >> tmp >> miliseconds;
+        }else{
+            iss >> tmp >> tmp >> miliseconds >> tmp >> miliseconds;
+        }
+    }
+    else{
+        // TODO
+    }
+
+    auto move = Search::search(miliseconds, _board, exact);
     std::cout << "bestmove ";
     move.print();
 
-    board.makeMove(move);
+    _board.makeMove(move);
 
-    board.printBoard();
+    _board.printBoard();
 }
 
 
 void UCI::printPos() {
-    board.printBoard();
+    _board.printBoard();
 }
 
 
@@ -96,11 +120,11 @@ void UCI::makeStringMove(std::string move) {
     }
     // make move
     Move moves[Movegen::MAX_LEGAL_MOVES];
-    auto result = Movegen::generateMoves(board, moves);
+    auto result = Movegen::generateMoves(_board, moves);
     bool played = false;
     for(int j = 0; j < result.first; j++){
         if(moves[j].promotionType == t && moves[j].fromSq == fromSquare && moves[j].toSq == toSquare){
-            board.makeMove(moves[j]);
+            _board.makeMove(moves[j]);
             played = true;
             break;
         }
@@ -121,4 +145,8 @@ std::vector<std::string> UCI::parseMoves(std::string command) {
         moves.push_back(move);
     }
     return moves;
+}
+
+UCI::~UCI(){
+    _TT.free();
 }

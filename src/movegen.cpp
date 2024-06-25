@@ -230,7 +230,7 @@ void Movegen::generateKingMoves(uint64_t king, const std::array<bool,2>& castlin
     auto pos = bit_ops::bitScanForwardPopLsb(king);
     auto bb = KING_MOVES[pos];
     bitboardToMoves(pos, bb, Board::KING);
-    // Note, in board.cpp we handle castling rights !!!
+    // Note, in _board.cpp we handle castling rights !!!
     auto castlingMasks = CASTLING_FREE_MASKS[!whoPlay];
     if(castling[Board::K_CASTLE] && (castlingMasks[Board::K_CASTLE] & _all) == 0){
         _tmpMovesPtr[Movegen::_index++] = {pos, pos + 2, Move::NONE, Move::CASTLING, Board::KING};

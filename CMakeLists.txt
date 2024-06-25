@@ -32,4 +32,8 @@ add_executable(Sentinel
         src/pst.h
         src/movepick.h
         src/movepick.cpp
+        src/tt.h
+        src/tt.cpp
+        src/timer.h
+        src/timer.cpp
 )

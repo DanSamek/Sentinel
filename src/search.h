@@ -4,93 +4,132 @@
 #include <movegen.h>
 #include <limits.h>
 #include <movepick.h>
+#include <tt.h>
+#include <chrono>
+#include "timer.h"
 
 class Search {
     static constexpr int positiveInf = 100000000;
     static constexpr int negativeInf = -100000000;
 
+    static inline int bestScoreIter = INT_MIN;
+    static inline Move bestMoveIter;
+    static inline int MAX_DEPTH = 28;
+
+    static inline Board* _board;
+    static inline bool _forceStopped = false;
+
+    static inline Timer _timer;
+
 public:
-    static Move search(int timeRemaining, Board& board){
+    // 8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1
+    static Move search(int miliseconds, Board& board, bool exact){
         // get first moves, only legal.
-        Move moves[Movegen::MAX_LEGAL_MOVES];
-        auto result = Movegen::generateMoves(board, moves);
+        _board = &board;
+        _forceStopped = false;
 
-        int bestScore = INT_MIN;
+        int msCanBeUsed = exact ? miliseconds : miliseconds / 120; // try
+
+        _timer = Timer(msCanBeUsed);
         Move bestMove;
-        for(int j = 0; j < result.first; j++){
-            // play moves.
-            if(!board.makeMove(moves[j])) continue; // pseudolegal movegen.
+        int bestScore = 0;
 
-            int score = -negamax(12, board, negativeInf, positiveInf);
-            std::cout << score << std::endl;
-            board.printBoard();
+        for(int j = 1; j <= MAX_DEPTH; j++){
+            negamax(j, 0, negativeInf, positiveInf);
 
-            board.undoMove(moves[j]);
-            // its better?
-            if(score > bestScore){
-                bestScore = score;
-                bestMove = moves[j];
+            if(!_forceStopped || !_timer.isTimeout()){
+                bestMove = bestMoveIter;
+                std::cout <<"depth:" << j << " score:" << bestScoreIter << " move:";
+                bestMove.print();
             }
         }
         return bestMove;
     }
 
-private:
     static constexpr int CHECKMATE = 1000000;
+    static inline TranspositionTable* TT;
+private:
+
     /*
-     * TODO
      * 1) qsearch (generate all captures) - DONE
      * 2) moveorder / movepick (simple (by captured piece) + promotions). DONE
-     * 3) transposition table
-     * ---
-     * 4) iterative deepening + uci parsing with time, valid times.
+     * 3) transposition table DONE (?)
+     * 4) iterative deepening + uci parsing with time, valid times. DONE
+     *
      * 5) Move order - add best first move from iterative deepening.
      * 6) Iterative deepening update - if mate was found in iteration - smallest depth, we can stop.
      */
 
-    // https://en.wikipedia.org/wiki/Negamax
-    static int negamax(int depth, Board& board, int alpha, int beta){
-        if(board.isDraw()) return 0;
-        if(depth == 0) return qsearch(board, alpha, beta);
+    // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
+    static int negamax(int depth, int ply, int alpha, int beta){
+        if(_timer.isTimeout()){
+            _forceStopped = true;
+            return 0;
+        }
+
+        if(_board->isDraw()) return 0;
+        if(depth == 0) return qsearch(alpha, beta);
+
+        // Try get eval from TT.
+        int ttEval = TT->getEval(depth, alpha, beta);
+        if(ttEval != TranspositionTable::LOOKUP_ERROR){
+            // Starting search, maybe found something in TT
+            if(ply == 0){
+                bestMoveIter = TT->getMove();
+                bestScoreIter = ttEval;
+            }
+            return ttEval;
+        }
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        auto [moveCount, isCheck] = Movegen::generateMoves(board, moves);
+        auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves);
 
         // "move ordering"
-        Movepick::scoreMoves(moves, moveCount, board);
+        Movepick::scoreMoves(moves, moveCount, *_board);
         bool visitedAny = false;
+
+        TranspositionTable::HashType TTType = TranspositionTable::ALPHA;
+        Move bestMoveInPos;
         for(int j = 0; j < moveCount; j++){
-            // pick a move to play.
+            // pick a move to play (sorting moves, can be slower, thanks to alpha beta pruning).
             Movepick::pickMove(moves, moveCount, j);
 
-            if(!board.makeMove(moves[j])) continue; // pseudolegal movegen.
-            int eval = -negamax(depth - 1, board, -beta, -alpha);
-            board.undoMove(moves[j]);
+            if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
+            int eval = -negamax(depth - 1, ply + 1, -beta, -alpha);
+            _board->undoMove(moves[j]);
 
-            visitedAny = true;
+            // ! after undo move !
+            if(_forceStopped){
+                return 0;
+            }
+
+            visitedAny = true; // for draw / checkmate checking.
 
             if(eval >= beta){
-                // TODO store in TT
+                TT->store(beta, depth, _board->zobristKey, TranspositionTable::BETA, moves[j]);
                 return beta;
             }
 
             if(eval > alpha){
                 alpha = eval;
-                // TODO TT Exact
+
+                TTType = TranspositionTable::EXACT;
+                bestMoveInPos = moves[j];
+                // best move for current player in depth "0".
+                if(ply == 0){
+                    bestMoveIter = moves[j];
+                    bestScoreIter = eval;
+                }
             }
         }
 
         // movegen returns cnt of moves total and if king is checked.
         // if there is no move - eval == INT_MIN, we can easily return if it's draw or checkmate (for checkmate we use value < INT_MIN).
         // checkmate || draw.
-        if(!visitedAny && isCheck){
-            return -(CHECKMATE + depth); // checkmate.
-        }
-        if(!visitedAny && !isCheck) {
-            return 0; // draw
-        }
+        if(!visitedAny && isCheck) return -(CHECKMATE + depth); // checkmate.
+        if(!visitedAny && !isCheck) return 0; // draw
 
-        // TODO store in TT.
+        TT->store(alpha, depth, _board->zobristKey, TTType, bestMoveInPos);
         return alpha;
     }
 
@@ -102,23 +141,23 @@ private:
      *  -> qsearch.
      * @return
      */
-    static int qsearch(Board& board, int alpha, int beta){
-        auto currentEval = board.eval();
+    static int qsearch(int alpha, int beta){
+        auto currentEval = _board->eval();
 
         if(currentEval >= beta) return beta;
         if(currentEval > alpha) alpha = currentEval;
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        auto [moveCount, isCheck] = Movegen::generateMoves(board, moves, true);
-        Movepick::scoreMoves(moves, moveCount, board);
+        auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves, true);
+        Movepick::scoreMoves(moves, moveCount, *_board);
 
         for(int j = 0; j < moveCount; j++){
             // pick a best move to play.
             Movepick::pickMove(moves, moveCount, j);
 
-            if(!board.makeMove(moves[j])) continue; // pseudolegal movegen.
-            int eval = -qsearch(board, -beta, -alpha);
-            board.undoMove(moves[j]);
+            if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
+            int eval = -qsearch(-beta, -alpha);
+            _board->undoMove(moves[j]);
 
             if(eval >= beta) return beta;
             if(eval > alpha) alpha = eval;
@@ -129,3 +168,6 @@ private:
 };
 
 #endif //SENTINEL_SEARCH_H
+
+
+

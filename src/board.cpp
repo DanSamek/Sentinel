@@ -104,7 +104,7 @@ void Board::loadFEN(const std::string FEN) {
 
     if(!(iss >> board >> whoPlayTmp >> castlingRules >> enPassant >> halfMove >> fullMove)) throw std::invalid_argument("not valid FEN.");
 
-    // parse a board.
+    // parse a _board.
     int square = 0;
     for(auto character: board){
         if(isdigit(character)){
@@ -401,7 +401,7 @@ bool Board::isDraw(){
 
     if(fiftyMoveRule[0] >= 50 && fiftyMoveRule[1] >= 50) return true;
 
-    // count material from bbs
+    // _count material from bbs
     return isInsufficientMaterial(whitePieces) && isInsufficientMaterial(blackPieces);
 }
 
