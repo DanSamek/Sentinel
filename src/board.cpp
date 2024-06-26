@@ -2,6 +2,7 @@
 #include <board.h>
 #include <zobrist.h>
 #include <movegen.h>
+#include <iostream>
 
 /*Macros for simplier code, don't want to create some functions to make it slower*/
 #define MOVE_PIECE(currentPieces, movePiece, fromSq, toSq) \
@@ -102,7 +103,10 @@ void Board::loadFEN(const std::string FEN) {
 
     std::istringstream iss(FEN);
 
-    if(!(iss >> board >> whoPlayTmp >> castlingRules >> enPassant >> halfMove >> fullMove)) throw std::invalid_argument("not valid FEN.");
+    if(!(iss >> board >> whoPlayTmp >> castlingRules >> enPassant >> halfMove >> fullMove)) {
+        std::cout << "FEN is not valid!"<< std::endl;
+        return;
+    }
 
     // parse a _board.
     int square = 0;
@@ -409,7 +413,7 @@ bool Board::isThreeFoldRepetition() const {
     int cnt = 0;
     for(int j = 0; j < repetitionIndex; j++){
         if(threeFoldRepetition[j] == zobristKey) cnt++;
-        if(cnt == 2) return true; // 1 me + 2 in history.
+        if(cnt == 2) return true;
     }
     return false;
 }
@@ -450,6 +454,8 @@ bool Board::isSquareAttacked(int square, bool isWhiteEnemy) {
     return false;
 }
 
+// Eval part.
+
 int Board::eval() {
     int whiteScore = evalSide(whitePieces, true);
     int blackScore = evalSide(blackPieces, false);
@@ -459,12 +465,17 @@ int Board::eval() {
 
 int Board::evalSide(uint64_t *bbs, bool white) const{
     int eval = 0;
-    for(int j = 0; j < 6; j++){
+    // pawns eval differently
+    for(int j = 1; j < 6; j++){
         auto bb = bbs[j];
         while(bb){
             auto pos = bit_ops::bitScanForwardPopLsb(bb);
             eval += PST::getValue(white, j, pos, piecesTotal > END_GAME_PIECE_MAX);
         }
     }
+
+    // lets check passed pawn + structure of pawns
+
+
     return eval;
 }

@@ -54,7 +54,7 @@ public:
         }
 
         if(move.toSq == 0 || move.toSq == 7 || move.toSq == 63 || move.toSq == 56){
-            updateCastlingRightsHash(hash, board);
+            updateCastlingRightsHash(hash, board, state);
         }
         hash ^= sideToMove;
     }
@@ -75,7 +75,7 @@ public:
         else hash ^= zobristTable[rook][move.toSq + 1];
 
         // castling rights.
-        updateCastlingRightsHash(hash, board);
+        updateCastlingRightsHash(hash, board, state);
 
         hash ^= sideToMove;
     }
@@ -96,12 +96,17 @@ public:
         hash ^= sideToMove;
     }
 
-    static inline void updateCastlingRightsHash(uint64_t& hash, const Board& board){
+    static inline void updateCastlingRightsHash(uint64_t& hash, const Board& board, const State& state, bool force = false){
         // WHITE, BLACK {queen, king}
         // << 3
         // << 2
         // << 1
         // << 0
+        if(state.castling == board.castling && !force) return; // Dont xor same castlings!
+
+        uint prevCastling = (uint)state.castling[0][0] << 3 | (uint)state.castling[0][1] << 2 | (uint)state.castling[1][0] << 1 | (uint)state.castling[1][1] << 0;
+        hash ^= prevCastling;
+
         uint castling = (uint)board.castling[0][0] << 3 | (uint)board.castling[0][1] << 2 | (uint)board.castling[1][0] << 1 | (uint)board.castling[1][1] << 0;
         hash ^= castlingTable[castling];
 
@@ -119,7 +124,7 @@ public:
         // en passant square
         if(board.enPassantSquare != -1) hash ^= enPassantTable[board.enPassantSquare % 8];
 
-        updateCastlingRightsHash(hash, board);
+        updateCastlingRightsHash(hash, board, {}, true);
         return hash;
     }
 
@@ -139,7 +144,7 @@ public:
         }
         // !! castling problems
         if(move.toSq == 0 || move.toSq == 7 || move.toSq == 63 || move.toSq == 56){
-            updateCastlingRightsHash(hash, board);
+            updateCastlingRightsHash(hash, board, state);
         }
         hash ^= sideToMove;
     }

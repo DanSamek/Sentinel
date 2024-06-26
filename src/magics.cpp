@@ -19,8 +19,8 @@ uint64_t Magics::getSlidingMoves(const uint64_t& blockers, int square, bool rook
     uint64_t magics = rook ? ROOK_MAGICS[square] : BISHOP_MAGICS[square];
     uint64_t hash;
     __builtin_umull_overflow(hashBlockers, magics, &hash);
-    uint64_t index = (hash >> (uint64_t)(64ULL - (rook ? ROOK_MAGICS_SHIFT[square] : BISHOP_MAGICS_SHIFT[square])));
-    return rook ?ROOK_TABLE[square][index] : BISHOP_TABLE[square][index];
+    uint64_t _index = (hash >> (uint64_t)(64ULL - (rook ? ROOK_MAGICS_SHIFT[square] : BISHOP_MAGICS_SHIFT[square])));
+    return rook ?ROOK_TABLE[square][_index] : BISHOP_TABLE[square][_index];
 }*/
 
 uint64_t Magics::getRookMoves(const uint64_t& blockers, int square){
@@ -123,7 +123,7 @@ std::vector<std::pair<int, int>> Magics::generateMovesForDirections(const std::v
             fileTmp += direction.first;
             added = true;
         }
-        // last move was the end of a board, remove it -> pointless.
+        // last move was the end of a _board, remove it -> pointless.
         if(added) result.pop_back();
     }
     return result;

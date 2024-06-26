@@ -21,28 +21,39 @@ class Search {
 
     static inline Timer _timer;
 
+
+    static inline int TTUsed;
+    static inline int nodesVisited;
 public:
     // 8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1
     static Move search(int miliseconds, Board& board, bool exact){
+        TTUsed = nodesVisited = 0;
         // get first moves, only legal.
         _board = &board;
         _forceStopped = false;
+        bestScoreIter = INT_MIN;
+        bestMoveIter = {};
 
         int msCanBeUsed = exact ? miliseconds : miliseconds / 120; // try
 
         _timer = Timer(msCanBeUsed);
+        TT->clear(); // TODO fix!!
         Move bestMove;
-        int bestScore = 0;
 
         for(int j = 1; j <= MAX_DEPTH; j++){
             negamax(j, 0, negativeInf, positiveInf);
+            if(_forceStopped) break;
 
-            if(!_forceStopped || !_timer.isTimeout()){
-                bestMove = bestMoveIter;
-                std::cout <<"depth:" << j << " score:" << bestScoreIter << " move:";
-                bestMove.print();
-            }
+            bestMove = bestMoveIter;
+            std::cout << "depth:" << j << " score:" << bestScoreIter << " move:";
+            bestMove.print();
+
+            // thanks to iterative deepening + TT, we can stop search here - mate found.
+            if(isMateScore(bestScoreIter)) break;
         }
+
+        std::cout << "tt used:" << TTUsed << " nodesTotal:" << nodesVisited <<std::endl;
+        std::cout << "tt ratio: " << (TTUsed*1.0)/nodesVisited << std::endl;
         return bestMove;
     }
 
@@ -57,7 +68,7 @@ private:
      * 4) iterative deepening + uci parsing with time, valid times. DONE
      *
      * 5) Move order - add best first move from iterative deepening.
-     * 6) Iterative deepening update - if mate was found in iteration - smallest depth, we can stop.
+     * 6) Iterative deepening update - if mate was found in iteration - smallest depth, we can stop. DONE
      */
 
     // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
@@ -67,17 +78,20 @@ private:
             return 0;
         }
 
+        nodesVisited++;
+
         if(_board->isDraw()) return 0;
         if(depth == 0) return qsearch(alpha, beta);
 
         // Try get eval from TT.
         int ttEval = TT->getEval(depth, alpha, beta);
+
         if(ttEval != TranspositionTable::LOOKUP_ERROR){
-            // Starting search, maybe found something in TT
             if(ply == 0){
                 bestMoveIter = TT->getMove();
                 bestScoreIter = ttEval;
             }
+            TTUsed++;
             return ttEval;
         }
 
@@ -164,6 +178,10 @@ private:
         }
 
         return alpha;
+    }
+
+    static bool isMateScore(int score){
+        return std::abs(score) >= CHECKMATE;
     }
 };
 

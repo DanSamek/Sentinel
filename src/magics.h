@@ -12,7 +12,7 @@
 /* Example, Rook on e4:
  *
  *     Precalculated       Input blockerBitboard
- *    The blocker mask        A blocker board         The move board
+ *    The blocker mask        A blocker _board         The move _board
  *    0 0 0 0 0 0 0 0         0 0 0 0 0 0 0 0         0 0 0 0 0 0 0 0
  *    0 0 0 0 1 0 0 0         0 0 0 0 1 0 0 0         0 0 0 0 0 0 0 0
  *    0 0 0 0 1 0 0 0         0 0 0 0 0 0 0 0         0 0 0 0 0 0 0 0
@@ -140,7 +140,7 @@ private:
     static std::vector<uint64_t> generateAllBlockerCombinations(uint64_t bitboard);
 
     /***
-     * Generates all possible moves for current board from file, rank.
+     * Generates all possible moves for current _board from file, rank.
      */
     static uint64_t generateSliderMoves(int file, int rank, const uint64_t& bitboard, const std::vector<std::pair<int, int>>& movement);
 
@@ -156,7 +156,7 @@ private:
     static std::vector<uint64_t> tryBuildTable(uint64_t blockerBitBoard, int file, int rank, bool rook, uint64_t magic, const std::vector<uint64_t>& allBlockers);
 
     /***
-     * For each square, for each blocker combination -> move board.
+     * For each square, for each blocker combination -> move _board.
      * find magic number and shifts for each square, minimum maximal key for squares.
      */
     static void generateMagics();

@@ -61,7 +61,7 @@ public:
 
     uint64_t zobristKey;
     int piecesTotal;
-    static constexpr int END_GAME_PIECE_MAX = 12;
+    static constexpr int END_GAME_PIECE_MAX = 15;
 
     /***
      * Loads a fen to a _board.

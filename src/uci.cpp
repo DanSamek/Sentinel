@@ -54,6 +54,12 @@ void UCI::position(std::string command) {
     for(auto move: moves){
         makeStringMove(move);
     }
+    /*
+    for(int j = (17*2); j < _board.repetitionIndex; j++){
+        std::cout << _board.threeFoldRepetition[j] << std::endl;
+    }
+
+    assert(_board.isDraw());*/
 }
 
 void UCI::go(std::string command) {
@@ -94,7 +100,6 @@ void UCI::printPos() {
     _board.printBoard();
 }
 
-
 void UCI::makeStringMove(std::string move) {
     int fromSquare = (move[0] - 'a') + (7 - (move[1] - '1')) * 8;
     int toSquare = (move[2] - 'a') + (7 - (move[3] - '1')) * 8;
@@ -126,13 +131,12 @@ void UCI::makeStringMove(std::string move) {
         if(moves[j].promotionType == t && moves[j].fromSq == fromSquare && moves[j].toSq == toSquare){
             _board.makeMove(moves[j]);
             played = true;
+            _board.printBoard();
             break;
         }
     }
     if(!played) std::cout << "move not found" << std::endl;
 }
-
-
 
 std::vector<std::string> UCI::parseMoves(std::string command) {
     size_t posMoves = command.find("moves");

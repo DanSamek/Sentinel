@@ -62,9 +62,14 @@ public:
         return _entries[index()].best;
     }
 
+    HashType getHashTFlag(){
+        return _entries[index()].flag;
+    }
+
     void free(){
         delete[] _entries;
     }
+
 private:
     int index(){
         return (int)(_board->zobristKey % _count);

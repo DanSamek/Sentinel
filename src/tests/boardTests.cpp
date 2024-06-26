@@ -28,7 +28,7 @@ struct boardTests {
         assert(board.enPassantSquare == 44);
         assert(board.halfMove == 0);
         assert(board.fullMove == 1);
-        // board validation with bitboards.
+        // _board validation with bitboards.
 
         uint64_t tmpBit;
         setMultipleBits({8,9,10,11,12,13,14,15}, tmpBit);
@@ -99,6 +99,6 @@ struct boardTests {
         assert(board.getPieceBitboard(Board::BISHOP, Board::BLACK)  == 0ull);
         assert(board.getPieceBitboard(Board::PAWN, Board::BLACK)  == 0ull);
 
-        std::cout << "board tests: DONE" << std::endl;
+        std::cout << "_board tests: DONE" << std::endl;
     }
 };
