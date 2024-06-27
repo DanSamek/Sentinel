@@ -7,74 +7,64 @@
 
 // https://web.archive.org/web/20071031100051/http://www.brucemo.com/compchess/programming/hashing.htm
 class TranspositionTable {
-
 public:
     enum HashType{
         EXACT,
-        ALPHA,
-        BETA
+        UPPER_BOUND,
+        LOWER_BOUND
     };
     static constexpr int LOOKUP_ERROR = -1000000000;
 
+    // Default .ctor for uci init (not used)
     TranspositionTable() = default;
 
-    TranspositionTable(int sizeMB, Board& board): _board(&board){
-        uint64_t entrySize = sizeof(Entry);
-        uint64_t sizeInBytes = sizeMB * 1024 * 1024;
-        uint64_t numberOfEntries = sizeInBytes / entrySize;
+    /***
+     * @param sizeMB size of TT in MB (64,128,256,..) even custom.
+     * @param board for getting current zobrist key.
+     */
+    TranspositionTable(int sizeMB, Board& board);
 
-        _count = numberOfEntries;
-        _entries = new Entry[numberOfEntries];
-    }
+    /***
+     * TT clear - TODO fix, slow everything down
+     * All calculated stuff can be used.
+     * Propably problems with repetitions in position, we need to somehow add to zobrist key even cnt of repetitions or idk ?!?
+     */
+    void clear();
 
-    void clear(){
-        for(size_t j = 0; j < _count; j++){
-            _entries[j].depth = -1;
-        }
-    }
+    /***
+     * @param depth current depth in search.
+     * @param alpha
+     * @param beta
+     * @return a value from TT, if not found, returns @see TranspositionTable::LOOKUP_ERROR.
+     */
+    int getEval(int depth, int alpha, int beta);
 
-    int getEval(int depth, int alpha, int beta){
-        Entry entry = _entries[index()];
-        if(entry.hash != _board->zobristKey) return LOOKUP_ERROR;
+    /***
+     * Stores a current position to a TT.
+     * @param eval @see Board::eval().
+     * @param depth current depth in search.
+     * @param type "hash type".
+     * @param move best move for this position.
+     */
+    void store(int eval, int depth, HashType type, const Move& move);
 
-        if(entry.depth >= depth){
-            if(entry.flag == HashType::EXACT){
-                return entry.eval;
-            }
+    /***
+     * @return best move for a current position.
+     */
+    Move getMove();
 
-            if(entry.flag == HashType::ALPHA && entry.eval <= alpha){
-                return entry.eval;
-            }
+    /***
+     * @return current flag @see HashType
+     */
+    HashType getHashFlag();
 
-            if(entry.flag == HashType::BETA && entry.eval >= beta){
-                return entry.eval;
-            }
-        }
-
-        return LOOKUP_ERROR;
-    }
-
-    void store(int eval, int depth, uint64_t hash, HashType type, const Move& move){
-        _entries[index()] = {eval, depth, hash, type, move};
-    }
-
-    Move getMove(){
-        return _entries[index()].best;
-    }
-
-    HashType getHashTFlag(){
-        return _entries[index()].flag;
-    }
-
-    void free(){
-        delete[] _entries;
-    }
-
+    /***
+     * Frees an allocated memory for a table.
+     */
+    void free();
 private:
-    int index(){
-        return (int)(_board->zobristKey % _count);
-    }
 
+    int index();
 
     struct Entry{
         int eval;

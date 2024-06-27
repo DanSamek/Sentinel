@@ -14,21 +14,9 @@
     Movegen::_enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5]; \
     Movegen::_all = Movegen::_friendlyMerged | Movegen::_enemyMerged
 
-#define VALIDATE_KING_CHECKS(kingPos, board, tmpMoves, j, enemyBits) \
-    bool valid = Movegen::validateKingCheck(kingPos, board.whoPlay, enemyBits); \
-    if (!valid) continue; \
-    bool kingSide = tmpMoves[j].toSq > tmpMoves[j].fromSq; \
-    int sqToCheck = kingSide ? tmpMoves[j].fromSq + 1 : tmpMoves[j].fromSq - 1; \
-    valid = Movegen::validateKingCheck(sqToCheck, board.whoPlay, enemyBits); \
-    if (!valid) continue; \
-    sqToCheck = kingSide ? tmpMoves[j].fromSq + 2 : tmpMoves[j].fromSq - 2; \
-    valid = Movegen::validateKingCheck(sqToCheck, board.whoPlay, enemyBits); \
-    if (!valid) continue
-
-
 /*
     !!! DOING PSEUDO LEGAL MOVE GENERATION !!!
-        AKA generate all moves, check if moves are legal - king not checked.
+        AKA generate all moves, check if moves are legal - king is not checked.
 */
 struct Movegen {
     // Color, square
@@ -52,65 +40,25 @@ struct Movegen {
 
 
     static inline bool _initDone = false;
+
     /***
      * Initialization of all movegen tables - magic bitboards, knight bitboards, king bitboards.
      */
-    static void init(){
-        if(_initDone) return;
-        Magics::init();
-        initAndBitsForKKP();
-        initKnightMoves();
-        initKingMoves();
-        initPawnAttacks();
-        initPawnPushes();
-        _initDone = true;
-    }
+    static void init();
 
     static inline int _index = 0;
     static inline Move* _tmpMovesPtr;
 
     static inline uint64_t _all, _friendlyMerged, _enemyMerged;
 
-    static inline bool _capturesOnly;
-
     /***
-     * @param board Board for movegen.
-     * @param moves Result valid moves.
-     * @return totalNumber of moves + if king is checked.
+     * Generates all possible pseudo-legal moves for a current position
+     * @param board board
+     * @param moves moves array to save all moves
+     * @param capturesOnly for qsearch.
+     * @return total number of moves, if king is checked.
      */
-    static std::pair<int, bool> generateMoves(Board& board, Move* moves, bool capturesOnly = false){
-        _index = 0;
-        _tmpMovesPtr = moves;
-        _capturesOnly = capturesOnly;
-
-        UPDATE_BOARD_STATE(board, board.whoPlay);
-
-        auto kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
-        // if its not valid <-> checked king !!!
-        bool checked = !validateKingCheck(kingPos, !board.whoPlay, enemyBits);
-
-        if(capturesOnly){
-            // generate only captures
-            // Yea, maybe copy paste kinda, but dont waste time on every if statement.
-            generatePawnCaptures(friendlyBits[Board::PAWN], board.enPassantSquare, board.whoPlay);
-            generateRookCaptures(friendlyBits[Board::ROOK]);
-            generateBishopCaptures(friendlyBits[Board::BISHOP]);
-            generateQueenCaptures(friendlyBits[Board::QUEEN]);
-            generateKnightCaptures(friendlyBits[Board::KNIGHT]);
-            generateKingCaptures(friendlyBits[Board::KING]);
-            return {_index, checked};
-        }
-        // generate all possible moves for current player.
-        generatePawnMoves(friendlyBits[Board::PAWN], board.enPassantSquare, board.whoPlay);
-        generateRookMoves(friendlyBits[Board::ROOK]);
-        generateBishopMoves(friendlyBits[Board::BISHOP]);
-        generateQueenMoves(friendlyBits[Board::QUEEN]);
-        generateKnightMoves(friendlyBits[Board::KNIGHT]);
-        generateKingMoves(friendlyBits[Board::KING], board.castling[!board.whoPlay], board.whoPlay);
-
-        // copy to a result, if we want all pseudolegal moves <-> we will check it in search/perft (just a performance try).
-        return {_index, checked};
-    }
+    static std::pair<int, bool> generateMoves(Board& board, Move* moves, bool capturesOnly = false);
 
 
     static bool validateKingCheck(int kingPos, bool whoPlay, uint64_t enemyBits[6]);
@@ -121,7 +69,8 @@ struct Movegen {
      * Pawn move generation
      * Attacks + normal moves
      * @param b pawn bitboard
-     * @param occupancy entire occupancy
+     * @param enPassantSquare
+     * @param color
      */
     static void generatePawnMoves(uint64_t b, int enPassantSquare, bool color);
 
@@ -153,26 +102,11 @@ struct Movegen {
      * Converts moveBitboard and appends them into a move vector
      * @param fromSquare bit _index from square
      * @param moveBitboard generated bitboard moves
-     * @param moves reference to all moves -> will be returned from movegen.
-     * @param enemyMerged all bits for _enemyMerged
-     * @param enemyKing bitboard for an enemy king
      * @param pieceType
-     * Reason for this -> move order by checks/capture, etc..
      * @note for all except pawns and kings. This method handles captures, quiets, checks, no more.
      */
     static void bitboardToMoves(int fromSquare, uint64_t& moveBitboard, Board::pieceType pieceType);
 
-    /***
-     * Slider move generation. for  generateRookMoves, generateBishopMoves, generateQueenMoves
-     * @param piece
-     * @param pieceType
-     * @param rook
-     * @param friendlyMerged
-     * @param enemyMerged
-     * @param all
-     * @param moves
-     * @param enemyKing
-     */
     static void generateRookMoves(uint64_t rooks);
     static void generateBishopMoves(uint64_t bishops);
     static void generateQueenMoves(uint64_t queens);

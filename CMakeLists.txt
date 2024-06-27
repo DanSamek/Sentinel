@@ -36,4 +36,6 @@ add_executable(Sentinel
         src/tt.cpp
         src/timer.h
         src/timer.cpp
+        src/evaluation.cpp
+        src/evaluation.cpp
 )

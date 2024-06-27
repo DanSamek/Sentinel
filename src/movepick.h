@@ -26,34 +26,28 @@ class Movepick {
     };
 public:
 
-    static void scoreMoves(Move* moves, int cnt, Board& board){
-        for(int j = 0; j < cnt; j++){
-            int score = 0;
-            auto move = moves[j];
+    /***
+     * Score current moves
+     *  NOW:
+     *  - MVV_VLA
+     *  - Promotion
+     *  TODO:
+     *  - Best move from prev iteration (iterative deepening).
+     *  - Killer moves
+     * @param moves from movegen
+     * @param cnt from movegen
+     * @param board current board.
+     */
+    static void scoreMoves(Move* moves, int cnt, Board& board);
 
-            if(move.moveType == Move::CAPTURE){
-                auto attacker = move.movePiece;
-                auto victim = board.getPieceType(move.toSq);
-                score += MVV_VLA[attacker][victim];
-            }
-
-            // promotion is good.
-            if(move.promotionType != 0){
-                score += move.promotionType * 7;
-            }
-
-            moves[j].score = score;
-        }
-    }
-
-    static void pickMove(Move* moves, int cnt, int startingIndex){
-        for(int j = startingIndex + 1; j < cnt; j++){
-            // swap moves.
-            if(moves[j].score > moves[startingIndex].score){
-                std::swap(moves[j], moves[startingIndex]);
-            }
-        }
-    }
+    /***
+     * Picks a best move with a biggest score
+     * @note We dont sort moves, because it can be pretty slow - we can pick first move and after that it can be pruned and no more moves will be played => waste of time
+     * @param moves
+     * @param cnt
+     * @param startingIndex
+     */
+    static void pickMove(Move* moves, int cnt, int startingIndex);
 };
 
 

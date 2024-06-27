@@ -454,28 +454,4 @@ bool Board::isSquareAttacked(int square, bool isWhiteEnemy) {
     return false;
 }
 
-// Eval part.
 
-int Board::eval() {
-    int whiteScore = evalSide(whitePieces, true);
-    int blackScore = evalSide(blackPieces, false);
-    return (whiteScore - blackScore) * (whoPlay ? 1 : -1);
-}
-
-
-int Board::evalSide(uint64_t *bbs, bool white) const{
-    int eval = 0;
-    // pawns eval differently
-    for(int j = 1; j < 6; j++){
-        auto bb = bbs[j];
-        while(bb){
-            auto pos = bit_ops::bitScanForwardPopLsb(bb);
-            eval += PST::getValue(white, j, pos, piecesTotal > END_GAME_PIECE_MAX);
-        }
-    }
-
-    // lets check passed pawn + structure of pawns
-
-
-    return eval;
-}

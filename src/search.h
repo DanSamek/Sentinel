@@ -81,19 +81,21 @@ private:
         nodesVisited++;
 
         if(_board->isDraw()) return 0;
-        if(depth == 0) return qsearch(alpha, beta);
 
         // Try get eval from TT.
         int ttEval = TT->getEval(depth, alpha, beta);
 
         if(ttEval != TranspositionTable::LOOKUP_ERROR){
+            TTUsed++;
             if(ply == 0){
                 bestMoveIter = TT->getMove();
                 bestScoreIter = ttEval;
             }
-            TTUsed++;
             return ttEval;
         }
+
+        // after tt search, eval position.
+        if(depth == 0) return qsearch(alpha, beta);
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves);
@@ -102,8 +104,9 @@ private:
         Movepick::scoreMoves(moves, moveCount, *_board);
         bool visitedAny = false;
 
-        TranspositionTable::HashType TTType = TranspositionTable::ALPHA;
+        TranspositionTable::HashType TTType = TranspositionTable::UPPER_BOUND;
         Move bestMoveInPos;
+
         for(int j = 0; j < moveCount; j++){
             // pick a move to play (sorting moves, can be slower, thanks to alpha beta pruning).
             Movepick::pickMove(moves, moveCount, j);
@@ -120,7 +123,7 @@ private:
             visitedAny = true; // for draw / checkmate checking.
 
             if(eval >= beta){
-                TT->store(beta, depth, _board->zobristKey, TranspositionTable::BETA, moves[j]);
+                TT->store(beta, depth, TranspositionTable::LOWER_BOUND, moves[j]);
                 return beta;
             }
 
@@ -143,17 +146,18 @@ private:
         if(!visitedAny && isCheck) return -(CHECKMATE + depth); // checkmate.
         if(!visitedAny && !isCheck) return 0; // draw
 
-        TT->store(alpha, depth, _board->zobristKey, TTType, bestMoveInPos);
+        TT->store(alpha, depth, TTType, bestMoveInPos);
         return alpha;
     }
 
 
-    // https://www.chessprogramming.org/Quiescence_Search
     /***
+     * https://www.chessprogramming.org/Quiescence_Search
      * Generates all captures possible and plays them.
-     * This is used for horizon effect - i capture with a QxP -> good move, but what if another pawn in next depth will capture my Q
+     * This is used for horizon effect - i capture with a QxP -> good move, but what if another pawn in next depth will capture my Q?!
      *  -> qsearch.
-     * @return
+     * @return eval of the position without captures.
+     * Maybe TODO TT (?)
      */
     static int qsearch(int alpha, int beta){
         auto currentEval = _board->eval();

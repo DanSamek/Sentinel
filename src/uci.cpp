@@ -10,12 +10,15 @@ void UCI::uciInit() {
 }
 
 void UCI::isReady() {
-    Movegen::init();
-    Zobrist::init();
-    PST::init();
-    _TT = TranspositionTable(_hashSize, _board);
-    Search::TT = &_TT;
+    if(!_ready){
+        Movegen::init();
+        Zobrist::init();
+        PST::init();
+        _TT = TranspositionTable(_hashSize, _board);
+        Search::TT = &_TT;
+    }
     std::cout << "readyok" << std::endl;
+    _ready = true;
 }
 
 void UCI::newGame() {
@@ -54,12 +57,6 @@ void UCI::position(std::string command) {
     for(auto move: moves){
         makeStringMove(move);
     }
-    /*
-    for(int j = (17*2); j < _board.repetitionIndex; j++){
-        std::cout << _board.threeFoldRepetition[j] << std::endl;
-    }
-
-    assert(_board.isDraw());*/
 }
 
 void UCI::go(std::string command) {
@@ -83,7 +80,8 @@ void UCI::go(std::string command) {
         }
     }
     else{
-        // TODO
+        // inf search.
+        miliseconds = INT_MAX;
     }
 
     auto move = Search::search(miliseconds, _board, exact);
@@ -91,7 +89,6 @@ void UCI::go(std::string command) {
     move.print();
 
     _board.makeMove(move);
-
     _board.printBoard();
 }
 

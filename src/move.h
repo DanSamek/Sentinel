@@ -30,40 +30,16 @@ struct Move {
     // Move score for movepick in search.
     int score = 0;
 
-    void print(){
-        std::cout << indexToChessSquare(fromSq) << indexToChessSquare(toSq);
-        switch (promotionType) {
-            case KNIGHT:
-                std::cout << "n";
-                break;
-            case BISHOP:
-                std::cout << "b";
-                break;
-            case ROOK:
-                std::cout << "r";
-                break;
-            case QUEEN:
-                std::cout << "q";
-                break;
-            default:
-                break;
-        }
-        std::cout<< std::endl;
-    }
+    /***
+     * Prints a move for UCI communication
+     */
+    void print();
 
-    static std::string  indexToChessSquare(int index) {
-        int row = 8 - index / 8;
-        int col = index % 8;
-
-        char file = 'a' + col;
-        char rank = '1' + row - 1;
-
-        std::string chessSquare = "";
-        chessSquare += file;
-        chessSquare += rank;
-
-        return chessSquare;
-    }
+    /***
+     * @param index Bitboard bit position/index (square pos)
+     * @return
+     */
+    static std::string indexToChessSquare(int index);
 };
 
 #endif //SENTINEL_MOVE_H

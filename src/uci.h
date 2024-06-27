@@ -13,7 +13,7 @@ struct UCI {
     static inline TranspositionTable _TT;
     static inline int _hashSize = 128;
     static inline const std::string START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
+    static inline bool _ready = false;
     /***
      * Prints info about an engine
      */

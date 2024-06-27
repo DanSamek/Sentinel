@@ -117,6 +117,8 @@ public:
      */
     bool isDraw();
 
+
+    // inlined
     inline std::pair<Board::pieceType, bool> getPieceTypeFromSQ(int square, const uint64_t* bbs) const{
         for(int j = 0; j < 6; j++){
             if(bit_ops::getNthBit(bbs[j], square)) return {(Board::pieceType)j, true};
@@ -124,7 +126,7 @@ public:
         return {(Board::pieceType)0, false};
     }
 
-
+    // inlined
     inline Board::pieceType getPieceType(int square){
         for(int j = 0; j < 6; j++){
             if(bit_ops::getNthBit(whitePieces[j], square) || bit_ops::getNthBit(blackPieces[j], square)) return (Board::pieceType)j;

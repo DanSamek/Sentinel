@@ -1,1 +1,29 @@
 #include "movepick.h"
+
+void Movepick::scoreMoves(Move *moves, int cnt, Board &board) {
+    for(int j = 0; j < cnt; j++){
+        int score = 0;
+        auto move = moves[j];
+
+        if(move.moveType == Move::CAPTURE){
+            auto attacker = move.movePiece;
+            auto victim = board.getPieceType(move.toSq);
+            score += MVV_VLA[attacker][victim];
+        }
+
+        // promotion is good.
+        if(move.promotionType != 0){
+            score += move.promotionType * 7;
+        }
+
+        moves[j].score = score;
+    }
+}
+
+void Movepick::pickMove(Move *moves, int cnt, int startingIndex) {
+    for(int j = startingIndex + 1; j < cnt; j++){
+        if(moves[j].score > moves[startingIndex].score){
+            std::swap(moves[j], moves[startingIndex]);
+        }
+    }
+}
