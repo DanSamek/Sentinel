@@ -41,8 +41,7 @@ public:
         _bestScoreIter = INT_MIN;
         _bestMoveIter = {};
 
-
-        int msCanBeUsed = exact ? miliseconds : miliseconds / 120; // try
+        int msCanBeUsed = exact ? miliseconds : miliseconds / 80; // try ??
 
         _timer = Timer(msCanBeUsed);
         TT->clear();
