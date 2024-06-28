@@ -63,8 +63,6 @@ public:
     int piecesTotal;
     static constexpr int END_GAME_PIECE_MAX = 15;
 
-    static inline int BOARD_LEVELS[64];
-
     /***
      * Loads a fen to a _board.
      * @param FEN
@@ -120,6 +118,19 @@ public:
     bool isDraw();
 
 
+    /***
+     * Makes null move - "simply" swaps current play side + erases enPassant.
+     * @note Used in null move pruning
+     */
+    void makeNullMove();
+
+    /***
+     * Undo a null move.
+     * @note Used in null move pruning
+     */
+    void undoNullMove();
+
+
     // inlined
     inline std::pair<Board::pieceType, bool> getPieceTypeFromSQ(int square, const uint64_t* bbs) const{
         for(int j = 0; j < 6; j++){
@@ -135,7 +146,6 @@ public:
         }
         assert(false);
     }
-
 private:
 
     void initPieces(uint64_t* pieces);
@@ -160,7 +170,6 @@ private:
      * @return simple eval of current position
      */
     int evalSideSimple(uint64_t * bbs) const;
-    static void precomputeSquareLevels();
 };
 
 

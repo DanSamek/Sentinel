@@ -75,8 +75,8 @@ private:
      * 2) late move reduction DONE
      * TODO
      * 3) null move pruning
+     * 4) PV
      * 4) TT fix
-     * 5) PV.
      */
 
     // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.

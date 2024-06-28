@@ -1,10 +1,8 @@
 // Eval function is out of a board.cpp for "smaller" board.cpp file.
 #include <board.h>
-#include <cmath>
 
 static inline constexpr int MAX_KING_DISTANCE = 14;
 static inline constexpr int KING_DISTANCE_MULTIPLIER = 15;
-static inline constexpr int ENEMY_KING_DISTANCE_MULTIPLIER = 7;
 static inline constexpr int TWO_BISHOPS_BONUS = 30;
 static inline constexpr int EVAL_DIFFERENCE_FOR_ENDGAME = 380;
 static inline constexpr int CASTLING_BONUS = 17;
@@ -36,22 +34,18 @@ int Board::eval() {
         int whiteKingPos[2] = {whiteKingIndex/8, whiteKingIndex % 8};
         int blackKingPos[2] = {blackKingIndex/8, blackKingIndex % 8};
 
-        if(difference >= EVAL_DIFFERENCE_FOR_ENDGAME){
-            // Manhattan distance between kings.
-            auto distance = getManhattanDist(whiteKingPos, blackKingPos);
-            int scoreToAdd = KING_DISTANCE_MULTIPLIER * (MAX_KING_DISTANCE - distance); // If we are even more winning, move king even more.
+        // Manhattan distance between kings.
+        auto distance = getManhattanDist(whiteKingPos, blackKingPos);
+        int scoreToAdd = KING_DISTANCE_MULTIPLIER * (MAX_KING_DISTANCE - distance); // If we are even more winning, move king even more.
 
-            // get, if enemy king is on edge of the board
-            if(whiteScore > blackScore){
-                int scoreToAddKing = BOARD_LEVELS[blackKingIndex] * ENEMY_KING_DISTANCE_MULTIPLIER;
-                whiteScore += scoreToAdd + scoreToAddKing;
-                blackScore -= scoreToAdd + scoreToAddKing;
-            }
-            else{
-                int scoreToAddKing = BOARD_LEVELS[whiteKingIndex] * ENEMY_KING_DISTANCE_MULTIPLIER;
-                blackScore += scoreToAdd + scoreToAddKing;
-                whiteScore -= scoreToAdd + scoreToAddKing;
-            }
+        // get, if enemy king is on edge of the board
+        if(whiteScore > blackScore){
+            whiteScore += scoreToAdd;
+            blackScore -= scoreToAdd;
+        }
+        else{
+            blackScore += scoreToAdd;
+            whiteScore -= scoreToAdd;
         }
     }
 
