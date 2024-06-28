@@ -17,13 +17,17 @@ class Movepick {
      */
     // MVV-LVA (most valuable victim, least valuable attacker).
     static constexpr int MVV_VLA[6][6] ={
-        {20, 22, 24, 27, 30, 0},
-        {19, 21, 23, 26, 29, 0},
-        {18, 20, 22, 25, 28, 0},
-        {17, 19, 21, 24, 27, 0},
-        {16, 18, 20, 23, 26, 0},
-        {15, 17, 19, 22, 25, 0},
+        {10050, 20050, 30050, 40050, 50050, 60050, },
+        {10040, 20040, 30040, 40040, 50040, 60040, },
+        {10030, 20030, 30030, 40030, 50030, 60030, },
+        {10020, 20020, 30020, 40020, 50020, 60020, },
+        {10010, 20010, 30010, 40010, 50010, 60010, },
+        {10000, 20000, 30000, 40000, 50000, 60000, }
     };
+
+    // after MVV_VLA
+    static inline constexpr int KILLER_MOVES_ORDER_SCORE[2] = {9000,8000};
+
 public:
 
     /***
@@ -32,13 +36,13 @@ public:
      *  - MVV_VLA
      *  - Promotion
      *  TODO:
-     *  - Best move from prev iteration (iterative deepening).
      *  - Killer moves
+     *  - PV move || TT move?
      * @param moves from movegen
      * @param cnt from movegen
      * @param board current board.
      */
-    static void scoreMoves(Move* moves, int cnt, Board& board);
+    static void scoreMoves(Move* moves, int cnt, Board& board, const Move killerMoves[Board::MAX_DEPTH][2]);
 
     /***
      * Picks a best move with a biggest score

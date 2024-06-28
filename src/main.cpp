@@ -9,7 +9,6 @@
 #define RUN_TESTS false
 
 int main(){
-
     if(RUN_TESTS){
         PST::init();
         Movegen::init();

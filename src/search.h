@@ -6,24 +6,31 @@
 #include <movepick.h>
 #include <tt.h>
 #include <chrono>
-#include "timer.h"
+#include <timer.h>
 
 class Search {
-    static constexpr int positiveInf = 100000000;
-    static constexpr int negativeInf = -100000000;
+    static constexpr int POSITIVE_INF = 100000000;
+    static constexpr int NEGATIVE_INF = -100000000;
 
-    static inline int bestScoreIter = INT_MIN;
-    static inline Move bestMoveIter;
-    static inline int MAX_DEPTH = 28;
+    static inline int _bestScoreIter = INT_MIN;
+    static inline Move _bestMoveIter;
+    static inline constexpr int MAX_DEPTH = 128;
+    static inline constexpr int LMR_DEPTH = 3;
+
 
     static inline Board* _board;
     static inline bool _forceStopped = false;
 
     static inline Timer _timer;
 
-
+    // Debug.
     static inline int TTUsed;
     static inline int nodesVisited;
+
+    // Killer moves, that did beta cutoffs, use them in move order.
+    // Now only 2 killer moves per ply.
+    static inline Move _killerMoves[Board::MAX_DEPTH][2];
+
 public:
     // 8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1
     static Move search(int miliseconds, Board& board, bool exact){
@@ -31,27 +38,30 @@ public:
         // get first moves, only legal.
         _board = &board;
         _forceStopped = false;
-        bestScoreIter = INT_MIN;
-        bestMoveIter = {};
+        _bestScoreIter = INT_MIN;
+        _bestMoveIter = {};
+
 
         int msCanBeUsed = exact ? miliseconds : miliseconds / 120; // try
 
         _timer = Timer(msCanBeUsed);
-        TT->clear(); // TODO fix!!
+        TT->clear();
         Move bestMove;
 
         for(int j = 1; j <= MAX_DEPTH; j++){
-            negamax(j, 0, negativeInf, positiveInf);
+            Timer idTimer;
+
+            negamax(j, 0, NEGATIVE_INF, POSITIVE_INF);
             if(_forceStopped) break;
 
-            bestMove = bestMoveIter;
-            std::cout << "depth:" << j << " score:" << bestScoreIter << " move:";
+            bestMove = _bestMoveIter;
+            //std::cout << "depth:" << j << " score:" << _bestScoreIter << "nodes: " << nodesVisited << " move:";
+            std::cout << "info cp score " << _bestScoreIter << " depth " << j << "time " << idTimer.getMs() <<  " move ";
             bestMove.print();
 
             // thanks to iterative deepening + TT, we can stop search here - mate found.
-            if(isMateScore(bestScoreIter)) break;
+            if(isMateScore(_bestScoreIter)) break;
         }
-
         std::cout << "tt used:" << TTUsed << " nodesTotal:" << nodesVisited <<std::endl;
         std::cout << "tt ratio: " << (TTUsed*1.0)/nodesVisited << std::endl;
         return bestMove;
@@ -62,13 +72,12 @@ public:
 private:
 
     /*
-     * 1) qsearch (generate all captures) - DONE
-     * 2) moveorder / movepick (simple (by captured piece) + promotions). DONE
-     * 3) transposition table DONE (?)
-     * 4) iterative deepening + uci parsing with time, valid times. DONE
-     *
-     * 5) Move order - add best first move from iterative deepening.
-     * 6) Iterative deepening update - if mate was found in iteration - smallest depth, we can stop. DONE
+     * 1) killer moves (by halfmoves). DONE
+     * 2) late move reduction DONE
+     * TODO
+     * 3) null move pruning
+     * 4) TT fix
+     * 5) PV.
      */
 
     // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
@@ -88,31 +97,55 @@ private:
         if(ttEval != TranspositionTable::LOOKUP_ERROR){
             TTUsed++;
             if(ply == 0){
-                bestMoveIter = TT->getMove();
-                bestScoreIter = ttEval;
+                _bestMoveIter = TT->getMove();
+                _bestScoreIter = ttEval;
             }
             return ttEval;
         }
 
         // after tt search, eval position.
-        if(depth == 0) return qsearch(alpha, beta);
+        if(depth <= 0) return qsearch(alpha, beta);
+
+
+        // TODO null move pruning
+
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves);
 
         // "move ordering"
-        Movepick::scoreMoves(moves, moveCount, *_board);
+        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves);
         bool visitedAny = false;
 
         TranspositionTable::HashType TTType = TranspositionTable::UPPER_BOUND;
         Move bestMoveInPos;
 
+        int movesSearched = 0; // LMR
         for(int j = 0; j < moveCount; j++){
             // pick a move to play (sorting moves, can be slower, thanks to alpha beta pruning).
             Movepick::pickMove(moves, moveCount, j);
-
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
-            int eval = -negamax(depth - 1, ply + 1, -beta, -alpha);
+
+            int eval;
+            // LMR late move reduction
+            // If move is quiet or not killer move, we will apply LMR
+            // Todo add pv nodes.
+            // https://web.archive.org/web/20150212051846/http://www.glaurungchess.com/lmr.html
+            if(movesSearched >= 5 && depth >= LMR_DEPTH && moves[j].score <= 1000){
+                // do reduced search for current eval
+                eval = -negamax(depth - 2, ply + 1, -alpha - 1, -alpha);
+
+                // if eval is bigger, than alpha, go full search
+                if(eval > alpha) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha);
+
+                // if LMR fails, do normal full search.
+                if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha);
+            }
+            // normal full search.
+            else{
+                eval = -negamax(depth - 1, ply + 1, -beta, -alpha);
+            }
+
             _board->undoMove(moves[j]);
 
             // ! after undo move !
@@ -120,9 +153,12 @@ private:
                 return 0;
             }
 
-            visitedAny = true; // for draw / checkmate checking.
-
             if(eval >= beta){
+                // If move, that wasnt capture causes a beta cuttoff, we call it killer move, remember this move for move ordering.
+                auto attackSquareType = _board->getPieceTypeFromSQ(moves[j].toSq, _board->whoPlay ? _board->whitePieces : _board->blackPieces);
+                if(!attackSquareType.second){
+                    storeKillerMove(moves[j]);
+                }
                 TT->store(beta, depth, TranspositionTable::LOWER_BOUND, moves[j]);
                 return beta;
             }
@@ -134,10 +170,14 @@ private:
                 bestMoveInPos = moves[j];
                 // best move for current player in depth "0".
                 if(ply == 0){
-                    bestMoveIter = moves[j];
-                    bestScoreIter = eval;
+                    _bestMoveIter = moves[j];
+                    _bestScoreIter = eval;
                 }
             }
+
+
+            visitedAny = true; // for draw / checkmate checking.
+            movesSearched++; // for LMR
         }
 
         // movegen returns cnt of moves total and if king is checked.
@@ -167,7 +207,7 @@ private:
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves, true);
-        Movepick::scoreMoves(moves, moveCount, *_board);
+        Movepick::scoreMoves(moves, moveCount, *_board, nullptr);
 
         for(int j = 0; j < moveCount; j++){
             // pick a best move to play.
@@ -187,6 +227,12 @@ private:
     static bool isMateScore(int score){
         return std::abs(score) >= CHECKMATE;
     }
+
+    static inline void storeKillerMove(const Move& move){
+        _killerMoves[_board->halfMove][1] = std::move(_killerMoves[_board->halfMove][0]);
+        _killerMoves[_board->halfMove][0] = std::move(move);
+    }
+
 };
 
 #endif //SENTINEL_SEARCH_H

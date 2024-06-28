@@ -40,6 +40,19 @@ struct Move {
      * @return
      */
     static std::string indexToChessSquare(int index);
+
+    /***
+     * Move comparer
+     * @return if moves are same.
+     */
+    bool operator ==(const Move& other);
+
+    /***
+     * Default .ctor
+     */
+    Move() : fromSq(-1) {};
+
+    Move(int fromSq, int toSq, PromotionType promotionType, type moveType, int movePiece) : fromSq(fromSq), toSq(toSq), promotionType(promotionType), moveType(moveType),movePiece(movePiece) {}
 };
 
 #endif //SENTINEL_MOVE_H

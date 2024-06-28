@@ -63,6 +63,8 @@ public:
     int piecesTotal;
     static constexpr int END_GAME_PIECE_MAX = 15;
 
+    static inline int BOARD_LEVELS[64];
+
     /***
      * Loads a fen to a _board.
      * @param FEN
@@ -145,13 +147,20 @@ private:
      * @param bbs
      * @return eval.
      */
-    int evalSide(uint64_t* bbs, bool white) const;
+    int evalSide(uint64_t* bbs, bool white, bool isEndgame) const;
     bool isInsufficientMaterial(uint64_t* bbs) const;
     bool isSquareAttacked(int square, bool isWhiteEnemy);
-
     void push(bool setEnPassant, State &currentState);
-
     bool isThreeFoldRepetition() const;
+
+
+    /***
+     * Simple eval of current position
+     * @param bbs bitboards (white || black)
+     * @return simple eval of current position
+     */
+    int evalSideSimple(uint64_t * bbs) const;
+    static void precomputeSquareLevels();
 };
 
 

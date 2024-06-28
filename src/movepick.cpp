@@ -1,6 +1,6 @@
 #include "movepick.h"
 
-void Movepick::scoreMoves(Move *moves, int cnt, Board &board) {
+void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerMoves[Board::MAX_DEPTH][2]) {
     for(int j = 0; j < cnt; j++){
         int score = 0;
         auto move = moves[j];
@@ -11,6 +11,13 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board) {
             score += MVV_VLA[attacker][victim];
         }
 
+        if(killerMoves != nullptr) {
+            for(int j = 0; j < 2; j++){
+                if(move == killerMoves[board.halfMove][j]){
+                    score = KILLER_MOVES_ORDER_SCORE[j];
+                }
+            }
+        }
         // promotion is good.
         if(move.promotionType != 0){
             score += move.promotionType * 7;

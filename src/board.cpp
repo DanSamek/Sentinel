@@ -3,6 +3,7 @@
 #include <zobrist.h>
 #include <movegen.h>
 #include <iostream>
+#include <vector>
 
 /*Macros for simplier code, don't want to create some functions to make it slower*/
 #define MOVE_PIECE(currentPieces, movePiece, fromSq, toSq) \
@@ -455,3 +456,33 @@ bool Board::isSquareAttacked(int square, bool isWhiteEnemy) {
 }
 
 
+void Board::precomputeSquareLevels() {
+    std::vector<int> level1Files = {3, 4};
+    std::vector<int> level1Ranks = {3, 4};
+    std::vector<int> level2Files = {2, 5};
+    std::vector<int> level2Ranks = {2, 5};
+    std::vector<int> level3Files = {1, 6};
+    std::vector<int> level3Ranks = {1, 6};
+    std::vector<int> level4Files = {0, 7};
+    std::vector<int> level4Ranks = {0, 7};
+
+    for (int file = 0; file < 8; ++file) {
+        for (int rank = 0; rank < 8; ++rank) {
+            int squareIndex = rank * 8 + file;
+            if (find(level1Files.begin(), level1Files.end(), file) != level1Files.end() &&
+                find(level1Ranks.begin(), level1Ranks.end(), rank) != level1Ranks.end()) {
+                BOARD_LEVELS[squareIndex] = 0;
+            } else if (find(level2Files.begin(), level2Files.end(), file) != level2Files.end() &&
+                       find(level2Ranks.begin(), level2Ranks.end(), rank) != level2Ranks.end()) {
+                BOARD_LEVELS[squareIndex] = 1;
+            } else if (find(level3Files.begin(), level3Files.end(), file) != level3Files.end() &&
+                       find(level3Ranks.begin(), level3Ranks.end(), rank) != level3Ranks.end()) {
+                BOARD_LEVELS[squareIndex] = 2;
+            } else if (find(level4Files.begin(), level4Files.end(), file) != level4Files.end() ||
+                       find(level4Ranks.begin(), level4Ranks.end(), rank) != level4Ranks.end()) {
+                BOARD_LEVELS[squareIndex] = 3;
+            }
+        }
+    }
+
+}

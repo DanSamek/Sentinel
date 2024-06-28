@@ -7,8 +7,8 @@ struct PST{
     static constexpr int PIECE_EVAL_MG[6] = {100, 305, 325, 512, 942, 10000};
     static constexpr int PIECE_EVAL_EG[6] = {112, 290, 320, 564, 1048, 10000};
 
-    // Handcrafted PST's - inspired from chessboard (my brain) + pst avg values to have normal values.
-    // All white perspective (from bottom)
+    // Handcrafted PST's - inspired from chessboard (my brain) + pst avg values to have normal values (chessprogramming).
+    // All white perspective (from bottom) we do a bit flip for getting black right value.
 
     static constexpr inline int MG_PAWN_TABLE[64] = {
             0,     0,   0,   0,   0,   0,   0,   0,
@@ -95,7 +95,7 @@ struct PST{
             0,   -2,    7,    7,    7,    7,   -2,    0,
             12,    7,    5,    13,    13,    5,    7,   12,
             18,   19,   13,    10,    10,   13,   19,   18,
-            15,   17,   21,   15,   15,   21,   17,   15
+            15,   13,   16,   15,   15,   16,   13,   15
     };
 
     static constexpr inline int MG_QUEEN_TABLE[64] = {
@@ -110,13 +110,13 @@ struct PST{
     };
 
     static constexpr inline int EG_QUEEN_TABLE[64] = {
-            -25,  -10,  -10,   -3,   -3,  -10,  -10,  -25,
-            -10,   -7,   -5,    0,    0,   -5,   -7,  -10,
-            -5,    6,   12,   17,   17,   12,    6,   -5,
+            7,  12,  7,   13,   13,  7,  12,  7,
+            -10,   10,   5,   25,   25,   5,   10,  -10,
+            -5,    6,   12,   35,   35,   25,    6,   -5,
             -3,   22,   32,   40,   40,   32,   22,   -3,
-            -10,   13,   31,   33,   33,   31,   13,  -10,
-            -20,   27,   35,   25,   25,   35,   27,  -20,
-            -30,    7,   13,   21,   21,   13,    7,  -30,
+            -10,   13,   31,   40,   40,   31,   13,  -10,
+            -20,   17,   17,   35,   35,   35,   17,  -20,
+            -30,    7,   13,   25,   25,   13,    7,  -30,
             -45,  -30,   20,   10,   10,   20,  -30,  -45
     };
 
@@ -188,12 +188,12 @@ struct PST{
      * @param color white = true, black = false
      * @param pieceType
      * @param square
-     * @param middleGame if false => endgame.
+     * @param endgame if false => middlegame.
      * @return
      */
-    static inline int getValue(bool color, int pieceType, int square, bool middleGame){
+    static inline int getValue(bool color, int pieceType, int square, bool endgame){
         pieceType += color ? 0 : 6;
-        return middleGame ? MG_TABLE[pieceType][square] : EG_TABLE[pieceType][square];
+        return endgame ? EG_TABLE[pieceType][square] : MG_TABLE[pieceType][square];
     }
 };
 

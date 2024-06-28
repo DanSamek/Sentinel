@@ -128,7 +128,6 @@ void UCI::makeStringMove(std::string move) {
         if(moves[j].promotionType == t && moves[j].fromSq == fromSquare && moves[j].toSq == toSquare){
             _board.makeMove(moves[j]);
             played = true;
-            _board.printBoard();
             break;
         }
     }

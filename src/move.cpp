@@ -35,3 +35,7 @@ std::string Move::indexToChessSquare(int index) {
 
     return chessSquare;
 }
+
+bool Move::operator ==(const Move &other) {
+    return other.fromSq == fromSq && other.toSq == toSq && other.promotionType == promotionType && other.moveType == moveType && other.movePiece == movePiece;
+}
