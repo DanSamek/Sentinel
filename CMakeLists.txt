@@ -19,16 +19,16 @@ add_executable(Sentinel
         src/magics.cpp
         src/board.h
         src/board.cpp
-        src/tests/boardTests.cpp
+        src/tests/BoardTests.cpp
         src/move.h
         src/move.cpp
-        src/tests/perftTests.cpp
+        src/tests/PerftTests.cpp
         src/state.h
         src/uci.h
         src/uci.cpp
         src/search.h
         src/search.cpp
-        src/tests/zobristTests.cpp
+        src/tests/ZobristTests.cpp
         src/pst.h
         src/movepick.h
         src/movepick.cpp
@@ -38,4 +38,5 @@ add_executable(Sentinel
         src/timer.cpp
         src/evaluation.cpp
         src/evaluation.cpp
+        src/tests/nullMoveTests.cpp
 )

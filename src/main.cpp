@@ -1,7 +1,8 @@
 #include <movegen.h>
-#include <tests/perftTests.cpp>
-#include <tests/boardTests.cpp>
-#include <tests/zobristTests.cpp>
+#include <tests/PerftTests.cpp>
+#include <tests/BoardTests.cpp>
+#include <tests/ZobristTests.cpp>
+#include <tests/nullMoveTests.cpp>
 
 #include <chrono>
 #include <uci.h>
@@ -12,10 +13,11 @@ int main(){
     if(RUN_TESTS){
         PST::init();
         Movegen::init();
-        boardTests::testBoard();
-        zobristTests::runTests();
+        BoardTests::testBoard();
+        NullMoveTests::runTests();
+        ZobristTests::runTests();
         auto start = std::chrono::high_resolution_clock::now();
-        perftTests::runTests();
+        PerftTests::runTests();
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = end - start;
 

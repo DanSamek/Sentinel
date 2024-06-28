@@ -130,7 +130,6 @@ public:
      */
     void undoNullMove();
 
-
     // inlined
     inline std::pair<Board::pieceType, bool> getPieceTypeFromSQ(int square, const uint64_t* bbs) const{
         for(int j = 0; j < 6; j++){
@@ -145,6 +144,23 @@ public:
             if(bit_ops::getNthBit(whitePieces[j], square) || bit_ops::getNthBit(blackPieces[j], square)) return (Board::pieceType)j;
         }
         assert(false);
+    }
+
+    // inlined
+    inline bool anyBiggerPiece(){
+        // from knight to queen
+        for(int j = 1; j < 5; j++){
+            if(whitePieces[j]) return true;
+            if(blackPieces[j]) return true;
+        }
+        return false;
+    }
+
+    inline bool inCheck(){
+        // get current king square
+        auto kingBB = whoPlay ? whitePieces[KING] : blackPieces[KING];
+        auto square = bit_ops::bitScanForward(kingBB);
+        return isSquareAttacked(square, !whoPlay);
     }
 private:
 

@@ -50,7 +50,7 @@ public:
         for(int j = 1; j <= MAX_DEPTH; j++){
             Timer idTimer;
 
-            negamax(j, 0, NEGATIVE_INF, POSITIVE_INF);
+            negamax(j, 0, NEGATIVE_INF, POSITIVE_INF, true);
             if(_forceStopped) break;
 
             bestMove = _bestMoveIter;
@@ -73,14 +73,15 @@ private:
     /*
      * 1) killer moves (by halfmoves). DONE
      * 2) late move reduction DONE
-     * TODO
      * 3) null move pruning
+     * TODO
      * 4) PV
-     * 4) TT fix
+     * 5) TT fix
+     * 6) More tests on null move pruning, now only in perft tests.
      */
 
     // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
-    static int negamax(int depth, int ply, int alpha, int beta){
+    static int negamax(int depth, int ply, int alpha, int beta, bool doNull){
         if(_timer.isTimeout()){
             _forceStopped = true;
             return 0;
@@ -105,8 +106,22 @@ private:
         // after tt search, eval position.
         if(depth <= 0) return qsearch(alpha, beta);
 
-        // TODO null move pruning
+        // Null move pruning
+        // We just give enemy next move (we dont move any piece)
 
+        // If our position is too good, even 1 additional move for opponent cant help, we return beta.
+        bool isCheckNMP = _board->inCheck(); // If current king is checked, logically we can't do NMP (enemy will capture our king).
+        bool someBigPiece = _board->anyBiggerPiece(); // Zugzwang prevention, in some simple endgames can NMP hurt.
+
+        if(depth >= 3 && doNull && !isCheckNMP && someBigPiece && ply > 0){
+
+            _board->makeNullMove();
+            int eval = -negamax(depth - 3, ply + 1, -beta, -beta + 1, false);
+            _board->undoNullMove();
+
+            if(eval >= beta) return eval;
+            if(_forceStopped) return 0;
+        }
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves);
@@ -125,7 +140,7 @@ private:
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
             // late move reduction.
-            int eval = lmr(depth, ply, alpha, beta, movesSearched, moves[j]);
+            int eval = lmr(depth, ply, alpha, beta, movesSearched);
 
             _board->undoMove(moves[j]);
 
@@ -179,25 +194,24 @@ private:
      * // https://web.archive.org/web/20150212051846/http://www.glaurungchess.com/lmr.html
      * @return
      */
-    static inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched, const Move& move) {
+    static inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched) {
         int eval;
-        if(movesSearched >= 5 && depth >= LMR_DEPTH && move.score <= 1000){
+        if(movesSearched >= 5 && depth >= LMR_DEPTH){
             // do reduced search.
-            eval = -negamax(depth - 2, ply + 1, -alpha - 1, -alpha);
+            eval = -negamax(depth - 2, ply + 1, -alpha - 1, -alpha, true);
 
             // if eval is bigger, than alpha, go full search
-            if(eval > alpha) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha);
+            if(eval > alpha) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true);
 
             // if LMR fails, do normal full search.
-            if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha);
+            if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true);
         }
         // normal full search.
         else{
-            eval = -negamax(depth - 1, ply + 1, -beta, -alpha);
+            eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true);
         }
         return eval;
     }
-
 
     /***
      * https://www.chessprogramming.org/Quiescence_Search

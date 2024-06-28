@@ -2,7 +2,7 @@
 #include <board.h>
 #include <movegen.h>
 #include <zobrist.h>
-struct zobristTests{
+struct ZobristTests{
 
     static void runTests(){
         Zobrist::init();

@@ -4,7 +4,7 @@
 #include <cassert>
 #include <chrono>
 
-struct perftTests{
+struct PerftTests{
 
     
     static int perft(std::string position, int depth){

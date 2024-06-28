@@ -295,6 +295,13 @@ bool Board::makeMove(const Move &move) {
 }
 
 void Board::push(bool setEnPassant, State &currentState) {
+    if(!setEnPassant && currentState.enPassantSquare != -1){
+        // remove current en-passant.
+        zobristKey ^= Zobrist::enPassantTable[currentState.enPassantSquare % 8];
+        // set no enPassant.
+        zobristKey ^= Zobrist::noEnPassant;
+    }
+
     halfMove++;
     repetitionIndex++;
     STACK[halfMove] = std::move(currentState);
@@ -453,4 +460,26 @@ bool Board::isSquareAttacked(int square, bool isWhiteEnemy) {
 
     if(Movegen::KING_MOVES[square] & enemies[Board::KING]) return true;
     return false;
+}
+
+
+void Board::makeNullMove() {
+    State currentState{-1,enPassantSquare, castling, fiftyMoveRule, zobristKey};
+    push(false, currentState);
+
+    zobristKey ^= Zobrist::sideToMove;
+}
+
+void Board::undoNullMove() {
+    auto prevState = std::move(STACK[halfMove]);
+
+    zobristKey = prevState.zobristHash;
+    enPassantSquare = prevState.enPassantSquare;
+    castling = prevState.castling;
+    fiftyMoveRule = prevState.fiftyMoveRule;
+
+    whoPlay = !whoPlay;
+
+    repetitionIndex--;
+    halfMove--;
 }

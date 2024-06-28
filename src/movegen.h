@@ -4,6 +4,7 @@
 #include <vector>
 #include <magics.h>
 #include <move.h>
+class Board;
 #include <board.h>
 #include <span>
 

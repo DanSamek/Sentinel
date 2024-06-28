@@ -4,7 +4,7 @@
 #include <cassert>
 #include <bit_ops.h>
 
-struct boardTests {
+struct BoardTests {
 
     static void setMultipleBits(std::vector<int> bits, uint64_t & b){
         b= 0ULL;

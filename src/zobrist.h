@@ -8,16 +8,16 @@
 #include <board.h>
 
 class Zobrist {
-    static const int BOARD_SIZE = 64;
-    static const int NUM_PIECES = 12;
-    static const int NUM_FILES = 8;
-    static const int NUM_CASTLING = 16;
+    static constexpr int BOARD_SIZE = 64;
+    static constexpr int NUM_PIECES = 12;
+    static constexpr int NUM_FILES = 8;
+    static constexpr int NUM_CASTLING = 16;
     static inline uint64_t zobristTable[NUM_PIECES][BOARD_SIZE];
     static inline uint64_t castlingTable[NUM_CASTLING];
-    static inline uint64_t enPassantTable[NUM_FILES];
-    static inline uint64_t sideToMove;
-
 public:
+    static inline uint64_t sideToMove;
+    static inline uint64_t noEnPassant;
+    static inline uint64_t enPassantTable[NUM_FILES];
     inline static void init(){
         srand(time(nullptr));
         // all squares
@@ -35,6 +35,7 @@ public:
             castlingTable[i] = Magics::randUInt64();
         }
         sideToMove = Magics::randUInt64();
+        noEnPassant = Magics::randUInt64();
     }
 
     static inline void updateHashMove(uint64_t& hash, const Move& move, const Board& board, const State& state){
@@ -83,6 +84,10 @@ public:
     static inline void updateEnPassantHash(uint64_t& hash, const Move& move, const Board& board, const State& state){
         int piece = move.movePiece + (board.whoPlay ? 0 : 6);
         int capturedPiece = (board.whoPlay ? 6 : 0);
+
+        // remove en-passant hash
+        hash ^= enPassantTable[state.enPassantSquare % 8];
+        hash ^= noEnPassant;
 
         // normal capture
         hash ^= zobristTable[capturedPiece][move.toSq + (board.whoPlay ? +8 : -8)];
