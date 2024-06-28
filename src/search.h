@@ -106,7 +106,6 @@ private:
         // after tt search, eval position.
         if(depth <= 0) return qsearch(alpha, beta);
 
-
         // TODO null move pruning
 
 
@@ -126,25 +125,8 @@ private:
             Movepick::pickMove(moves, moveCount, j);
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
-            int eval;
-            // LMR late move reduction
-            // If move is quiet or not killer move, we will apply LMR
-            // Todo add pv nodes.
-            // https://web.archive.org/web/20150212051846/http://www.glaurungchess.com/lmr.html
-            if(movesSearched >= 5 && depth >= LMR_DEPTH && moves[j].score <= 1000){
-                // do reduced search for current eval
-                eval = -negamax(depth - 2, ply + 1, -alpha - 1, -alpha);
-
-                // if eval is bigger, than alpha, go full search
-                if(eval > alpha) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha);
-
-                // if LMR fails, do normal full search.
-                if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha);
-            }
-            // normal full search.
-            else{
-                eval = -negamax(depth - 1, ply + 1, -beta, -alpha);
-            }
+            // late move reduction.
+            int eval = lmr(depth, ply, alpha, beta, movesSearched, moves[j]);
 
             _board->undoMove(moves[j]);
 
@@ -188,6 +170,33 @@ private:
 
         TT->store(alpha, depth, TTType, bestMoveInPos);
         return alpha;
+    }
+
+
+    /***
+     * LMR late move reduction
+     * If move is quiet or not killer move, we will apply LMR
+     * Todo add pv nodes.
+     * // https://web.archive.org/web/20150212051846/http://www.glaurungchess.com/lmr.html
+     * @return
+     */
+    static inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched, const Move& move) {
+        int eval;
+        if(movesSearched >= 5 && depth >= LMR_DEPTH && move.score <= 1000){
+            // do reduced search.
+            eval = -negamax(depth - 2, ply + 1, -alpha - 1, -alpha);
+
+            // if eval is bigger, than alpha, go full search
+            if(eval > alpha) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha);
+
+            // if LMR fails, do normal full search.
+            if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha);
+        }
+        // normal full search.
+        else{
+            eval = -negamax(depth - 1, ply + 1, -beta, -alpha);
+        }
+        return eval;
     }
 
 
