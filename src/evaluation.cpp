@@ -2,7 +2,7 @@
 #include <board.h>
 
 static inline constexpr int MAX_KING_DISTANCE = 14;
-static inline constexpr int KING_DISTANCE_MULTIPLIER = 15;
+static inline constexpr int KING_DISTANCE_MULTIPLIER = 10;
 static inline constexpr int TWO_BISHOPS_BONUS = 30;
 static inline constexpr int EVAL_DIFFERENCE_FOR_ENDGAME = 380;
 static inline constexpr int CASTLING_BONUS = 17;
@@ -11,6 +11,10 @@ static inline constexpr int CASTLING_BONUS = 17;
 inline int getManhattanDist(const int posA[2], const int posB[2]){
     return std::abs(posA[0] - posB[0]) + std::abs(posA[1] - posB[1]);
 }
+
+// EVAL ENDGAME PLS somehow
+// Engine is brutally struggling in endgames :(
+// check if isEndgame works.
 
 int Board::eval() {
     // simple eval no PST for getting differences.
@@ -38,14 +42,12 @@ int Board::eval() {
         auto distance = getManhattanDist(whiteKingPos, blackKingPos);
         int scoreToAdd = KING_DISTANCE_MULTIPLIER * (MAX_KING_DISTANCE - distance); // If we are even more winning, move king even more.
 
-        // get, if enemy king is on edge of the board
+        // Add bonus for side, if king is closer to enemy king
         if(whiteScore > blackScore){
             whiteScore += scoreToAdd;
-            blackScore -= scoreToAdd;
         }
         else{
             blackScore += scoreToAdd;
-            whiteScore -= scoreToAdd;
         }
     }
 

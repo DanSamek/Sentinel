@@ -23,10 +23,10 @@ struct PST{
 
     static constexpr inline int EG_PAWN_TABLE[64] = {
             0,    0,    0,    0,    0,    0,    0,    0,
-            60,  60,   60,   60,    60,  60,   60,   60,
-            40,  40,   40,   40,    40,  40,   40,   40,
-            25,  25,   25,   25,    25,  25,   25,   25,
-            10,  10,   10,   10,    10,  10,   10,   10,
+            70,  70,   70,   70,    70,  70,   70,   70,
+            50,  50,   50,   50,    50,  50,   50,   50,
+            30,  30,   30,   30,    30,  30,   30,   30,
+            15,  15,   15,   15,    15,  15,   15,   15,
             5,    5,    5,    5,    5,    5,    5,    5,
             0,    0,    0,    0,    0,    0,    0,    0
     };
@@ -169,9 +169,9 @@ struct PST{
     static inline int MG_TABLE[12][64];
     static inline int EG_TABLE[12][64];
 
-    static void init(){
+    static void init() {
         // +6 for black side.
-        for(int j = 0; j < 6; j++){
+        for (int j = 0; j < 6; j++) {
             for (int square = 0; square < 64; square++) {
                 // white side.
                 MG_TABLE[j][square] = PIECE_EVAL_MG[j] + MG_PST[j][square];
@@ -182,6 +182,7 @@ struct PST{
             }
         }
     }
+
 
     /***
      * Gets PST value for current piece.

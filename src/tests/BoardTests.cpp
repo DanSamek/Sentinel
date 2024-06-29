@@ -100,5 +100,11 @@ struct BoardTests {
         assert(board.getPieceBitboard(Board::PAWN, Board::BLACK)  == 0ull);
 
         std::cout << "_board tests: DONE" << std::endl;
+
+
+
+        board.loadFEN("k7/b7/8/N7/8/P7/1PK5/8 w - - 23 209");
+        board.eval();
+
     }
 };

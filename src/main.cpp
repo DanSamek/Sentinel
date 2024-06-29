@@ -11,8 +11,9 @@
 
 int main(){
     if(RUN_TESTS){
-        PST::init();
         Movegen::init();
+        PST::init();
+        Zobrist::init();
         BoardTests::testBoard();
         NullMoveTests::runTests();
         ZobristTests::runTests();
