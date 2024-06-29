@@ -1,12 +1,11 @@
-// Eval function is out of a board.cpp for "smaller" board.cpp file.
 #include <board.h>
 
 static inline constexpr int MAX_KING_DISTANCE = 14;
 static inline constexpr int KING_DISTANCE_MULTIPLIER = 10;
 static inline constexpr int TWO_BISHOPS_BONUS = 30;
-static inline constexpr int EVAL_DIFFERENCE_FOR_ENDGAME = 380;
+static inline constexpr int EVAL_DIFFERENCE_FOR_ENDGAME = 350;
 static inline constexpr int CASTLING_BONUS = 17;
-
+static inline constexpr int PASSED_PAWN_BONUS = 14;
 
 inline int getManhattanDist(const int posA[2], const int posB[2]){
     return std::abs(posA[0] - posB[0]) + std::abs(posA[1] - posB[1]);
@@ -22,7 +21,7 @@ int Board::eval() {
     int simpleEvalBlack = evalSideSimple(blackPieces);
     int difference = std::abs(simpleEvalBlack - simpleEvalWhite);
 
-    // If difference is higher, than 380 (we are winning), we turn on endgame eval -> we want more mobility for our current position. (we want to win)
+    // If difference is higher, than $EVAL_DIFFERENCE_FOR_ENDGAME (we are winning), we turn on endgame eval -> we want more mobility for our current position. (we want to win)
     bool isEndgame = difference >= EVAL_DIFFERENCE_FOR_ENDGAME || piecesTotal <= END_GAME_PIECE_MAX;
 
     // PST eval for current game state.
@@ -31,7 +30,8 @@ int Board::eval() {
 
     // Eval some things for endgames.
     // Now only king distances.
-    if(isEndgame){
+    // only endgames
+    if(piecesTotal <= END_GAME_PIECE_MAX){
         auto whiteKingIndex = bit_ops::bitScanForward(whitePieces[KING]);
         auto blackKingIndex = bit_ops::bitScanForward(blackPieces[KING]);
 
@@ -40,7 +40,7 @@ int Board::eval() {
 
         // Manhattan distance between kings.
         auto distance = getManhattanDist(whiteKingPos, blackKingPos);
-        int scoreToAdd = KING_DISTANCE_MULTIPLIER * (MAX_KING_DISTANCE - distance); // If we are even more winning, move king even more.
+        int scoreToAdd = KING_DISTANCE_MULTIPLIER * (MAX_KING_DISTANCE - distance);
 
         // Add bonus for side, if king is closer to enemy king
         if(whiteScore > blackScore){
@@ -74,10 +74,9 @@ int Board::evalSideSimple(uint64_t *bbs) const{
 
 int Board::evalSide(uint64_t *bbs, bool white, bool isEndgame) const{
     int eval = 0;
-    for(int j = 0; j < 6; j++){
+    for(int j = 1; j < 6; j++){
         if(j == BISHOP) continue; // dumb fix now, do it better.
         auto bb = bbs[j];
-        // TODO mobility bonus -> performance problem (??)
         while(bb){
             auto pos = bit_ops::bitScanForwardPopLsb(bb);
             eval += PST::getValue(white, j, pos, isEndgame);
@@ -94,8 +93,60 @@ int Board::evalSide(uint64_t *bbs, bool white, bool isEndgame) const{
 
     eval += bishopCount >= 2 ? TWO_BISHOPS_BONUS : 0; // Rays goes brr.
 
-    /*
-        TODO check passed pawn + structure of pawns (add some score if structure is good, subtract some score, if structure is bad)
-    */
+    // Pawn eval.
+    auto enemyPawnsBB = white ? blackPieces[PAWN] : whitePieces[PAWN];
+    //auto friendlyPawnsBB = white ? whitePieces[PAWN] : blackPieces[PAWN]; // TODO
+    bb = bbs[PAWN];
+    while(bb){
+        auto pos = bit_ops::bitScanForwardPopLsb(bb);
+        eval += PST::getValue(white, PAWN, pos, isEndgame);
+
+        // pawn is passed, if enemyPawnBB & passBB = 0.
+        if((enemyPawnsBB & PASSED_PAWN_BITBOARDS[!white][pos]) == 0ULL){
+            int distanceFromPromotionRev =  white ? ((7 - (pos / 8)) - 1) : ((7 - (7 - (pos / 8))) - 1);
+            assert(distanceFromPromotionRev >= 0);
+            eval += piecesTotal <= END_GAME_PIECE_MAX ? (PASSED_PAWN_BONUS * distanceFromPromotionRev) : PASSED_PAWN_BONUS;
+        }
+        // check, if pawn is isolated (aka no pawn friends?!).
+    }
     return eval;
+}
+
+
+void Board::initPawnEvalBBS(){
+    initPassedPawnBBS();
+    initIsolatedPawnBBS();
+}
+
+void  Board::initPassedPawnBBS(){
+    for(int j = 0; j < 64; j++){
+        PASSED_PAWN_BITBOARDS[WHITE][j] = 0ULL;
+        PASSED_PAWN_BITBOARDS[BLACK][j] = 0ULL;
+    }
+
+    for(int square = 16; square < 56; square++){
+        int tmp = square - 8;
+        while(tmp >= 8){
+            setPassedPawnBits(square, tmp, 0);
+            tmp -= 8;
+        }
+    }
+
+    for(int square = 8; square <= 47; square++){
+        int tmp = square + 8;
+        while(tmp <= 55){
+            setPassedPawnBits(square, tmp, 1);
+            tmp += 8;
+        }
+    }
+}
+
+void Board::setPassedPawnBits(int square, int tmp, int index) {
+    bit_ops::setNthBit(PASSED_PAWN_BITBOARDS[index][square], tmp);
+    if(square % 8 == 0 || (square + 1)% 8 != 0) bit_ops::setNthBit(PASSED_PAWN_BITBOARDS[index][square], tmp + 1);
+    if((square + 1) % 8 == 0 || (square % 8) != 0) bit_ops::setNthBit(PASSED_PAWN_BITBOARDS[index][square], tmp - 1);
+}
+
+void Board::initIsolatedPawnBBS(){
+
 }

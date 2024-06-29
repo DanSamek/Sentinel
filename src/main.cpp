@@ -11,6 +11,7 @@
 
 int main(){
     if(RUN_TESTS){
+        Board::initPawnEvalBBS();
         Movegen::init();
         PST::init();
         Zobrist::init();

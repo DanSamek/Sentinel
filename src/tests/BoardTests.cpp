@@ -21,6 +21,7 @@ struct BoardTests {
         Board board;
         board.loadFEN("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 
+
         std::array<std::array<bool, 2>, 2> tmp;
         tmp[0] = {true, true};
         tmp[1]= {true, true};
@@ -103,7 +104,7 @@ struct BoardTests {
 
 
 
-        board.loadFEN("k7/b7/8/N7/8/P7/1PK5/8 w - - 23 209");
+        board.loadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPP3PP/RNBQKBNR b KQkq - 0 1");
         board.eval();
 
     }

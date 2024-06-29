@@ -108,7 +108,6 @@ private:
 
         // Null move pruning
         // We just give enemy next move (we dont move any piece)
-
         // If our position is too good, even 1 additional move for opponent cant help, we return beta.
         bool isCheckNMP = _board->inCheck(); // If current king is checked, logically we can't do NMP (enemy will capture our king).
         bool someBigPiece = _board->anyBiggerPiece(); // Zugzwang prevention, in some simple endgames can NMP hurt.

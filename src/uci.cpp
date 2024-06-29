@@ -3,14 +3,18 @@
 #include <zobrist.h>
 #include <pst.h>
 
+
+#define ENGINE_VERSION_DEV "v0.01 5:22"
+
 void UCI::uciInit() {
-    std::cout << "id name Sentinel" << std::endl;
+    std::cout << "id name Sentinel " << std::endl;
     std::cout << "id author Daniel Samek" << std::endl;
     std::cout << "uciok" << std::endl;
 }
 
 void UCI::isReady() {
     if(!_ready){
+        Board::initPawnEvalBBS();
         Movegen::init();
         Zobrist::init();
         PST::init();
