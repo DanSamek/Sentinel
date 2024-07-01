@@ -33,7 +33,7 @@ int TranspositionTable::getEval(int depth, int alpha, int beta) {
         }
     }
 
-    return LOOKUP_ERROR;
+    return FOUND_NOT_ACCEPTED;
 }
 
 void TranspositionTable::store(int eval, int depth, TranspositionTable::HashType type, const Move &move) {

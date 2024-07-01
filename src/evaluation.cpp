@@ -11,10 +11,6 @@ inline int getManhattanDist(const int posA[2], const int posB[2]){
     return std::abs(posA[0] - posB[0]) + std::abs(posA[1] - posB[1]);
 }
 
-// EVAL ENDGAME PLS somehow
-// Engine is brutally struggling in endgames :(
-// check if isEndgame works.
-
 int Board::eval() {
     // simple eval no PST for getting differences.
     int simpleEvalWhite = evalSideSimple(whitePieces);

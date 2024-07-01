@@ -27,6 +27,7 @@ class Movepick {
 
     // after MVV_VLA
     static inline constexpr int KILLER_MOVES_ORDER_SCORE[2] = {9000,8000};
+    static inline constexpr int TT_MOVE_ORDER_SCORE = 100000; // best move from prev iteration, lets pick it first!
 
 public:
 
@@ -35,14 +36,15 @@ public:
      *  NOW:
      *  - MVV_VLA
      *  - Promotion
-     *  TODO:
      *  - Killer moves
-     *  - PV move || TT move?
+     *  - TT moves
+     *  TODO
+     *  - PV MOVES
      * @param moves from movegen
      * @param cnt from movegen
      * @param board current board.
      */
-    static void scoreMoves(Move* moves, int cnt, Board& board, const Move killerMoves[Board::MAX_DEPTH][2]);
+    static void scoreMoves(Move* moves, int cnt, Board& board, const Move killerMoves[Board::MAX_DEPTH][2], const Move& hashMove);
 
     /***
      * Picks a best move with a biggest score

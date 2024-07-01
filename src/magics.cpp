@@ -7,7 +7,13 @@ int getSquare(int rank, int file){
     return rank * 8 + file;
 }
 
+std::uniform_int_distribution<uint64_t> distribution;
+std::mt19937_64 generator;
+
 void Magics::init() {
+    int seed = 123456;
+    std::mt19937_64 generator(seed);
+    std::uniform_int_distribution<uint64_t> distribution(0, std::numeric_limits<uint64_t>::max());
     generateBishopBlockers();
     generateRookBlockers();
     initMagics();
@@ -206,11 +212,7 @@ std::vector<uint64_t> Magics::tryBuildTable(uint64_t blockerBitBoard, int file, 
     return table;
 }
 
-
 uint64_t Magics::randUInt64(){
-    std::random_device rd;
-    std::mt19937_64 generator(rd());
-    std::uniform_int_distribution<uint64_t> distribution(0, std::numeric_limits<uint64_t>::max());
     return distribution(generator);
 }
 

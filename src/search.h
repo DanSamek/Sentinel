@@ -17,6 +17,9 @@ class Search {
     static inline constexpr int MAX_DEPTH = 128;
     static inline constexpr int LMR_DEPTH = 3;
 
+    static inline constexpr int RAZOR_MARGIN = 558;
+    static inline constexpr int RAZOR_MIN_DEPTH = 4;
+
 
     static inline Board* _board;
     static inline bool _forceStopped = false;
@@ -48,13 +51,12 @@ public:
         Move bestMove;
 
         for(int j = 1; j <= MAX_DEPTH; j++){
-            Timer idTimer;
 
+            Timer idTimer;
             negamax(j, 0, NEGATIVE_INF, POSITIVE_INF, true);
             if(_forceStopped) break;
 
             bestMove = _bestMoveIter;
-            //std::cout << "depth:" << j << " score:" << _bestScoreIter << "nodes: " << nodesVisited << " move:";
             std::cout << "info cp score " << _bestScoreIter << " depth " << j << "time " << idTimer.getMs() <<  " move ";
             bestMove.print();
 
@@ -93,8 +95,9 @@ private:
 
         // Try get eval from TT.
         int ttEval = TT->getEval(depth, alpha, beta);
+        auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->getMove() : Move();
 
-        if(ttEval != TranspositionTable::LOOKUP_ERROR){
+        if(ttEval > TranspositionTable::LOOKUP_ERROR){
             TTUsed++;
             if(ply == 0){
                 _bestMoveIter = TT->getMove();
@@ -113,7 +116,6 @@ private:
         bool someBigPiece = _board->anyBiggerPiece(); // Zugzwang prevention, in some simple endgames can NMP hurt.
 
         if(depth >= 3 && doNull && !isCheckNMP && someBigPiece && ply > 0){
-
             _board->makeNullMove();
             int eval = -negamax(depth - 3, ply + 1, -beta, -beta + 1, false);
             _board->undoNullMove();
@@ -122,11 +124,23 @@ private:
             if(_forceStopped) return 0;
         }
 
+
+        // Razoring
+        // if eval of current position is so bad, we can prune it.
+        // pretty crazy and experimental.
+        // 5706593 => 4593233
+        if(!isCheckNMP && ply > 0 && depth <= RAZOR_MIN_DEPTH && _board->eval() + RAZOR_MARGIN * depth <= alpha){
+            auto score = qsearch(alpha - 1, alpha);
+            if(score <= alpha) return score;
+        }
+
+
+        // info cp score 1025 depth 34time 5692 move a1b1
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves);
 
         // "move ordering"
-        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves);
+        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves, hashMove);
         bool visitedAny = false;
 
         TranspositionTable::HashType TTType = TranspositionTable::UPPER_BOUND;
@@ -187,7 +201,7 @@ private:
 
 
     /***
-     * LMR late move reduction
+     * LMR - late move reduction
      * If move is quiet or not killer move, we will apply LMR
      * Todo add pv nodes.
      * // https://web.archive.org/web/20150212051846/http://www.glaurungchess.com/lmr.html
@@ -215,7 +229,7 @@ private:
     /***
      * https://www.chessprogramming.org/Quiescence_Search
      * Generates all captures possible and plays them.
-     * This is used for horizon effect - i capture with a QxP -> good move, but what if another pawn in next depth will capture my Q?!
+     * This is used for horizon effect - If i capture with a QxP -> good move, but what if another pawn in next depth will capture my Q?!
      *  -> qsearch.
      * @return eval of the position without captures.
      * Maybe TODO TT (?)
@@ -228,7 +242,7 @@ private:
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves, true);
-        Movepick::scoreMoves(moves, moveCount, *_board, nullptr);
+        Movepick::scoreMoves(moves, moveCount, *_board, nullptr, Move());
 
         for(int j = 0; j < moveCount; j++){
             // pick a best move to play.

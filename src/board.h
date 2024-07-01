@@ -177,9 +177,12 @@ private:
     void initPieces(uint64_t* pieces);
     /***
      * Side evaluation
-     * -> PST (custom+inspired) - DONE
-     * -> Mobility - TODO
-     * -> maybe king safety/pawn structure + passed pawns. - TODO
+     * -> PST simple (TODO tune somehow(?))
+     * -> passed pawns eval.
+     * -> Mobility TODO
+     * -> pawn isolation TODO
+     * -> doubled/tripled pawns TODO
+     * -> king safety TODO
      * @param bbs
      * @return eval.
      */

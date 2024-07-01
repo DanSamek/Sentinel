@@ -14,6 +14,7 @@ public:
         LOWER_BOUND
     };
     static constexpr int LOOKUP_ERROR = -1000000000;
+    static constexpr int FOUND_NOT_ACCEPTED = -2000000000;
 
     // Default .ctor for uci init (not used)
     TranspositionTable() = default;
