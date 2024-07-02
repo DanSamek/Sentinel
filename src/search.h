@@ -61,7 +61,7 @@ public:
             bestMove.print();
 
             // thanks to iterative deepening + TT, we can stop search here - mate found.
-            if(isMateScore(_bestScoreIter)) break;
+            //if(isMateScore(_bestScoreIter)) break;
         }
         std::cout << "tt used:" << TTUsed << " nodesTotal:" << nodesVisited <<std::endl;
         std::cout << "tt ratio: " << (TTUsed*1.0)/nodesVisited << std::endl;
@@ -73,13 +73,10 @@ public:
 private:
 
     /*
-     * 1) killer moves (by halfmoves). DONE
-     * 2) late move reduction DONE
-     * 3) null move pruning
      * TODO
-     * 4) PV
+     * 4) PV + PV order.
      * 5) TT fix
-     * 6) More tests on null move pruning, now only in perft tests.
+     * 6) QSearch optimization
      */
 
     // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
@@ -108,11 +105,12 @@ private:
 
         // after tt search, eval position.
         if(depth <= 0) return qsearch(alpha, beta);
+        bool isCheckNMP = _board->inCheck(); // If current king is checked, logically we can't do NMP (enemy will capture our king).
+        int currentEval = _board->eval();
 
         // Null move pruning
         // We just give enemy next move (we dont move any piece)
         // If our position is too good, even 1 additional move for opponent cant help, we return beta.
-        bool isCheckNMP = _board->inCheck(); // If current king is checked, logically we can't do NMP (enemy will capture our king).
         bool someBigPiece = _board->anyBiggerPiece(); // Zugzwang prevention, in some simple endgames can NMP hurt.
 
         if(depth >= 3 && doNull && !isCheckNMP && someBigPiece && ply > 0){
@@ -124,18 +122,32 @@ private:
             if(_forceStopped) return 0;
         }
 
-
         // Razoring
         // if eval of current position is so bad, we can prune it.
         // pretty crazy and experimental.
-        // 5706593 => 4593233
-        if(!isCheckNMP && ply > 0 && depth <= RAZOR_MIN_DEPTH && _board->eval() + RAZOR_MARGIN * depth <= alpha){
+        /*
+            Without razoring - bullet
+            Results of sentinel-dev vs sentinel (60+1, 1t, MB, 8moves_v3.pgn):
+            Elo: -41.89 +/- 50.73, nElo: -57.20 +/- 68.10
+            LOS: 4.98 %, DrawRatio: 30.00 %, PairsRatio: 0.52
+            Games: 100, Wins: 26, Losses: 38, Draws: 36, Points: 44.0 (44.00 %)
+
+            Without razoring - rapid
+            Results of sentinel-dev vs sentinel (1.8e+02+1, 1t, MB, 8moves_v3.pgn):
+            Elo: -147.19 +/- 148.05, nElo: -262.64 +/- 215.34
+            LOS: 0.84 %, DrawRatio: 40.00 %, PairsRatio: 0.00
+        */
+        if(!isCheckNMP && ply > 0 && depth <= RAZOR_MIN_DEPTH && currentEval + RAZOR_MARGIN * depth <= alpha){
             auto score = qsearch(alpha - 1, alpha);
             if(score <= alpha) return score;
         }
 
+        // Reverse futility pruning
+        // If current pos - margin is too good (>= beta), we can return currentEval.
+        if(!isCheckNMP && ply > 0 && depth <= 6 && currentEval - 225 * depth >= beta){
+            return currentEval;
+        }
 
-        // info cp score 1025 depth 34time 5692 move a1b1
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves);
 
@@ -253,9 +265,9 @@ private:
             _board->undoMove(moves[j]);
 
             if(eval >= beta) return beta;
+
             if(eval > alpha) alpha = eval;
         }
-
         return alpha;
     }
 

@@ -19,7 +19,6 @@ public:
     static inline uint64_t noEnPassant;
     static inline uint64_t enPassantTable[NUM_FILES];
     inline static void init(){
-        srand(time(nullptr));
         // all squares
         for(int piece = 0; piece < NUM_PIECES; piece++){
             for(int square = 0; square < BOARD_SIZE; square++){

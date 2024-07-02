@@ -5,7 +5,7 @@ static inline constexpr int KING_DISTANCE_MULTIPLIER = 10;
 static inline constexpr int TWO_BISHOPS_BONUS = 30;
 static inline constexpr int EVAL_DIFFERENCE_FOR_ENDGAME = 350;
 static inline constexpr int CASTLING_BONUS = 17;
-static inline constexpr int PASSED_PAWN_BONUS = 14;
+static inline constexpr int PASSED_PAWN_BONUS = 25;
 
 inline int getManhattanDist(const int posA[2], const int posB[2]){
     return std::abs(posA[0] - posB[0]) + std::abs(posA[1] - posB[1]);

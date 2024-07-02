@@ -3,9 +3,8 @@
 #include <zobrist.h>
 #include <pst.h>
 
-
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-Razoring-Hashmove-Opt " << std::endl;
+    std::cout << "id name Sentinel-RFPv3-OPT-LAST-CHANCE-TODAY-tt" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl;
     std::cout << "uciok" << std::endl;
 }

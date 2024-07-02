@@ -432,12 +432,14 @@ bool Board::isInsufficientMaterial(uint64_t* bbs) const{
     if(bbs[PAWN] || bbs[ROOK] || bbs[QUEEN]) return false;
 
     auto bb = bbs[BISHOP];
-    int cnt = bit_ops::countBits(bb);
-    if(cnt >= 2) return false;
+    int bishopCnt = bit_ops::countBits(bb);
+    if(bishopCnt >= 2) return false;
 
     bb = bbs[KNIGHT];
-    cnt = bit_ops::countBits(bb);
-    if(cnt >= 2) return false;
+    int knightCnt = bit_ops::countBits(bb);
+    if(knightCnt >= 2) return false;
+
+    if (knightCnt == 1 && bishopCnt == 1) return false;
 
     return true;
 }
