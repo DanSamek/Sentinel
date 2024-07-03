@@ -19,6 +19,7 @@ class Board {
     static inline std::map<char, int> ranks = {{'1',7}, {'2',6},{'3',5},{'4',4}, {'5',3}, {'6',2}, {'7',1}, {'8',0}};
 
     static inline uint64_t PASSED_PAWN_BITBOARDS[2][64];
+    static inline uint64_t ISOLATED_PAWN_BITBOARDS[64];
 public:
 
     enum pieceType{
@@ -221,6 +222,7 @@ private:
     int evalSideSimple(uint64_t * bbs) const;
 
     static void setPassedPawnBits(int square, int tmp, int index);
+    static void setIsolationRadiusBits(int square);
 };
 
 

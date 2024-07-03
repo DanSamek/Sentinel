@@ -29,6 +29,7 @@ class Search {
     // Debug.
     static inline int TTUsed;
     static inline int nodesVisited;
+    static inline int pvCounter;
 
     // Killer moves, that did beta cutoffs, use them in move order.
     // Now only 2 killer moves per ply.
@@ -38,13 +39,14 @@ public:
     // 8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1
     static Move search(int miliseconds, Board& board, bool exact){
         TTUsed = nodesVisited = 0;
+
         // get first moves, only legal.
         _board = &board;
         _forceStopped = false;
         _bestScoreIter = INT_MIN;
         _bestMoveIter = {};
 
-        int msCanBeUsed = exact ? miliseconds : miliseconds / 80; // try ??
+        int msCanBeUsed = exact ? miliseconds : miliseconds / 80; // try ?? 69
 
         _timer = Timer(msCanBeUsed);
         TT->clear();
@@ -65,6 +67,7 @@ public:
         }
         std::cout << "tt used:" << TTUsed << " nodesTotal:" << nodesVisited <<std::endl;
         std::cout << "tt ratio: " << (TTUsed*1.0)/nodesVisited << std::endl;
+        std::cout << "pv ratio:" << (pvCounter*1.0)/nodesVisited << std::endl;
         return bestMove;
     }
 

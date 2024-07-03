@@ -16,7 +16,7 @@ class Movepick {
       KING
      */
     // MVV-LVA (most valuable victim, least valuable attacker).
-    static constexpr uint16_t MVV_VLA[6][6] ={
+    static constexpr int MVV_VLA[6][6] ={
         {1050, 2050, 3050, 4050, 5050, 6050, },
         {1040, 2040, 3040, 4040, 5040, 6040, },
         {1030, 2030, 3030, 4030, 5030, 6030, },
@@ -26,8 +26,8 @@ class Movepick {
     };
 
     // after MVV_VLA
-    static inline constexpr uint16_t KILLER_MOVES_ORDER_SCORE[2] = {900,800};
-    static inline constexpr uint16_t TT_MOVE_ORDER_SCORE = 10000; // best move from prev iteration, lets pick it first!
+    static inline constexpr int KILLER_MOVES_ORDER_SCORE[2] = {900,800};
+    static inline constexpr int TT_MOVE_ORDER_SCORE = 10000; // best move from prev iteration, lets pick it first!
 
 public:
 
@@ -35,11 +35,9 @@ public:
      * Score current moves
      *  NOW:
      *  - MVV_VLA
-     *  - Promotion
+     *  - Promotion's
      *  - Killer moves
      *  - TT moves
-     *  TODO
-     *  - PV MOVES
      * @param moves from movegen
      * @param cnt from movegen
      * @param board current board.
