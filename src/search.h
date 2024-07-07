@@ -180,7 +180,7 @@ private:
             if(eval >= beta){
                 // If move, that wasnt capture causes a beta cuttoff, we call it killer move, remember this move for move ordering.
                 auto attackSquareType = _board->getPieceTypeFromSQ(moves[j].toSq, _board->whoPlay ? _board->whitePieces : _board->blackPieces);
-                if(!attackSquareType.second){
+                if(!attackSquareType.second && moves[j].promotionType == Move::NONE){
                     storeKillerMove(moves[j]);
                 }
                 TT->store(beta, depth, TranspositionTable::LOWER_BOUND, moves[j]);
@@ -218,7 +218,6 @@ private:
     /***
      * LMR - late move reduction
      * If move is quiet or not killer move, we will apply LMR
-     * Todo add pv nodes.
      * // https://web.archive.org/web/20150212051846/http://www.glaurungchess.com/lmr.html
      * @return
      */
@@ -252,6 +251,7 @@ private:
     static int qsearch(int alpha, int beta){
         auto currentEval = _board->eval();
 
+        if(_board->isDraw()) return 0;
         if(currentEval >= beta) return beta;
         if(currentEval > alpha) alpha = currentEval;
 
