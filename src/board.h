@@ -14,12 +14,14 @@
 class Board {
     static inline std::map<char, int> pieceIndexMap = {{'p',0}, {'n', 1}, {'b', 2}, {'r',3}, {'q',4}, {'k', 5}};
     static inline std::map<int, char> reversedPieceIndexMap = {{0, 'p'}, {1, 'n'}, {2, 'b'}, {3, 'r'}, {4, 'q'}, {5, 'k'}};
-    // lazy mapping.
+
     static inline std::map<char, int> files = {{'a', 0}, {'b', 1}, {'c', 2}, {'d',3}, {'e', 4}, {'f', 5}, {'g', 6}, {'h',7}};
     static inline std::map<char, int> ranks = {{'1',7}, {'2',6},{'3',5},{'4',4}, {'5',3}, {'6',2}, {'7',1}, {'8',0}};
 
-    static inline uint64_t PASSED_PAWN_BITBOARDS[2][64];
-    static inline uint64_t ISOLATED_PAWN_BITBOARDS[64];
+    static inline uint64_t PAWN_PASSED_BITBOARDS[2][64];
+    static inline uint64_t PAWN_FRIENDS_BITBOARDS[64];
+    static inline uint64_t PAWN_ISOLATION_BITBOARDS[8]; // for each column.
+
 public:
 
     enum pieceType{
@@ -170,7 +172,7 @@ public:
     /***
      * Function, that calls
      * - initPassedPawnBBS
-     * - initIsolatedPawnBBS
+     * - initPawnFriendsBBS
      */
     static void initPawnEvalBBS();
 private:
@@ -179,11 +181,10 @@ private:
     /***
      * Side evaluation
      * -> PST simple (TODO tune somehow(?))
-     * -> passed pawns eval.
      * -> Mobility TODO
-     * -> pawn isolation TODO
-     * -> doubled/tripled pawns TODO
+     * -> rook on open/semi open files. TODO
      * -> king safety TODO
+     * -> doubled/tripled pawns TODO
      * @param bbs
      * @return eval.
      */
@@ -197,22 +198,14 @@ private:
     /***
      * Initialization of passed pawn bitboards.
      * We call pawn passed, if no enemy pawn is in way (or even on left/right [enemy can capture a pawn with +/- 1 file]) to promotion
-     * Passed if endgame => +25
-     *        if middlegame => +5
      */
     static void initPassedPawnBBS();
 
     /***
-     * Initialization of isolated pawn bitboards.
-     * We call pawn isolated, if there is not a friendly pawn in radius of 1.
-     * if middlegame
-     *      Nonisolated = 3
-     *      Isolated = -(7-10) by debug process.
-     * if endgame
-     *      Nonisolated = 15
-     *      Isolated = -(10-15) by debug process.
+     * Initialization of isolated pawn bitboards
+     * Bitboards with radius of 1 for pawn structure bonus.
      */
-    static void initIsolatedPawnBBS();
+    static void initPawnFriendsBBS();
 
     /***
      * Simple eval of current position
@@ -222,7 +215,9 @@ private:
     int evalSideSimple(uint64_t * bbs) const;
 
     static void setPassedPawnBits(int square, int tmp, int index);
-    static void setIsolationRadiusBits(int square);
+    static void setFriendRadiusBits(int square);
+
+    static void initPawnIsolationBBS();
 };
 
 

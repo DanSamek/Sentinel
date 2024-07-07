@@ -1,4 +1,5 @@
 #include <board.h>
+#include <movegen.h>
 
 static inline constexpr int MAX_KING_DISTANCE = 14;
 static inline constexpr int KING_DISTANCE_MULTIPLIER = 10;
@@ -6,7 +7,8 @@ static inline constexpr int TWO_BISHOPS_BONUS = 30;
 static inline constexpr int EVAL_DIFFERENCE_FOR_ENDGAME = 350;
 static inline constexpr int CASTLING_BONUS = 17;
 static inline constexpr int PASSED_PAWN_BONUS = 15;
-static inline constexpr int ISOLATED_PAWN_TAKE = 13;
+static inline constexpr int FRIEND_PAWN_BONUS = 13;
+static inline constexpr int ISOLATED_PAWN_SUBTRACT = 12;
 
 inline int getManhattanDist(const int posA[2], const int posB[2]){
     return std::abs(posA[0] - posB[0]) + std::abs(posA[1] - posB[1]);
@@ -72,7 +74,7 @@ int Board::evalSideSimple(uint64_t *bbs) const{
 int Board::evalSide(uint64_t *bbs, bool white, bool isEndgame) const{
     int eval = 0;
     for(int j = 1; j < 6; j++){
-        if(j == BISHOP) continue; // dumb fix now, do it better.
+        if(j == BISHOP ) continue; // dumb fix now, do it better.
         auto bb = bbs[j];
         while(bb){
             auto pos = bit_ops::bitScanForwardPopLsb(bb);
@@ -92,36 +94,44 @@ int Board::evalSide(uint64_t *bbs, bool white, bool isEndgame) const{
 
     // Pawn eval.
     auto enemyPawnsBB = white ? blackPieces[PAWN] : whitePieces[PAWN];
-    //auto friendlyPawnsBB = white ? whitePieces[PAWN] : blackPieces[PAWN]; // TODO
+    auto friendlyPawnsBB = white ? whitePieces[PAWN] : blackPieces[PAWN];
     bb = bbs[PAWN];
+
+    int structureBonus = 0;
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
         eval += PST::getValue(white, PAWN, pos, isEndgame);
-
-        // pawn is passed, if enemyPawnBB & passBB = 0.
         int distanceFromPromotionRev = white ? ((7 - (pos / 8)) - 1) : ((7 - (7 - (pos / 8))) - 1);
         assert(distanceFromPromotionRev >= 0);
-        if((enemyPawnsBB & PASSED_PAWN_BITBOARDS[!white][pos]) == 0ULL){
+        if((enemyPawnsBB & PAWN_PASSED_BITBOARDS[!white][pos]) == 0ULL){
             eval += piecesTotal <= END_GAME_PIECE_MAX ? (PASSED_PAWN_BONUS * distanceFromPromotionRev) : PASSED_PAWN_BONUS;
         }
-        // check, if pawn is isolated (aka no pawn friends?!).
-        if((bb & ISOLATED_PAWN_BITBOARDS[pos]) == 0){
-            eval -= isEndgame ? (ISOLATED_PAWN_TAKE * 2) : ISOLATED_PAWN_TAKE;
+
+        // Add bonus, if pawns are in some sort of structure.
+        if((bb & PAWN_FRIENDS_BITBOARDS[pos]) != 0){
+            structureBonus += isEndgame ? (FRIEND_PAWN_BONUS * 2) : FRIEND_PAWN_BONUS;
+        }
+
+        // If pawn is isolated, subtract value from current eval.
+        auto column = pos % 8;
+        if((friendlyPawnsBB & PAWN_ISOLATION_BITBOARDS[column]) == 0){
+            eval -= ISOLATED_PAWN_SUBTRACT;
         }
     }
+    eval += structureBonus / 2;
     return eval;
 }
 
-
 void Board::initPawnEvalBBS(){
     initPassedPawnBBS();
-    initIsolatedPawnBBS();
+    initPawnIsolationBBS();
+    initPawnFriendsBBS();
 }
 
 void  Board::initPassedPawnBBS(){
     for(int j = 0; j < 64; j++){
-        PASSED_PAWN_BITBOARDS[WHITE][j] = 0ULL;
-        PASSED_PAWN_BITBOARDS[BLACK][j] = 0ULL;
+        PAWN_PASSED_BITBOARDS[WHITE][j] = 0ULL;
+        PAWN_PASSED_BITBOARDS[BLACK][j] = 0ULL;
     }
 
     for(int square = 16; square <= 55; square++){
@@ -142,35 +152,51 @@ void  Board::initPassedPawnBBS(){
 }
 
 void Board::setPassedPawnBits(int square, int tmp, int index) {
-    bit_ops::setNthBit(PASSED_PAWN_BITBOARDS[index][square], tmp);
-    if(square % 8 == 0 || (square + 1)% 8 != 0) bit_ops::setNthBit(PASSED_PAWN_BITBOARDS[index][square], tmp + 1);
-    if((square + 1) % 8 == 0 || (square % 8) != 0) bit_ops::setNthBit(PASSED_PAWN_BITBOARDS[index][square], tmp - 1);
+    bit_ops::setNthBit(PAWN_PASSED_BITBOARDS[index][square], tmp);
+    if(square % 8 == 0 || (square + 1)% 8 != 0) bit_ops::setNthBit(PAWN_PASSED_BITBOARDS[index][square], tmp + 1);
+    if((square + 1) % 8 == 0 || (square % 8) != 0) bit_ops::setNthBit(PAWN_PASSED_BITBOARDS[index][square], tmp - 1);
 }
 
-void Board::initIsolatedPawnBBS(){
+void Board::initPawnFriendsBBS(){
     for(int j = 0; j < 64; j++){
-        ISOLATED_PAWN_BITBOARDS[j] = 0ULL;
+        PAWN_FRIENDS_BITBOARDS[j] = 0ULL;
     }
     // distance 1 radius mask.
     for(int square = 8; square <= 55; square++){
-        setIsolationRadiusBits(square);
+        setFriendRadiusBits(square);
     }
 }
 
-void Board::setIsolationRadiusBits(int square){
+void Board::setFriendRadiusBits(int square){
     auto onLeftEdge = square % 8 == 0;
     auto onRightEdge = (square + 1) % 8 == 0;
 
     if(!onLeftEdge){
-        bit_ops::setNthBit(ISOLATED_PAWN_BITBOARDS[square], square-1);
-        bit_ops::setNthBit(ISOLATED_PAWN_BITBOARDS[square], square+7);
-        bit_ops::setNthBit(ISOLATED_PAWN_BITBOARDS[square], square-9);
+        bit_ops::setNthBit(PAWN_FRIENDS_BITBOARDS[square], square - 1);
+        bit_ops::setNthBit(PAWN_FRIENDS_BITBOARDS[square], square + 7);
+        bit_ops::setNthBit(PAWN_FRIENDS_BITBOARDS[square], square - 9);
     }
 
     if(!onRightEdge){
-        bit_ops::setNthBit(ISOLATED_PAWN_BITBOARDS[square], square+1);
-        bit_ops::setNthBit(ISOLATED_PAWN_BITBOARDS[square], square-7);
-        bit_ops::setNthBit(ISOLATED_PAWN_BITBOARDS[square], square+9);
+        bit_ops::setNthBit(PAWN_FRIENDS_BITBOARDS[square], square + 1);
+        bit_ops::setNthBit(PAWN_FRIENDS_BITBOARDS[square], square - 7);
+        bit_ops::setNthBit(PAWN_FRIENDS_BITBOARDS[square], square + 9);
     }
+}
 
+
+void Board::initPawnIsolationBBS() {
+    uint64_t starting = 0x101010101010101;
+    for(int column = 0; column <= 7; column++) PAWN_ISOLATION_BITBOARDS[column] = 0ULL;
+
+    // not on the edge.
+    for(int column = 1; column <= 6; column++){
+        PAWN_ISOLATION_BITBOARDS[column] |= starting << (column - 1);
+        PAWN_ISOLATION_BITBOARDS[column] |= starting << (column + 1);
+    }
+    // left edge
+    PAWN_ISOLATION_BITBOARDS[0] |= starting << 1;
+
+    // right edge.
+    PAWN_ISOLATION_BITBOARDS[7] |= starting << 6;
 }
