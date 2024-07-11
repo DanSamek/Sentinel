@@ -8,7 +8,7 @@
 // https://web.archive.org/web/20071031100051/http://www.brucemo.com/compchess/programming/hashing.htm
 class TranspositionTable {
 public:
-    enum HashType{
+    enum HashType : char{
         EXACT,
         UPPER_BOUND,
         LOWER_BOUND
@@ -66,16 +66,21 @@ public:
 private:
 
     int index();
+    static inline Move NO_MOVE = Move();
 
     struct Entry{
         int eval;
-        int depth;
+        int8_t depth;
         uint64_t hash;
         HashType flag;
         Move best;
         Entry(int _eval, int _depth, uint64_t _hash, HashType _flag, Move _best)
                 : eval(_eval), depth(_depth), hash(_hash), flag(_flag), best(_best) {};
-        Entry() = default;
+        Entry(){
+            best = NO_MOVE;
+            depth = -1;
+            hash = 0ULL;
+        }
     };
 
     Entry* _entries;

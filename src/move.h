@@ -5,7 +5,7 @@
 #include <string>
 
 struct Move {
-    enum type{
+    enum type :int8_t{
         CAPTURE,
         PROMOTION,
         QUIET,
@@ -13,22 +13,18 @@ struct Move {
         CASTLING,
         DOUBLE_PAWN_UP
     };
-    enum PromotionType{
+    enum PromotionType : int8_t{
         NONE,
         KNIGHT,
         BISHOP,
         ROOK,
         QUEEN,
     };
-    int fromSq = 0;
-    int toSq = 0;
+    int8_t fromSq = 0;
+    int8_t toSq = 0;
     PromotionType promotionType = NONE;
     type moveType = QUIET;
-    int movePiece;
-
-
-    // Move score for movepick in search.
-    int score = 0;
+    int8_t movePiece;
 
     /***
      * Prints a move for UCI communication

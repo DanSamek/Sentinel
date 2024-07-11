@@ -42,7 +42,7 @@ public:
      * @param cnt from movegen
      * @param board current board.
      */
-    static void scoreMoves(Move* moves, int cnt, Board& board, const Move killerMoves[Board::MAX_DEPTH][2], const Move& hashMove);
+    static void scoreMoves(Move* moves, int cnt, Board& board, const Move killerMoves[Board::MAX_DEPTH][2], const Move& hashMove, std::vector<int>& moveScores);
 
     /***
      * Picks a best move with a biggest score
@@ -51,7 +51,7 @@ public:
      * @param cnt
      * @param startingIndex
      */
-    static void pickMove(Move* moves, int cnt, int startingIndex);
+    static void pickMove(Move* moves, int cnt, int startingIndex, std::vector<int>& moveScores);
 };
 
 

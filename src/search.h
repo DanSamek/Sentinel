@@ -15,7 +15,7 @@ class Search {
     static inline int _bestScoreIter = INT_MIN;
     static inline Move _bestMoveIter;
     static inline constexpr int MAX_DEPTH = 128;
-    static inline constexpr int LMR_DEPTH = 3;
+    static inline constexpr int LMR_DEPTH = 2;
 
     static inline constexpr int RAZOR_MARGIN = 558;
     static inline constexpr int RAZOR_MIN_DEPTH = 4;
@@ -35,11 +35,17 @@ class Search {
     // Now only 2 killer moves per ply.
     static inline Move _killerMoves[Board::MAX_DEPTH][2];
 
+
+    // static inline int EFP[1] = {125};
+
 public:
     // 8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1
     static Move search(int miliseconds, Board& board, bool exact){
         TTUsed = nodesVisited = 0;
 
+        prepareForSearch();
+
+        std::cout << "b hash "<< board.zobristKey << std::endl;
         // get first moves, only legal.
         _board = &board;
         _forceStopped = false;
@@ -49,21 +55,17 @@ public:
         int msCanBeUsed = exact ? miliseconds : miliseconds / 80; // try ?? 69
 
         _timer = Timer(msCanBeUsed);
-        TT->clear();
+        //TT->clear();
         Move bestMove;
-
-        for(int j = 1; j <= MAX_DEPTH; j++){
-
+        for(int depth = 1; depth < MAX_DEPTH; depth++){
             Timer idTimer;
-            negamax(j, 0, NEGATIVE_INF, POSITIVE_INF, true);
-            if(_forceStopped) break;
-
+            negamax(depth, 0, NEGATIVE_INF, POSITIVE_INF, true, true);
+            if(_forceStopped){
+                break;
+            }
             bestMove = _bestMoveIter;
-            std::cout << "info cp score " << _bestScoreIter << " depth " << j << "time " << idTimer.getMs() <<  " move ";
+            std::cout << "info cp score " << _bestScoreIter << " depth " << depth << " time " << idTimer.getMs() << " move ";
             bestMove.print();
-
-            // thanks to iterative deepening + TT, we can stop search here - mate found.
-            //if(isMateScore(_bestScoreIter)) break;
         }
         std::cout << "tt used:" << TTUsed << " nodesTotal:" << nodesVisited <<std::endl;
         std::cout << "tt ratio: " << (TTUsed*1.0)/nodesVisited << std::endl;
@@ -73,7 +75,16 @@ public:
 
     static constexpr int CHECKMATE = 1000000;
     static inline TranspositionTable* TT;
+
 private:
+
+    static void prepareForSearch(){
+        for(int j = 0; j <= 1; j++){
+            for(int d = 0; d < Board::MAX_DEPTH; d++){
+                _killerMoves[d][j] = Move();
+            }
+        }
+    }
 
     /*
      * TODO
@@ -83,11 +94,12 @@ private:
      */
 
     // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
-    static int negamax(int depth, int ply, int alpha, int beta, bool doNull){
+    static int negamax(int depth, int ply, int alpha, int beta, bool doNull, bool isPv){
         if(_timer.isTimeout()){
             _forceStopped = true;
             return 0;
         }
+        assert(isPv || alpha + 1 == beta);
 
         nodesVisited++;
 
@@ -97,12 +109,8 @@ private:
         int ttEval = TT->getEval(depth, alpha, beta);
         auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->getMove() : Move();
 
-        if(ttEval > TranspositionTable::LOOKUP_ERROR){
+        if(ttEval > TranspositionTable::LOOKUP_ERROR && !isPv){
             TTUsed++;
-            if(ply == 0){
-                _bestMoveIter = TT->getMove();
-                _bestScoreIter = ttEval;
-            }
             return ttEval;
         }
 
@@ -116,13 +124,19 @@ private:
         // If our position is too good, even 1 additional move for opponent cant help, we return beta.
         bool someBigPiece = _board->anyBiggerPiece(); // Zugzwang prevention, in some simple endgames can NMP hurt.
 
-        if(depth >= 3 && doNull && !isCheckNMP && someBigPiece && ply > 0){
+        if(!isPv && depth >= 3 && doNull && !isCheckNMP && someBigPiece && ply > 0){
             _board->makeNullMove();
-            int eval = -negamax(depth - 3, ply + 1, -beta, -beta + 1, false);
+            int eval = -negamax(depth - 3, ply + 1, -beta, -beta + 1, false, false);
             _board->undoNullMove();
 
             if(eval >= beta) return eval;
             if(_forceStopped) return 0;
+        }
+
+        // Futility pruning
+        // If current pos - margin is too good (>= beta), we can return currentEval.
+        if(!isPv && !isCheckNMP && ply > 0 && depth <= 6 && currentEval - 225 * depth >= beta){
+            return currentEval;
         }
 
         // Razoring
@@ -140,35 +154,37 @@ private:
             Elo: -147.19 +/- 148.05, nElo: -262.64 +/- 215.34
             LOS: 0.84 %, DrawRatio: 40.00 %, PairsRatio: 0.00
         */
-        if(!isCheckNMP && ply > 0 && depth <= RAZOR_MIN_DEPTH && currentEval + RAZOR_MARGIN * depth <= alpha){
+        if(!isPv && !isCheckNMP && ply > 0 && depth <= RAZOR_MIN_DEPTH && currentEval + RAZOR_MARGIN * depth <= alpha){
             auto score = qsearch(alpha - 1, alpha);
             if(score <= alpha) return score;
         }
 
-        // Reverse futility pruning
-        // If current pos - margin is too good (>= beta), we can return currentEval.
-        if(!isCheckNMP && ply > 0 && depth <= 6 && currentEval - 225 * depth >= beta){
-            return currentEval;
-        }
-
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves);
+        std::vector<int> moveScores(moveCount);
 
         // "move ordering"
-        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves, hashMove);
+        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves, hashMove, moveScores);
         bool visitedAny = false;
 
         TranspositionTable::HashType TTType = TranspositionTable::UPPER_BOUND;
         Move bestMoveInPos;
 
         int movesSearched = 0; // LMR
+        // bool canPrune = !isCheckNMP && depth == 1 && ply > 0; // RFT
+
         for(int j = 0; j < moveCount; j++){
             // pick a move to play (sorting moves, can be slower, thanks to alpha beta pruning).
-            Movepick::pickMove(moves, moveCount, j);
+            Movepick::pickMove(moves, moveCount, j, moveScores);
+
+            // If our position is bad, quiet move is not going to make it better.
+            // reverse futility pruning.
+            // if(canPrune && currentEval + EFP[depth - 1] <= alpha && moves[j].score < 800) continue;
+
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
             // late move reduction.
-            int eval = lmr(depth, ply, alpha, beta, movesSearched);
+            int eval = lmr(depth, ply, alpha, beta, movesSearched, isPv, moveScores[j]);
 
             _board->undoMove(moves[j]);
 
@@ -183,8 +199,8 @@ private:
                 if(!attackSquareType.second && moves[j].promotionType == Move::NONE){
                     storeKillerMove(moves[j]);
                 }
-                TT->store(beta, depth, TranspositionTable::LOWER_BOUND, moves[j]);
-                return beta;
+                TT->store(eval, depth, TranspositionTable::LOWER_BOUND, moves[j]);
+                return eval;
             }
 
             if(eval > alpha){
@@ -207,8 +223,11 @@ private:
         // movegen returns cnt of moves total and if king is checked.
         // if there is no move - eval == INT_MIN, we can easily return if it's draw or checkmate (for checkmate we use value < INT_MIN).
         // checkmate || draw.
+
         if(!visitedAny && isCheck) return -(CHECKMATE + depth); // checkmate.
         if(!visitedAny && !isCheck) return 0; // draw
+
+
 
         TT->store(alpha, depth, TTType, bestMoveInPos);
         return alpha;
@@ -221,21 +240,29 @@ private:
      * // https://web.archive.org/web/20150212051846/http://www.glaurungchess.com/lmr.html
      * @return
      */
-    static inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched) {
+    static inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched, bool isPv, int moveScore) {
         int eval;
-        if(movesSearched >= 5 && depth >= LMR_DEPTH){
-            // do reduced search.
-            eval = -negamax(depth - 2, ply + 1, -alpha - 1, -alpha, true);
 
-            // if eval is bigger, than alpha, go full search
-            if(eval > alpha) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true);
+        int R = 0;
+        if(depth > LMR_DEPTH){
+            R += !isPv + moveScore < 800;
+            R -= moveScore >= 800; // move ordered.
+            R -= movesSearched <= 5;
+            R = R < 0 ? 0 : R;
+
+        }
+        if(movesSearched == 1 && isPv){
+            eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
+        }
+        else{
+            // do reduced search (null window)
+            eval = -negamax(depth - 1 - R, ply + 1, -alpha - 1, -alpha, true, false);
+
+            // do non reduced search (null window)
+            if(eval > alpha && R != 0) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true, false);
 
             // if LMR fails, do normal full search.
-            if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true);
-        }
-        // normal full search.
-        else{
-            eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true);
+            if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
         }
         return eval;
     }
@@ -257,11 +284,12 @@ private:
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves, true);
-        Movepick::scoreMoves(moves, moveCount, *_board, nullptr, Move());
+        std::vector<int> moveScores(moveCount);
+        Movepick::scoreMoves(moves, moveCount, *_board, nullptr, Move(), moveScores);
 
         for(int j = 0; j < moveCount; j++){
             // pick a best move to play.
-            Movepick::pickMove(moves, moveCount, j);
+            Movepick::pickMove(moves, moveCount, j, moveScores);
 
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
             int eval = -qsearch(-beta, -alpha);

@@ -4,7 +4,7 @@
 #include <pst.h>
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-PAWN-ISO80FX" << std::endl;
+    std::cout << "id name Sentinel-TT-PLSKY" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl;
     std::cout << "uciok" << std::endl;
 }
@@ -24,6 +24,9 @@ void UCI::isReady() {
 
 void UCI::newGame() {
     _board.loadFEN(START_POS);
+    if(_ready){
+        _TT.clear();
+    }
 }
 
 void UCI::position(std::string command) {
