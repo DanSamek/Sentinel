@@ -4,7 +4,7 @@
 #include <pst.h>
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-TT-PLSKY" << std::endl;
+    std::cout << "id name Sentinel-TT-PRRR" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl;
     std::cout << "uciok" << std::endl;
 }

@@ -1,6 +1,6 @@
 #include "movepick.h"
 
-void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerMoves[Board::MAX_DEPTH][2], const Move& hashMove, std::vector<int>& moveScores) {
+void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64],const Move& hashMove, std::vector<int>& moveScores) {
     for(int j = 0; j < cnt; j++){
         int score = 0;
         auto move = moves[j];
@@ -27,6 +27,8 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerM
         if(move.promotionType != 0){
             score += move.promotionType * 7;
         }
+
+        if(history != nullptr) score += history[move.fromSq][move.toSq];
 
         moveScores[j] = score;
     }

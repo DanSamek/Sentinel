@@ -34,6 +34,7 @@ class Search {
     // Killer moves, that did beta cutoffs, use them in move order.
     // Now only 2 killer moves per ply.
     static inline Move _killerMoves[Board::MAX_DEPTH][2];
+    static inline int _history[64][64];
 
 
     // static inline int EFP[1] = {125};
@@ -84,13 +85,21 @@ private:
                 _killerMoves[d][j] = Move();
             }
         }
+
+        for(int j = 0; j < 63; j++){
+            for(int i = 0; i < 63; i++){
+                _history[j][i] = 0;
+            }
+        }
     }
 
     /*
      * TODO
+     * 0) SPEED-UP!
      * 4) PV + PV order.
-     * 5) TT fix
-     * 6) QSearch optimization
+     * 5) TT fix - DONE ???
+     * 6) QSearch optimization DONE
+     *      -> TT try
      */
 
     // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
@@ -164,7 +173,7 @@ private:
         std::vector<int> moveScores(moveCount);
 
         // "move ordering"
-        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves, hashMove, moveScores);
+        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves, _history ,hashMove, moveScores);
         bool visitedAny = false;
 
         TranspositionTable::HashType TTType = TranspositionTable::UPPER_BOUND;
@@ -198,6 +207,9 @@ private:
                 auto attackSquareType = _board->getPieceTypeFromSQ(moves[j].toSq, _board->whoPlay ? _board->whitePieces : _board->blackPieces);
                 if(!attackSquareType.second && moves[j].promotionType == Move::NONE){
                     storeKillerMove(moves[j]);
+                }
+                if(!attackSquareType.second){
+                    _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
                 }
                 TT->store(eval, depth, TranspositionTable::LOWER_BOUND, moves[j]);
                 return eval;
@@ -245,11 +257,11 @@ private:
 
         int R = 0;
         if(depth > LMR_DEPTH){
-            R += !isPv + moveScore < 800;
-            R -= moveScore >= 800; // move ordered.
-            R -= movesSearched <= 5;
-            R = R < 0 ? 0 : R;
+            R += !isPv;
+            R += moveScore < 800;
+            R += movesSearched > 5;
 
+            R = std::clamp(R, 0, depth - 1);
         }
         if(movesSearched == 1 && isPv){
             eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
@@ -276,16 +288,26 @@ private:
      * Maybe TODO TT (?)
      */
     static int qsearch(int alpha, int beta){
-        auto currentEval = _board->eval();
+
+        nodesVisited++;
 
         if(_board->isDraw()) return 0;
+
+        auto ttEval = TT->getEval(-1, alpha, beta);
+        if(ttEval > TranspositionTable::LOOKUP_ERROR){
+            TTUsed++;
+            return ttEval;
+        }
+        auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->getMove() : Move();
+
+        auto currentEval = _board->eval();
         if(currentEval >= beta) return beta;
         if(currentEval > alpha) alpha = currentEval;
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves, true);
         std::vector<int> moveScores(moveCount);
-        Movepick::scoreMoves(moves, moveCount, *_board, nullptr, Move(), moveScores);
+        Movepick::scoreMoves(moves, moveCount, *_board, nullptr, nullptr, hashMove, moveScores);
 
         for(int j = 0; j < moveCount; j++){
             // pick a best move to play.
@@ -296,7 +318,6 @@ private:
             _board->undoMove(moves[j]);
 
             if(eval >= beta) return beta;
-
             if(eval > alpha) alpha = eval;
         }
         return alpha;
