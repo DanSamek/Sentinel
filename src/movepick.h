@@ -17,17 +17,17 @@ class Movepick {
      */
     // MVV-LVA (most valuable victim, least valuable attacker).
     static constexpr int MVV_VLA[6][6] ={
-        {10500, 20500, 30500, 40500, 50500, 60500, },
-        {10400, 20400, 30400, 40400, 50400, 60400, },
-        {10300, 20300, 30300, 40300, 50300, 60300, },
-        {10200, 20200, 30200, 40200, 50200, 60200, },
-        {10100, 20100, 30100, 40100, 50100, 60100, },
-        {10000, 20000, 30000, 40000, 50000, 60000, }
+        {100500, 200500, 300500, 400500, 500500, 600500, },
+        {100400, 200400, 300400, 400400, 500400, 600400, },
+        {100300, 200300, 300300, 400300, 500300, 600300, },
+        {100200, 200200, 300200, 400200, 500200, 600200, },
+        {100100, 200100, 300100, 400100, 500100, 600100, },
+        {100000, 200000, 300000, 400000, 500000, 600000, }
     };
 
     // after MVV_VLA
-    static inline constexpr int KILLER_MOVES_ORDER_SCORE[2] = {9000,8000};
-    static inline constexpr int TT_MOVE_ORDER_SCORE = 100000; // best move from prev iteration, lets pick it first!
+    static inline constexpr int KILLER_MOVES_ORDER_SCORE[2] = {90000,80000};
+    static inline constexpr int TT_MOVE_ORDER_SCORE = 1000000; // best move from prev iteration, lets pick it first!
 
 public:
 

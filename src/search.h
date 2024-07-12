@@ -14,7 +14,6 @@ class Search {
 
     static inline int _bestScoreIter = INT_MIN;
     static inline Move _bestMoveIter;
-    static inline constexpr int MAX_DEPTH = 128;
     static inline constexpr int LMR_DEPTH = 2;
 
     static inline constexpr int RAZOR_MARGIN = 558;
@@ -40,6 +39,7 @@ class Search {
     // static inline int EFP[1] = {125};
 
 public:
+    static inline constexpr int MAX_DEPTH = 128;
     // 8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1
     static Move search(int miliseconds, Board& board, bool exact){
         TTUsed = nodesVisited = 0;
@@ -65,7 +65,18 @@ public:
                 break;
             }
             bestMove = _bestMoveIter;
-            std::cout << "info cp score " << _bestScoreIter << " depth " << depth << " time " << idTimer.getMs() << " move ";
+
+            // TODO CLEAR
+            int movesToCheckmate = 0;
+            if (_bestScoreIter <= -(CHECKMATE - MAX_DEPTH)) {
+                int plyToCheckmate = CHECKMATE + _bestScoreIter;
+                movesToCheckmate = -((plyToCheckmate + 1) / 2);
+            } else if (_bestScoreIter >= (CHECKMATE - MAX_DEPTH)) {
+                int plyToCheckmate = CHECKMATE - _bestScoreIter;
+                movesToCheckmate = (plyToCheckmate + 1) / 2;
+            }
+            if(movesToCheckmate != 0 && _bestScoreIter != INT_MIN) std::cout << "info score mate " << movesToCheckmate << " depth " << depth << " time " << idTimer.getMs() << " move ";
+            else std::cout << "info cp score " << _bestScoreIter << " depth " << depth << " time " << idTimer.getMs() << " move ";
             bestMove.print();
         }
         std::cout << "tt used:" << TTUsed << " nodesTotal:" << nodesVisited <<std::endl;
@@ -115,13 +126,15 @@ private:
         if(_board->isDraw()) return 0;
 
         // Try get eval from TT.
-        int ttEval = TT->getEval(depth, alpha, beta);
+        int ttEval = TT->getEval(depth, alpha, beta, ply);
         auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->getMove() : Move();
 
         if(ttEval > TranspositionTable::LOOKUP_ERROR && !isPv){
             TTUsed++;
             return ttEval;
         }
+        // IIR
+        if(ttEval == TranspositionTable::LOOKUP_ERROR && ply > 0 && depth >= 5) depth--;
 
         // after tt search, eval position.
         if(depth <= 0) return qsearch(alpha, beta);
@@ -142,12 +155,6 @@ private:
             if(_forceStopped) return 0;
         }
 
-        // Futility pruning
-        // If current pos - margin is too good (>= beta), we can return currentEval.
-        if(!isPv && !isCheckNMP && ply > 0 && depth <= 6 && currentEval - 225 * depth >= beta){
-            return currentEval;
-        }
-
         // Razoring
         // if eval of current position is so bad, we can prune it.
         // pretty crazy and experimental.
@@ -163,9 +170,17 @@ private:
             Elo: -147.19 +/- 148.05, nElo: -262.64 +/- 215.34
             LOS: 0.84 %, DrawRatio: 40.00 %, PairsRatio: 0.00
         */
+
+        /*
         if(!isPv && !isCheckNMP && ply > 0 && depth <= RAZOR_MIN_DEPTH && currentEval + RAZOR_MARGIN * depth <= alpha){
             auto score = qsearch(alpha - 1, alpha);
             if(score <= alpha) return score;
+        }*/
+
+        // Futility pruning
+        // If current pos - margin is too good (>= beta), we can return currentEval.
+        if(!isPv && !isCheckNMP && ply > 0 && depth <= 6 && currentEval - 275 * depth >= beta){
+            return currentEval;
         }
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
@@ -208,10 +223,7 @@ private:
                 if(!attackSquareType.second && moves[j].promotionType == Move::NONE){
                     storeKillerMove(moves[j]);
                 }
-                if(!attackSquareType.second){
-                    _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
-                }
-                TT->store(eval, depth, TranspositionTable::LOWER_BOUND, moves[j]);
+                TT->store(eval, depth, TranspositionTable::LOWER_BOUND, moves[j], ply);
                 return eval;
             }
 
@@ -225,6 +237,11 @@ private:
                     _bestMoveIter = moves[j];
                     _bestScoreIter = eval;
                 }
+
+                auto attackSquareType = _board->getPieceTypeFromSQ(moves[j].toSq, _board->whoPlay ? _board->whitePieces : _board->blackPieces);
+                if(!attackSquareType.second){
+                    _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
+                }
             }
 
 
@@ -236,12 +253,12 @@ private:
         // if there is no move - eval == INT_MIN, we can easily return if it's draw or checkmate (for checkmate we use value < INT_MIN).
         // checkmate || draw.
 
-        if(!visitedAny && isCheck) return -(CHECKMATE + depth); // checkmate.
+        if(!visitedAny && isCheck) return -CHECKMATE + ply; // checkmate.
         if(!visitedAny && !isCheck) return 0; // draw
 
 
 
-        TT->store(alpha, depth, TTType, bestMoveInPos);
+        TT->store(alpha, depth, TTType, bestMoveInPos, ply);
         return alpha;
     }
 
@@ -256,12 +273,12 @@ private:
         int eval;
 
         int R = 0;
-        if(depth > LMR_DEPTH){
+        if(depth > LMR_DEPTH && ply > 0){
             R += !isPv;
-            R += moveScore < 800;
-            R += movesSearched > 5;
+            R += moveScore == 0; // dont reduce history moves as much.
+            R += movesSearched >= 4;
 
-            R = std::clamp(R, 0, depth - 1);
+            R = std::clamp(R, 0, depth - 2);
         }
         if(movesSearched == 1 && isPv){
             eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
@@ -293,7 +310,7 @@ private:
 
         if(_board->isDraw()) return 0;
 
-        auto ttEval = TT->getEval(-1, alpha, beta);
+        auto ttEval = TT->getEval(-1, alpha, beta, 0);
         if(ttEval > TranspositionTable::LOOKUP_ERROR){
             TTUsed++;
             return ttEval;
@@ -321,10 +338,6 @@ private:
             if(eval > alpha) alpha = eval;
         }
         return alpha;
-    }
-
-    static bool isMateScore(int score){
-        return std::abs(score) >= CHECKMATE;
     }
 
     static inline void storeKillerMove(const Move& move){
