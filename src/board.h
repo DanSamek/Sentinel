@@ -189,7 +189,24 @@ private:
      * @param bbs
      * @return eval.
      */
-    int evalSide(uint64_t* bbs, bool white, bool isEndgame) const;
+    int evalSide(uint64_t* bbs, bool white, bool isEndgame, const uint64_t& all) const;
+
+    /***
+     * Pawn eval for current side
+     * @param bbs
+     * @param white
+     * @param isEndgame
+     * @return
+     */
+    int evalPawns(uint64_t *bbs, bool white, bool isEndgame) const;
+    int evalBishops(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
+    int evalRooks(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
+    int evalQueens(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
+    int evalKnights(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
+    int evalKing(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
+
+
+
     bool isInsufficientMaterial(uint64_t* bbs) const;
     bool isSquareAttacked(int square, bool isWhiteEnemy);
     void push(bool setEnPassant, State &currentState);
@@ -219,6 +236,9 @@ private:
     static void setFriendRadiusBits(int square);
 
     static void initPawnIsolationBBS();
+
+
+
 };
 
 
