@@ -137,7 +137,7 @@ private:
         if(ttEval == TranspositionTable::LOOKUP_ERROR && ply > 0 && depth >= 5) depth--;
 
         // after tt search, eval position.
-        if(depth <= 0) return qsearch(alpha, beta);
+        if(depth <= 0) return qsearch(alpha, beta, ply);
         bool isCheckNMP = _board->inCheck(); // If current king is checked, logically we can't do NMP (enemy will capture our king).
         int currentEval = _board->eval();
 
@@ -221,7 +221,7 @@ private:
                 // If move, that wasnt capture causes a beta cuttoff, we call it killer move, remember this move for move ordering.
                 auto attackSquareType = _board->getPieceTypeFromSQ(moves[j].toSq, _board->whoPlay ? _board->whitePieces : _board->blackPieces);
                 if(!attackSquareType.second && moves[j].promotionType == Move::NONE){
-                    storeKillerMove(moves[j]);
+                    storeKillerMove(ply, moves[j]);
                 }
                 TT->store(eval, depth, TranspositionTable::LOWER_BOUND, moves[j], ply);
                 return eval;
@@ -302,20 +302,13 @@ private:
      * This is used for horizon effect - If i capture with a QxP -> good move, but what if another pawn in next depth will capture my Q?!
      *  -> qsearch.
      * @return eval of the position without captures.
-     * Maybe TODO TT (?)
      */
-    static int qsearch(int alpha, int beta){
+    static int qsearch(int alpha, int beta, int ply){
 
         nodesVisited++;
 
         if(_board->isDraw()) return 0;
-
-        auto ttEval = TT->getEval(-1, alpha, beta, 0);
-        if(ttEval > TranspositionTable::LOOKUP_ERROR){
-            TTUsed++;
-            return ttEval;
-        }
-        auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->getMove() : Move();
+        if(ply >= MAX_DEPTH) return _board->eval();
 
         auto currentEval = _board->eval();
         if(currentEval >= beta) return beta;
@@ -324,25 +317,26 @@ private:
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves, true);
         std::vector<int> moveScores(moveCount);
-        Movepick::scoreMoves(moves, moveCount, *_board, nullptr, nullptr, hashMove, moveScores);
+        Movepick::scoreMoves(moves, moveCount, *_board, nullptr, nullptr, Move(), moveScores);
 
         for(int j = 0; j < moveCount; j++){
             // pick a best move to play.
             Movepick::pickMove(moves, moveCount, j, moveScores);
 
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
-            int eval = -qsearch(-beta, -alpha);
+            int eval = -qsearch(-beta, -alpha, ply + 1);
             _board->undoMove(moves[j]);
 
             if(eval >= beta) return beta;
             if(eval > alpha) alpha = eval;
         }
+
         return alpha;
     }
 
-    static inline void storeKillerMove(const Move& move){
-        _killerMoves[_board->halfMove][1] = std::move(_killerMoves[_board->halfMove][0]);
-        _killerMoves[_board->halfMove][0] = std::move(move);
+    static inline void storeKillerMove(int ply, const Move& move){
+        _killerMoves[ply][1] = std::move(_killerMoves[ply][0]);
+        _killerMoves[ply][0] = std::move(move);
     }
 
 };
