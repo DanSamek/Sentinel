@@ -17,17 +17,17 @@ class Movepick {
      */
     // MVV-LVA (most valuable victim, least valuable attacker).
     static constexpr int MVV_VLA[6][6] ={
-        {1050, 2050, 3050, 4050, 5050, 6050, },
-        {1040, 2040, 3040, 4040, 5040, 6040, },
-        {1030, 2030, 3030, 4030, 5030, 6030, },
-        {1020, 2020, 3020, 4020, 5020, 6020, },
-        {1010, 2010, 3010, 4010, 5010, 6010, },
-        {1000, 2000, 3000, 4000, 5000, 6000, }
+        {100500, 200500, 300500, 400500, 500500, 600500, },
+        {100400, 200400, 300400, 400400, 500400, 600400, },
+        {100300, 200300, 300300, 400300, 500300, 600300, },
+        {100200, 200200, 300200, 400200, 500200, 600200, },
+        {100100, 200100, 300100, 400100, 500100, 600100, },
+        {100000, 200000, 300000, 400000, 500000, 600000, }
     };
 
     // after MVV_VLA
-    static inline constexpr int KILLER_MOVES_ORDER_SCORE[2] = {900,800};
-    static inline constexpr int TT_MOVE_ORDER_SCORE = 10000; // best move from prev iteration, lets pick it first!
+    static inline constexpr int KILLER_MOVES_ORDER_SCORE[2] = {90000,80000};
+    static inline constexpr int TT_MOVE_ORDER_SCORE = 1000000; // best move from prev iteration, lets pick it first!
 
 public:
 
@@ -42,7 +42,7 @@ public:
      * @param cnt from movegen
      * @param board current board.
      */
-    static void scoreMoves(Move* moves, int cnt, Board& board, const Move killerMoves[Board::MAX_DEPTH][2], const Move& hashMove);
+    static void scoreMoves(Move* moves, int cnt, Board& board, const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64], const Move& hashMove, std::vector<int>& moveScores);
 
     /***
      * Picks a best move with a biggest score
@@ -51,7 +51,7 @@ public:
      * @param cnt
      * @param startingIndex
      */
-    static void pickMove(Move* moves, int cnt, int startingIndex);
+    static void pickMove(Move* moves, int cnt, int startingIndex, std::vector<int>& moveScores);
 };
 
 

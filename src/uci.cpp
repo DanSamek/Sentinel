@@ -4,7 +4,7 @@
 #include <pst.h>
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-PAWN-ISO80FX" << std::endl;
+    std::cout << "id name Sentinel-PVS-NO-TT" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl;
     std::cout << "uciok" << std::endl;
 }
@@ -24,6 +24,11 @@ void UCI::isReady() {
 
 void UCI::newGame() {
     _board.loadFEN(START_POS);
+    if(_ready){
+        _TT.free();
+        _TT = TranspositionTable(_hashSize, _board);
+        Search::TT = &_TT;
+    }
 }
 
 void UCI::position(std::string command) {
@@ -149,5 +154,5 @@ std::vector<std::string> UCI::parseMoves(std::string command) {
 }
 
 UCI::~UCI(){
-    _TT.free();
+    if(_ready) _TT.free();
 }

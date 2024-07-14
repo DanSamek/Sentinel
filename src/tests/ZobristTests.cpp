@@ -138,6 +138,16 @@ struct ZobristTests{
         b.printBoard();
         assert(initHash == b.zobristKey);
         assert(b.isDraw());
+
+
+        b.loadFEN("7r/8/8/4k3/8/4K3/8/R7 w - - 0 1");
+        auto whiteHash = b.zobristKey;
+
+        b.loadFEN("7r/8/8/4k3/8/4K3/8/R7 b - - 0 1");
+        auto blackHash = b.zobristKey;
+
+        assert(whiteHash != blackHash);
+
     }
 
     static Move trySearchMove(Move* moves, int cnt, int from, int to){
