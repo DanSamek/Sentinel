@@ -16,6 +16,9 @@ class Search {
     static inline Move _bestMoveIter;
     static inline constexpr int LMR_DEPTH = 2;
 
+    static inline constexpr int ASPIRATION_DELTA_START = 10;
+    static inline constexpr int ASPIRATION_MAX_DELTA_SIZE = 22'000;
+
     static inline constexpr int RAZOR_MARGIN = 558;
     static inline constexpr int RAZOR_MIN_DEPTH = 4;
 
@@ -35,15 +38,11 @@ class Search {
     static inline Move _killerMoves[Board::MAX_DEPTH][2];
     static inline int _history[64][64];
 
-
     // static inline int EFP[1] = {125};
-
 public:
     static inline constexpr int MAX_DEPTH = 128;
-    // 8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1
     static Move search(int miliseconds, Board& board, bool exact){
         TTUsed = nodesVisited = 0;
-
         prepareForSearch();
 
         // get first moves, only legal.
@@ -56,17 +55,46 @@ public:
 
         _timer = Timer(msCanBeUsed);
 
+        int alpha = NEGATIVE_INF;
+        int beta = POSITIVE_INF;
+        int score;
+
         Move bestMove;
         for(int depth = 1; depth < MAX_DEPTH; depth++){
+            // for smaller search do a non aspirations.
+            if(depth <= 5) score = negamax(depth, 0, alpha, beta, true, true);
+
+            // Aspiration windows
             Timer idTimer;
-            negamax(depth, 0, NEGATIVE_INF, POSITIVE_INF, true, true);
-            if(_forceStopped){
-                break;
+            int delta = ASPIRATION_DELTA_START;
+            alpha = std::max(NEGATIVE_INF, score - delta);
+            beta = std::min(POSITIVE_INF, score + delta);
+
+            int reduction = 0;
+            while(!_forceStopped){
+                score = negamax(depth - reduction, 0, alpha, beta, true, true);
+                if(score <= alpha && score > -CHECKMATE_LOWER_BOUND){
+                    alpha -= delta;
+                    beta = (alpha + beta) / 2;
+                    reduction = 0;
+                }
+                else if(score >= beta && score < CHECKMATE_LOWER_BOUND){
+                    beta += delta;
+                    reduction++;
+                }
+                else{
+                    bestMove = _bestMoveIter;
+                    printInfo(depth, idTimer, bestMove);
+                    break;
+                }
+                delta *= 2;
+                if(delta >= ASPIRATION_MAX_DELTA_SIZE){
+                    alpha = NEGATIVE_INF;
+                    beta = POSITIVE_INF;
+                }
             }
-            bestMove = _bestMoveIter;
-            printInfo(depth, idTimer, bestMove);
         }
-        
+
         std::cout << "tt used:" << TTUsed << " nodesTotal:" << nodesVisited <<std::endl;
         std::cout << "tt ratio: " << (TTUsed*1.0)/nodesVisited << std::endl;
         std::cout << "pv ratio:" << (pvCounter*1.0)/nodesVisited << std::endl;
@@ -74,6 +102,7 @@ public:
     }
 
     static constexpr int CHECKMATE = 1000000;
+    static constexpr int CHECKMATE_LOWER_BOUND = 1000000 - 1000;
     static inline TranspositionTable* TT;
 
 private:
