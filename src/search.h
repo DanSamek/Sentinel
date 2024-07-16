@@ -46,17 +46,16 @@ public:
 
         prepareForSearch();
 
-        std::cout << "b hash "<< board.zobristKey << std::endl;
         // get first moves, only legal.
         _board = &board;
         _forceStopped = false;
         _bestScoreIter = INT_MIN;
         _bestMoveIter = {};
 
-        int msCanBeUsed = exact ? miliseconds : miliseconds / 80; // try ?? 69
+        double msCanBeUsed = exact ? miliseconds : miliseconds / 60;
 
         _timer = Timer(msCanBeUsed);
-        //TT->clear();
+
         Move bestMove;
         for(int depth = 1; depth < MAX_DEPTH; depth++){
             Timer idTimer;
@@ -65,20 +64,9 @@ public:
                 break;
             }
             bestMove = _bestMoveIter;
-
-            // TODO CLEAR
-            int movesToCheckmate = 0;
-            if (_bestScoreIter <= -(CHECKMATE - MAX_DEPTH)) {
-                int plyToCheckmate = CHECKMATE + _bestScoreIter;
-                movesToCheckmate = -((plyToCheckmate + 1) / 2);
-            } else if (_bestScoreIter >= (CHECKMATE - MAX_DEPTH)) {
-                int plyToCheckmate = CHECKMATE - _bestScoreIter;
-                movesToCheckmate = (plyToCheckmate + 1) / 2;
-            }
-            if(movesToCheckmate != 0 && _bestScoreIter != INT_MIN) std::cout << "info score mate " << movesToCheckmate << " depth " << depth << " time " << idTimer.getMs() << " move ";
-            else std::cout << "info cp score " << _bestScoreIter << " depth " << depth << " time " << idTimer.getMs() << " move ";
-            bestMove.print();
+            printInfo(depth, idTimer, bestMove);
         }
+        
         std::cout << "tt used:" << TTUsed << " nodesTotal:" << nodesVisited <<std::endl;
         std::cout << "tt ratio: " << (TTUsed*1.0)/nodesVisited << std::endl;
         std::cout << "pv ratio:" << (pvCounter*1.0)/nodesVisited << std::endl;
@@ -222,6 +210,7 @@ private:
                 auto attackSquareType = _board->getPieceTypeFromSQ(moves[j].toSq, _board->whoPlay ? _board->whitePieces : _board->blackPieces);
                 if(!attackSquareType.second && moves[j].promotionType == Move::NONE){
                     storeKillerMove(ply, moves[j]);
+                    _history[moves[j].fromSq][moves[j].toSq] += depth * depth + (depth / 2 + 1); // add little bit of bonus for beta cuttofs
                 }
                 TT->store(eval, depth, TranspositionTable::LOWER_BOUND, moves[j], ply);
                 return eval;
@@ -239,7 +228,7 @@ private:
                 }
 
                 auto attackSquareType = _board->getPieceTypeFromSQ(moves[j].toSq, _board->whoPlay ? _board->whitePieces : _board->blackPieces);
-                if(!attackSquareType.second){
+                if(!attackSquareType.second && moves[j].promotionType == Move::NONE){
                     _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
                 }
             }
@@ -339,6 +328,21 @@ private:
         _killerMoves[ply][0] = std::move(move);
     }
 
+
+    static inline void printInfo(int depth, Timer idTimer, Move& bestMove){
+
+        int movesToCheckmate = 0;
+        if (_bestScoreIter <= -(CHECKMATE - MAX_DEPTH)) {
+            int plyToCheckmate = CHECKMATE + _bestScoreIter;
+            movesToCheckmate = -((plyToCheckmate + 1) / 2);
+        } else if (_bestScoreIter >= (CHECKMATE - MAX_DEPTH)) {
+            int plyToCheckmate = CHECKMATE - _bestScoreIter;
+            movesToCheckmate = (plyToCheckmate + 1) / 2;
+        }
+        if(movesToCheckmate != 0 && _bestScoreIter != INT_MIN) std::cout << "info score mate " << movesToCheckmate << " depth " << depth << " time " << idTimer.getMs() << " move ";
+        else std::cout << "info cp score " << _bestScoreIter << " depth " << depth << " time " << idTimer.getMs() << " move ";
+        bestMove.print();
+    }
 };
 
 #endif //SENTINEL_SEARCH_H

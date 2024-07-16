@@ -6,13 +6,13 @@
 
 class Timer {
 public:
-    Timer(int maxDurationMs): startTime(std::chrono::high_resolution_clock::now()), _maxDurationMs(maxDurationMs) {};
+    Timer(double maxDurationMs): startTime(std::chrono::high_resolution_clock::now()), _maxDurationMs(maxDurationMs) {};
     Timer() : startTime(std::chrono::high_resolution_clock::now()) {};
     bool isTimeout() const;
     int getMs()const;
 private:
     std::chrono::high_resolution_clock::time_point startTime;
-    int _maxDurationMs;
+    double _maxDurationMs;
 };
 
 
