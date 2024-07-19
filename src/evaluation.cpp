@@ -66,33 +66,66 @@ static inline constexpr int ROOK_MOBILITY_BONUS[15] = {
 // Low values for a queen.
 static inline constexpr int QUEEN_MOBILITY_BONUS[28] = {
     0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
     1,
     2,
+    3,
     4,
     5,
+    6,
+    7,
     8,
     9,
+    10,
     11,
     12,
     13,
     13,
-    13,
-    13,
-    13,
-    13,
-    13,
+    14,
+    14,
+    14,
+    15,
+    15,
+    14,
+    14,
+    14,
     13,
     13,
     13,
     13,
     13
+};
+
+// 27
+// Handling king as a queen -> add penalization if king has a lot of mobility.
+static inline constexpr int KING_VIRTUAL_MOBILITY[28] = {
+    0,
+    8,
+    11,
+    13,
+    12,
+    10,
+    8,
+    6,
+    4,
+    2,
+    1,
+    0,
+    -2,
+    -4,
+    -6,
+    -11,
+    -13,
+    -14,
+    -16,
+    -16,
+    -16,
+    -18,
+    -20,
+    -20,
+    -22,
+    -25,
+    -30,
+    -35
 };
 
 
@@ -111,13 +144,16 @@ int Board::eval() {
 
 
     uint64_t all = 0ULL;
+    uint64_t white = 0ULL;
+    uint64_t black = 0ULL;
     for(int j = 0; j < 6; j++){
-        all |= whitePieces[j];
-        all |= blackPieces[j];
+        white |= whitePieces[j];
+        black |= blackPieces[j];
     }
 
-    int whiteScore = evalSide(whitePieces, true, isEndgame, all);
-    int blackScore = evalSide(blackPieces, false, isEndgame, all);
+    all = white | black;
+    int whiteScore = evalSide(whitePieces, true, isEndgame, all, white);
+    int blackScore = evalSide(blackPieces, false, isEndgame, all, black);
 
     // Eval some things for endgames.
     // Now only king distances.
@@ -163,7 +199,7 @@ int Board::evalSideSimple(uint64_t *bbs) const{
     return eval;
 }
 
-int Board::evalSide(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const{
+int Board::evalSide(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us) const{
     int eval = 0;
 
     eval += evalPawns(bbs, white, isEndgame);
@@ -172,7 +208,7 @@ int Board::evalSide(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& a
     eval += evalKnights(bbs, white, isEndgame, all);
     eval += evalRooks(bbs, white, isEndgame, all);
     eval += evalQueens(bbs, white, isEndgame, all);
-    eval += evalKing(bbs, white, isEndgame, all);
+    eval += evalKing(bbs, white, isEndgame, all, us);
 
     return eval;
 }
@@ -223,22 +259,27 @@ int Board::evalQueens(uint64_t *bbs, bool white, bool isEndgame, const uint64_t&
         attacks |= Magics::getBishopMoves(all, pos);
         auto attackCount = bit_ops::countBits(attacks);
         eval += QUEEN_MOBILITY_BONUS[attackCount];
-        assert( QUEEN_MOBILITY_BONUS[attackCount] < 20);
     }
 
     return eval;
 }
 
 
-int Board::evalKing(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const {
-    // count number of bishops, add bonus.
+int Board::evalKing(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us) const {
     int eval = 0;
     auto bb = bbs[KING];
-    while(bb){
-        auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        eval += PST::getValue(white, KING, pos, isEndgame);
-        // TODO virtual mobility for not isEndgame
-    }
+    auto pos = bit_ops::bitScanForwardPopLsb(bb);
+    eval += PST::getValue(white, KING, pos, isEndgame);
+/*
+    if(!isEndgame) return eval;
+    // King virtual mobility.
+    auto attacks = Magics::getRookMoves(all, pos);
+    attacks |= Magics::getBishopMoves(all, pos);
+    attacks &= ~us;
+    auto attackCount = bit_ops::countBits(attacks);
+    eval += KING_VIRTUAL_MOBILITY[attackCount];
+*/
+
     return eval;
 }
 

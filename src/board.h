@@ -189,7 +189,7 @@ private:
      * @param bbs
      * @return eval.
      */
-    int evalSide(uint64_t* bbs, bool white, bool isEndgame, const uint64_t& all) const;
+    int evalSide(uint64_t* bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us) const;
 
     /***
      * Pawn eval for current side
@@ -203,7 +203,7 @@ private:
     int evalRooks(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
     int evalQueens(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
     int evalKnights(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
-    int evalKing(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
+    int evalKing(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us) const;
 
 
 

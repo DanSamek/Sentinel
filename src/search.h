@@ -20,7 +20,7 @@ class Search {
     static inline constexpr int ASPIRATION_MAX_DELTA_SIZE = 4'096;
 
     static inline constexpr int RAZOR_MARGIN = 558;
-    static inline constexpr int RAZOR_MIN_DEPTH = 4;
+    static inline constexpr int RAZOR_MIN_DEPTH = 3;
 
 
     static inline Board* _board;
@@ -33,14 +33,16 @@ class Search {
     static inline int nodesVisited;
     static inline int pvCounter;
 
-    // Killer moves, that did beta cutoffs, use them in move order.
-    // Now only 2 killer moves per ply.
-    static inline Move _killerMoves[Board::MAX_DEPTH][2];
-    static inline int _history[64][64];
-
-    // static inline int EFP[1] = {125};
 public:
     static inline constexpr int MAX_DEPTH = 128;
+private:
+    // Killer moves, that did beta cutoffs, use them in move order.
+    // Now only 2 killer moves per ply.
+    static inline Move _killerMoves[MAX_DEPTH][2];
+    static inline int _history[64][64];
+
+    static inline int EFP[2] = {115, 600};
+public:
     static Move search(int miliseconds, Board& board, bool exact){
         TTUsed = nodesVisited = 0;
         prepareForSearch();
@@ -116,7 +118,7 @@ private:
 
     static void prepareForSearch(){
         for(int j = 0; j <= 1; j++){
-            for(int d = 0; d < Board::MAX_DEPTH; d++){
+            for(int d = 0; d < MAX_DEPTH; d++){
                 _killerMoves[d][j] = Move();
             }
         }
@@ -129,7 +131,7 @@ private:
     }
 
     /*
-     * -> LMR table (int)~~(log(depth) * log(moveindex)/2 - 0.3)
+     * -> LMR table (int)~~(log(depth) * log(moveindex)/2 - 0.3) MINUS ELO - no!
      * -> SEE
      * -> Razoring, late move pruning
      * -> SearchInfo (for threads).
@@ -202,8 +204,7 @@ private:
 
         /*
         if(!isPv && !isCheckNMP && ply > 0 && depth <= RAZOR_MIN_DEPTH && currentEval + RAZOR_MARGIN * depth <= alpha){
-            auto score = qsearch(alpha - 1, alpha);
-            if(score <= alpha) return score;
+            return qsearch(alpha - 1, alpha, ply);
         }*/
 
         // Reverse futility pruning
@@ -224,15 +225,10 @@ private:
         Move bestMoveInPos;
 
         int movesSearched = 0; // LMR
-        // bool canPrune = !isCheckNMP && depth == 1 && ply > 0; // RFT
 
         for(int j = 0; j < moveCount; j++){
             // pick a move to play (sorting moves, can be slower, thanks to alpha beta pruning).
             Movepick::pickMove(moves, moveCount, j, moveScores);
-
-            // If our position is bad, quiet move is not going to make it better.
-            // reverse futility pruning.
-            // if(canPrune && currentEval + EFP[depth - 1] <= alpha && moves[j].score < 800) continue;
 
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
@@ -334,7 +330,6 @@ private:
      * @return eval of the position without captures.
      */
     static int qsearch(int alpha, int beta, int ply){
-
         nodesVisited++;
 
         if(_board->isDraw()) return 0;
@@ -343,6 +338,7 @@ private:
         auto currentEval = _board->eval();
         if(currentEval >= beta) return beta;
         if(currentEval > alpha) alpha = currentEval;
+
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves, true);
