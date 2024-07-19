@@ -21,7 +21,8 @@ class Board {
     static inline uint64_t PAWN_PASSED_BITBOARDS[2][64];
     static inline uint64_t PAWN_FRIENDS_BITBOARDS[64];
     static inline uint64_t PAWN_ISOLATION_BITBOARDS[8]; // for each column.
-    static inline uint64_t PAWN_STACKED_BITBOARDS[8]; // doubled pawns.
+    static inline uint64_t LINE_BITBOARDS[8]; // doubled pawns || rooks/queens on open/semi open files.
+
 
 public:
 
@@ -236,8 +237,7 @@ private:
     static void setFriendRadiusBits(int square);
 
     static void initPawnIsolationBBS();
-
-
+    static void initLineBBS();
 
 };
 

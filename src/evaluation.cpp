@@ -8,6 +8,7 @@ static inline constexpr int EVAL_DIFFERENCE_FOR_ENDGAME = 350;
 static inline constexpr int CASTLING_BONUS = 12;
 static inline constexpr int PASSED_PAWN_BONUS = 15;
 static inline constexpr int ISOLATED_PAWN_SUBTRACT = 15;
+static inline constexpr int STACKED_PAWN_SUBTRACT = 4;
 static inline constexpr int FRIEND_PAWN_BONUS = 10;
 
 
@@ -97,6 +98,7 @@ static inline constexpr int QUEEN_MOBILITY_BONUS[28] = {
 
 // 27
 // Handling king as a queen -> add penalization if king has a lot of mobility.
+// TODO!!
 static inline constexpr int KING_VIRTUAL_MOBILITY[28] = {
     0,
     8,
@@ -328,6 +330,13 @@ int Board::evalPawns(uint64_t *bbs, bool white, bool isEndgame) const{
         if((friendlyPawnsBB & PAWN_ISOLATION_BITBOARDS[column]) == 0){
             eval -= ISOLATED_PAWN_SUBTRACT;
         }
+
+        // doubled/tripled pawns.
+        uint64_t tmp = 0ULL;
+        bit_ops::setNthBit(tmp, pos);
+        if((friendlyPawnsBB & (LINE_BITBOARDS[column] ^ tmp)) != 0){
+            eval -= STACKED_PAWN_SUBTRACT;
+        }
     }
     return eval;
 }
@@ -336,6 +345,7 @@ void Board::initPawnEvalBBS(){
     initPassedPawnBBS();
     initPawnIsolationBBS();
     initPawnFriendsBBS();
+    initLineBBS();
 }
 
 void Board::initPassedPawnBBS(){
@@ -394,13 +404,19 @@ void Board::setFriendRadiusBits(int square){
     }
 }
 
+void Board::initLineBBS(){
+    uint64_t starting = 0x101010101010101;
+    for(int column = 0; column <= 7; column++) {
+        LINE_BITBOARDS[column] = 0ULL;
+        LINE_BITBOARDS[column] |= starting << (column);
+    }
+}
 
 void Board::initPawnIsolationBBS() {
     uint64_t starting = 0x101010101010101;
 
     // simple line init for doubled and tripled pawns.
     for(int column = 0; column <= 7; column++){
-
         PAWN_ISOLATION_BITBOARDS[column] = 0ULL;
     }
 
