@@ -9,7 +9,7 @@ static inline constexpr int CASTLING_BONUS = 12;
 static inline constexpr int PASSED_PAWN_BONUS = 15;
 static inline constexpr int ISOLATED_PAWN_SUBTRACT = 15;
 static inline constexpr int STACKED_PAWN_SUBTRACT = 4;
-static inline constexpr int FRIEND_PAWN_BONUS = 10;
+static inline constexpr int FRIEND_PAWN_BONUS = 8;
 
 
 // pseudo-legal mobility bonus [totalSquares possible] -> value.
