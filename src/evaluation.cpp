@@ -137,10 +137,11 @@ inline int getManhattanDist(const int posA[2], const int posB[2]){
 
 int Board::eval() {
     // simple eval no PST for getting differences.
-    int simpleEvalWhite = evalSideSimple(whitePieces);
-    int simpleEvalBlack = evalSideSimple(blackPieces);
+    auto [simpleEvalWhite, whiteCount] = evalSideSimple(whitePieces);
+    auto [simpleEvalBlack, blackCount] = evalSideSimple(blackPieces);
     int difference = std::abs(simpleEvalBlack - simpleEvalWhite);
 
+    int piecesTotal = whiteCount + blackCount;
     // If difference is higher, than $EVAL_DIFFERENCE_FOR_ENDGAME (we are winning), we turn on endgame eval -> we want more mobility for our current position. (we want to win)
     bool isEndgame = difference >= EVAL_DIFFERENCE_FOR_ENDGAME || piecesTotal <= END_GAME_PIECE_MAX;
 
@@ -154,8 +155,8 @@ int Board::eval() {
     }
 
     all = white | black;
-    int whiteScore = evalSide(whitePieces, true, isEndgame, all, white);
-    int blackScore = evalSide(blackPieces, false, isEndgame, all, black);
+    int whiteScore = evalSide(whitePieces, true, isEndgame, all, white, piecesTotal);
+    int blackScore = evalSide(blackPieces, false, isEndgame, all, black, piecesTotal);
 
     // Eval some things for endgames.
     // Now only king distances.
@@ -189,8 +190,9 @@ int Board::eval() {
 }
 
 // simple eval of current position
-int Board::evalSideSimple(uint64_t *bbs) const{
+std::pair<int, int> Board::evalSideSimple(uint64_t *bbs) const{
     int eval = 0;
+    int cnt = 0;
     for(int j = 1; j < 6; j++){
         auto bb = bbs[j];
         while(bb){
@@ -198,16 +200,16 @@ int Board::evalSideSimple(uint64_t *bbs) const{
             eval += PST::PIECE_EVAL_MG[j];
         }
     }
-    return eval;
+    return {eval, cnt};
 }
 
-int Board::evalSide(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us) const{
+int Board::evalSide(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us, int piecesTotal) const{
     int eval = 0;
 
-    eval += evalPawns(bbs, white, isEndgame);
+    eval += evalPawns(bbs, white, isEndgame, piecesTotal);
 
     eval += evalBishops(bbs, white, isEndgame, all);
-    eval += evalKnights(bbs, white, isEndgame, all);
+    eval += evalKnights(bbs, white, isEndgame);
     eval += evalRooks(bbs, white, isEndgame, all);
     eval += evalQueens(bbs, white, isEndgame, all);
     eval += evalKing(bbs, white, isEndgame, all, us);
@@ -216,7 +218,7 @@ int Board::evalSide(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& a
 }
 
 
-int Board::evalKnights(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const {
+int Board::evalKnights(uint64_t *bbs, bool white, bool isEndgame) const {
     // count number of bishops, add bonus.
     int eval = 0;
     auto bb = bbs[KNIGHT];
@@ -304,7 +306,7 @@ int Board::evalBishops(uint64_t *bbs, bool white, bool isEndgame, const uint64_t
     return eval;
 }
 
-int Board::evalPawns(uint64_t *bbs, bool white, bool isEndgame) const{
+int Board::evalPawns(uint64_t *bbs, bool white, bool isEndgame, int piecesTotal) const{
     // Pawn eval.
     int eval = 0;
     auto enemyPawnsBB = white ? blackPieces[PAWN] : whitePieces[PAWN];

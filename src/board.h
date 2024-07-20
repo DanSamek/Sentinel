@@ -66,7 +66,6 @@ public:
     static inline std::array<int, 2> fiftyMoveRule = {0,0};
 
     uint64_t zobristKey;
-    int piecesTotal;
     static constexpr int END_GAME_PIECE_MAX = 15;
 
     /***
@@ -190,7 +189,7 @@ private:
      * @param bbs
      * @return eval.
      */
-    int evalSide(uint64_t* bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us) const;
+    int evalSide(uint64_t* bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us, int pieceTotal) const;
 
     /***
      * Pawn eval for current side
@@ -199,11 +198,11 @@ private:
      * @param isEndgame
      * @return
      */
-    int evalPawns(uint64_t *bbs, bool white, bool isEndgame) const;
+    int evalPawns(uint64_t *bbs, bool white, bool isEndgame, int piecesTotal) const;
     int evalBishops(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
     int evalRooks(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
     int evalQueens(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
-    int evalKnights(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
+    int evalKnights(uint64_t *bbs, bool white, bool isEndgame) const;
     int evalKing(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us) const;
 
 
@@ -231,7 +230,7 @@ private:
      * @param bbs bitboards (white || black)
      * @return simple eval of current position
      */
-    int evalSideSimple(uint64_t * bbs) const;
+    std::pair<int, int> evalSideSimple(uint64_t * bbs) const;
 
     static void setPassedPawnBits(int square, int tmp, int index);
     static void setFriendRadiusBits(int square);

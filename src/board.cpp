@@ -95,7 +95,6 @@ void Board::loadFEN(const std::string FEN) {
     // reset repetitions.
     fiftyMoveRule[0] = 0; fiftyMoveRule[1] = 0;
     repetitionIndex = 0;
-    piecesTotal = 0;
 
     castling[0][0] = false; castling[0][1] = false; castling[1][0] = false; castling[1][1] = false;
     initPieces(whitePieces); initPieces(blackPieces);
@@ -116,8 +115,6 @@ void Board::loadFEN(const std::string FEN) {
             square += (int)(character - '0');
             continue;
         } else if(character == '/') continue;
-
-        piecesTotal++; // total cnt of pieces
 
         // parse a piece
         auto color = isupper(character) ?  WHITE  : BLACK;
@@ -263,9 +260,6 @@ bool Board::makeMove(const Move &move) {
         return false;
     }
 
-    //                                                   promo+capture and capture
-    piecesTotal -= (move.moveType == Move::EN_PASSANT || type.second ); // was a capture.
-
     // update and add to a move "stack".
     // save state to a current depth
     switch (move.moveType) {
@@ -323,8 +317,6 @@ void Board::undoMove(const Move &move) {
 
     zobristKey = prevState.zobristHash;
     fiftyMoveRule = prevState.fiftyMoveRule;
-
-    piecesTotal += (move.moveType == Move::EN_PASSANT || prevState.captureType != -1); // reset a captured piece
 
     switch (move.moveType) {
         case Move::CAPTURE:
