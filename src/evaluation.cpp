@@ -101,33 +101,33 @@ static inline constexpr int QUEEN_MOBILITY_BONUS[28] = {
 // TODO!!
 static inline constexpr int KING_VIRTUAL_MOBILITY[28] = {
     0,
-    8,
-    11,
+    9,
+    12,
+    14,
     13,
     12,
+    11,
     10,
     8,
     6,
     4,
     2,
-    1,
-    0,
     -2,
     -4,
     -6,
+    -10,
     -11,
+    -12,
     -13,
     -14,
     -16,
-    -16,
-    -16,
-    -18,
-    -20,
+    -17,
+    -19,
     -20,
     -22,
-    -25,
-    -30,
-    -35
+    -24,
+    -26,
+    -30
 };
 
 
@@ -274,7 +274,7 @@ int Board::evalKing(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& a
     auto bb = bbs[KING];
     auto pos = bit_ops::bitScanForwardPopLsb(bb);
     eval += PST::getValue(white, KING, pos, isEndgame);
-/*
+
     if(!isEndgame) return eval;
     // King virtual mobility.
     auto attacks = Magics::getRookMoves(all, pos);
@@ -282,7 +282,6 @@ int Board::evalKing(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& a
     attacks &= ~us;
     auto attackCount = bit_ops::countBits(attacks);
     eval += KING_VIRTUAL_MOBILITY[attackCount];
-*/
 
     return eval;
 }
