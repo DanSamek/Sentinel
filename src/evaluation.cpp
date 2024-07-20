@@ -193,11 +193,12 @@ int Board::eval() {
 std::pair<int, int> Board::evalSideSimple(uint64_t *bbs) const{
     int eval = 0;
     int cnt = 0;
-    for(int j = 1; j < 6; j++){
+    for(int j = 0; j < 6; j++){
         auto bb = bbs[j];
         while(bb){
             bit_ops::bitScanForwardPopLsb(bb);
             eval += PST::PIECE_EVAL_MG[j];
+            cnt++;
         }
     }
     return {eval, cnt};
