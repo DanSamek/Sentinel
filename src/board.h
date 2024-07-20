@@ -189,21 +189,15 @@ private:
      * @param bbs
      * @return eval.
      */
-    int evalSide(uint64_t* bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us, int pieceTotal) const;
+    std::pair<int, int> evalSide(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us) const;
 
-    /***
-     * Pawn eval for current side
-     * @param bbs
-     * @param white
-     * @param isEndgame
-     * @return
-     */
-    int evalPawns(uint64_t *bbs, bool white, bool isEndgame, int piecesTotal) const;
-    int evalBishops(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
-    int evalRooks(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
-    int evalQueens(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all) const;
-    int evalKnights(uint64_t *bbs, bool white, bool isEndgame) const;
-    int evalKing(uint64_t *bbs, bool white, bool isEndgame, const uint64_t& all, const uint64_t& us) const;
+
+    void evalPawns(uint64_t *bbs, bool white, int& evalMg, int& evalEg) const;
+    void evalBishops(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const;
+    void evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const;
+    void evalQueens(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const;
+    void evalKnights(uint64_t *bbs, bool white, int& evalMg, int& evalEg) const;
+    void evalKing(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us, int& evalMg, int& evalEg) const;
 
 
 
@@ -225,12 +219,8 @@ private:
      */
     static void initPawnFriendsBBS();
 
-    /***
-     * Simple eval of current position
-     * @param bbs bitboards (white || black)
-     * @return simple eval of current position
-     */
-    std::pair<int, int> evalSideSimple(uint64_t * bbs) const;
+
+    int countPhase(uint64_t *bbs) const;
 
     static void setPassedPawnBits(int square, int tmp, int index);
     static void setFriendRadiusBits(int square);
