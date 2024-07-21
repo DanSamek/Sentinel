@@ -4,12 +4,14 @@
 static inline constexpr int MAX_KING_DISTANCE = 14;
 static inline constexpr int KING_DISTANCE_MULTIPLIER = 10; // TODO buff!!
 static inline constexpr int TWO_BISHOPS_BONUS = 30;
-static inline constexpr int EVAL_DIFFERENCE_FOR_ENDGAME = 350;
 static inline constexpr int CASTLING_BONUS = 12;
 static inline constexpr int PASSED_PAWN_BONUS = 15;
 static inline constexpr int ISOLATED_PAWN_SUBTRACT = 15;
 static inline constexpr int STACKED_PAWN_SUBTRACT = 4;
 static inline constexpr int FRIEND_PAWN_BONUS = 8;
+
+static inline constexpr int ROOK_SEMI_OPEN_FILE_BONUS = 10;
+static inline constexpr int ROOK_OPEN_FILE_BONUS = 20;
 
 
 // pseudo-legal mobility bonus [totalSquares possible] -> value.
@@ -212,7 +214,7 @@ std::pair<int, int> Board::evalSide(uint64_t *bbs, bool white, const uint64_t& a
 
 
 void Board::evalKnights(uint64_t *bbs, bool white, int& evalMg, int& evalEg) const {
-    // count number of bishops, add bonus.
+
     auto bb = bbs[KNIGHT];
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
@@ -226,24 +228,7 @@ void Board::evalKnights(uint64_t *bbs, bool white, int& evalMg, int& evalEg) con
     }
 }
 
-void Board::evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const {
-    // count number of bishops, add bonus.
-    auto bb = bbs[ROOK];
-    while(bb){
-        auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        evalMg += PST::getValue(white, ROOK, pos, false);
-        evalEg += PST::getValue(white, ROOK, pos, true);
-
-        auto attacks = Magics::getRookMoves(all, pos);
-        auto attackCount = bit_ops::countBits(attacks);
-        evalMg += ROOK_MOBILITY_BONUS[attackCount];
-        evalEg += ROOK_MOBILITY_BONUS[attackCount];
-    }
-}
-
-
 void Board::evalQueens(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const {
-    // count number of bishops, add bonus.
     auto bb = bbs[QUEEN];
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
@@ -255,6 +240,37 @@ void Board::evalQueens(uint64_t *bbs, bool white, const uint64_t& all, int& eval
         auto attackCount = bit_ops::countBits(attacks);
         evalMg += QUEEN_MOBILITY_BONUS[attackCount];
         evalEg += QUEEN_MOBILITY_BONUS[attackCount];
+    }
+}
+
+
+void Board::evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const {
+    auto friendlyPawns = white ? whitePieces[PAWN] : blackPieces[PAWN];
+    auto enemyPawns = white ? blackPieces[PAWN] : whitePieces[PAWN];
+    auto allPawns = friendlyPawns | enemyPawns;
+
+    auto bb = bbs[ROOK];
+    while(bb){
+        auto pos = bit_ops::bitScanForwardPopLsb(bb);
+        evalMg += PST::getValue(white, ROOK, pos, false);
+        evalEg += PST::getValue(white, ROOK, pos, true);
+
+        auto attacks = Magics::getRookMoves(all, pos);
+        auto attackCount = bit_ops::countBits(attacks);
+        evalMg += ROOK_MOBILITY_BONUS[attackCount];
+        evalEg += ROOK_MOBILITY_BONUS[attackCount];
+
+        auto column = pos % 8;
+        // open files -> no pawns on it.
+        if((allPawns & LINE_BITBOARDS[column]) == 0){
+            evalMg += ROOK_OPEN_FILE_BONUS;
+            evalEg += ROOK_OPEN_FILE_BONUS;
+        }
+        // semi-open files -> only enemy pawns on it.
+        if(((LINE_BITBOARDS[column] & allPawns) ^ enemyPawns) == 0){
+            evalMg += ROOK_SEMI_OPEN_FILE_BONUS;
+            evalEg += ROOK_SEMI_OPEN_FILE_BONUS;
+        }
     }
 }
 
