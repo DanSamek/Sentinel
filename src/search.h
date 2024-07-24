@@ -209,7 +209,7 @@ private:
 
         // Reverse futility pruning
         // If current pos - margin is too good (>= beta), we can return currentEval.
-        if(!isPv && !isCheckNMP && ply > 0 && depth <= 6 && currentEval - 275 * depth >= beta){
+        if(!isPv && !isCheckNMP && ply > 0 && depth <= 8 && currentEval - 92 * depth >= beta){
             return currentEval;
         }
 
