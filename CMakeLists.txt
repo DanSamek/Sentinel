@@ -39,4 +39,6 @@ add_executable(Sentinel
         src/evaluation.cpp
         src/evaluation.cpp
         src/tests/nullMoveTests.cpp
+        src/see.cpp
+        src/tests/SEETests.cpp
 )
