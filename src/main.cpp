@@ -3,11 +3,12 @@
 #include <tests/BoardTests.cpp>
 #include <tests/ZobristTests.cpp>
 #include <tests/nullMoveTests.cpp>
+#include <tests/SEETests.cpp>
 
 #include <chrono>
 #include <uci.h>
 
-#define RUN_TESTS false
+#define RUN_TESTS true
 
 int main(){
     if(RUN_TESTS){
@@ -15,6 +16,7 @@ int main(){
         Movegen::init();
         PST::init();
         Zobrist::init();
+        SEETests::run();
         BoardTests::testBoard();
         NullMoveTests::runTests();
         ZobristTests::runTests();

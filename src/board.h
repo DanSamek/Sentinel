@@ -66,7 +66,6 @@ public:
     static inline std::array<int, 2> fiftyMoveRule = {0,0};
 
     uint64_t zobristKey;
-    static constexpr int END_GAME_PIECE_MAX = 15;
 
     /***
      * Loads a fen to a _board.
@@ -143,12 +142,13 @@ public:
         return {(Board::pieceType)0, false};
     }
 
+    const int NO_PIECE = -1;
     // inlined
-    inline Board::pieceType getPieceType(int square){
+    inline int getPieceType(int square){
         for(int j = 0; j < 6; j++){
-            if(bit_ops::getNthBit(whitePieces[j], square) || bit_ops::getNthBit(blackPieces[j], square)) return (Board::pieceType)j;
+            if(bit_ops::getNthBit(whitePieces[j], square) || bit_ops::getNthBit(blackPieces[j], square)) return j;
         }
-        assert(false);
+        return NO_PIECE;
     }
 
     // inlined
@@ -203,6 +203,8 @@ private:
 
     bool isInsufficientMaterial(uint64_t* bbs) const;
     bool isSquareAttacked(int square, bool isWhiteEnemy);
+    uint64_t getAllAttackers(const uint64_t& occupancy, int toSquare);
+    uint64_t getAttackersForSide(const uint64_t &occupancy, int toSquare, bool color);
     void push(bool setEnPassant, State &currentState);
     bool isThreeFoldRepetition() const;
 
@@ -228,6 +230,14 @@ private:
     static void initPawnIsolationBBS();
     static void initLineBBS();
 
+public:
+    /***
+     * Static exhange evaluation (simple)
+     * @param move
+     * @param threshold
+     * @return
+     */
+    bool SEE(Move move, int threshold);
 };
 
 
