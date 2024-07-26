@@ -11,7 +11,8 @@ struct Move {
         QUIET,
         EN_PASSANT,
         CASTLING,
-        DOUBLE_PAWN_UP
+        DOUBLE_PAWN_UP,
+        PROMOTION_CAPTURE
     };
     enum PromotionType : int8_t{
         NONE,
@@ -41,7 +42,7 @@ struct Move {
      * Move comparer
      * @return if moves are same.
      */
-    bool operator ==(const Move& other);
+    bool operator ==(const Move& other) const;
 
     /***
      * Default .ctor
@@ -49,6 +50,9 @@ struct Move {
     Move() : fromSq(-1) {};
 
     Move(int fromSq, int toSq, PromotionType promotionType, type moveType, int movePiece) : fromSq(fromSq), toSq(toSq), promotionType(promotionType), moveType(moveType),movePiece(movePiece) {}
+
+    bool isCapture() const ;
+    bool isPromotion() const;
 };
 
 #endif //SENTINEL_MOVE_H

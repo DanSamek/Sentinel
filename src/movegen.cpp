@@ -203,7 +203,7 @@ void Movegen::generatePawnMoves(uint64_t b, int enPassantSquare, bool color) {
         else{
             while(!(bb & _all) && bb){
                 auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
-                if(promotion) generatePromotions(bit, tmpBit);
+                if(promotion) generatePromotions(bit, tmpBit, false);
                 else _tmpMovesPtr[Movegen::_index++] = {bit, tmpBit, Move::NONE, Move::QUIET, Board::PAWN};
             }
         }
@@ -213,17 +213,18 @@ void Movegen::generatePawnMoves(uint64_t b, int enPassantSquare, bool color) {
         while(bb){
             auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
             if(tmpBit == enPassantSquare) _tmpMovesPtr[Movegen::_index++] = {bit, tmpBit, Move::NONE, Move::EN_PASSANT, Board::PAWN};
-            else if(promotion) generatePromotions(bit, tmpBit);
+            else if(promotion) generatePromotions(bit, tmpBit, true);
             else _tmpMovesPtr[Movegen::_index++] = {bit, tmpBit, Move::NONE, Move::CAPTURE, Board::PAWN};
         }
     }
 }
 
-void Movegen::generatePromotions(int fromSq, int toSq){
-    _tmpMovesPtr[Movegen::_index++] = {fromSq, toSq, Move::QUEEN, Move::PROMOTION, Board::PAWN};
-    _tmpMovesPtr[Movegen::_index++] = {fromSq, toSq, Move::BISHOP, Move::PROMOTION, Board::PAWN};
-    _tmpMovesPtr[Movegen::_index++] = {fromSq, toSq, Move::ROOK, Move::PROMOTION, Board::PAWN};
-    _tmpMovesPtr[Movegen::_index++] = {fromSq, toSq, Move::KNIGHT, Move::PROMOTION, Board::PAWN};
+void Movegen::generatePromotions(int fromSq, int toSq, bool capture){
+    auto flag = capture ? Move::PROMOTION_CAPTURE : Move::PROMOTION;
+    _tmpMovesPtr[Movegen::_index++] = {fromSq, toSq, Move::QUEEN, flag, Board::PAWN};
+    _tmpMovesPtr[Movegen::_index++] = {fromSq, toSq, Move::BISHOP, flag, Board::PAWN};
+    _tmpMovesPtr[Movegen::_index++] = {fromSq, toSq, Move::ROOK, flag, Board::PAWN};
+    _tmpMovesPtr[Movegen::_index++] = {fromSq, toSq, Move::KNIGHT, flag, Board::PAWN};
 }
 
 // will be used for all except pawns || kings?
@@ -357,7 +358,7 @@ void Movegen::generatePawnCaptures(uint64_t b, int enPassantSquare, bool color) 
         while(bb){
             auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
             if(tmpBit == enPassantSquare) _tmpMovesPtr[Movegen::_index++] = {bit, tmpBit, Move::NONE, Move::EN_PASSANT, Board::PAWN};
-            else if(promotion) generatePromotions(bit, tmpBit);
+            else if(promotion) generatePromotions(bit, tmpBit, true);
             else _tmpMovesPtr[Movegen::_index++] = {bit, tmpBit, Move::NONE, Move::CAPTURE, Board::PAWN};
         }
     }

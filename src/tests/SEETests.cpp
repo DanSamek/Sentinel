@@ -27,6 +27,7 @@ struct SEETests{
                 test("r2qk1nr/ppp1ppbp/2b3p1/2p1p3/8/2N2N2/PPPP1PPP/R1BQR1K1 w kq - 0 1", 45,28,0)
         };
 
+
         for(const auto& test : tests){
             Board b;
             b.loadFEN(test.FEN);

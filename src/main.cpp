@@ -8,7 +8,7 @@
 #include <chrono>
 #include <uci.h>
 
-#define RUN_TESTS true
+#define RUN_TESTS false
 
 int main(){
     if(RUN_TESTS){

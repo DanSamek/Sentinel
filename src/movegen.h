@@ -113,7 +113,7 @@ struct Movegen {
     static void generateQueenMoves(uint64_t queens);
     static void generateKnightMoves(uint64_t knight);
     static void generateKingMoves(uint64_t king,  const std::array<bool, 2>& castling, bool whoPlay);
-    static void generatePromotions(int fromSq, int toSq);
+    static void generatePromotions(int fromSq, int toSq, bool capture);
 
 
     /*

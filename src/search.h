@@ -244,8 +244,7 @@ private:
 
             if(eval >= beta){
                 // If move, that wasnt capture causes a beta cuttoff, we call it killer move, remember this move for move ordering.
-                auto attackSquareType = _board->getPieceTypeFromSQ(moves[j].toSq, _board->whoPlay ? _board->whitePieces : _board->blackPieces);
-                if(!attackSquareType.second && moves[j].promotionType == Move::NONE){
+                if(!moves[j].isCapture()){
                     storeKillerMove(ply, moves[j]);
                     _history[moves[j].fromSq][moves[j].toSq] += depth * depth + (depth / 2 + 1); // add little bit of bonus for beta cuttofs
                 }
@@ -264,8 +263,7 @@ private:
                     _bestScoreIter = eval;
                 }
 
-                auto attackSquareType = _board->getPieceTypeFromSQ(moves[j].toSq, _board->whoPlay ? _board->whitePieces : _board->blackPieces);
-                if(!attackSquareType.second && moves[j].promotionType == Move::NONE){
+                if(!moves[j].isCapture()){
                     _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
                 }
             }

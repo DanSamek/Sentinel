@@ -154,5 +154,6 @@ struct ZobristTests{
         for(int j = 0; j < cnt; j++){
             if(moves[j].fromSq == from && moves[j].toSq == to) return moves[j];
         }
+        assert(false);
     }
 };

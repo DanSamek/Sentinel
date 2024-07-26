@@ -5,7 +5,8 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerM
         int score = 0;
         auto move = moves[j];
 
-        if(move.moveType == Move::CAPTURE){
+
+        if(move.isCapture()){
             auto attacker = move.movePiece;
             auto victim = board.getPieceType(move.toSq);
             score += MVV_VLA[attacker][victim];
@@ -24,11 +25,11 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerM
         }
 
         // promotion is good.
-        if(move.promotionType != 0){
+        if(move.isPromotion()){
             score += move.promotionType * 7;
         }
 
-        if(history != nullptr) score += history[move.fromSq][move.toSq];
+        if(history != nullptr && !move.isCapture()) score += history[move.fromSq][move.toSq];
 
         moveScores[j] = score;
     }

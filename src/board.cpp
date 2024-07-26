@@ -174,6 +174,7 @@ bool Board::makeMove(const Move &move) {
             fiftyMoveRule[whoPlay] = 0;
             break;
         case Move::PROMOTION:
+        case Move::PROMOTION_CAPTURE:
             bit_ops::popNthBit(currentPieces[move.movePiece], move.fromSq);
             // switch for promotion type
             switch (move.promotionType) {
@@ -192,6 +193,9 @@ bool Board::makeMove(const Move &move) {
                 default:
                     throw std::out_of_range("UNEXPECTED PROMOTION!");
             }
+
+            // promo capture.
+            if(move.moveType != Move::PROMOTION_CAPTURE) break;
 
             // find enemy piece and pop bit.
             type = getPieceTypeFromSQ(move.toSq, enemyPieces);
@@ -267,6 +271,7 @@ bool Board::makeMove(const Move &move) {
             Zobrist::updateHashMove(zobristKey, move,*this, currentState);
             break;
         case Move::PROMOTION:
+        case Move::PROMOTION_CAPTURE:
             Zobrist::updatePromotionHash(zobristKey, move, *this, currentState);
             break;
         case Move::EN_PASSANT:
@@ -324,6 +329,7 @@ void Board::undoMove(const Move &move) {
             bit_ops::setNthBit(enemyPieces[prevState.captureType], move.toSq);
             break;
         case Move::PROMOTION:
+        case Move::PROMOTION_CAPTURE:
             // undo a promotion
             bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
             switch (move.promotionType) {
