@@ -31,15 +31,24 @@ inline uint64_t Board::getAttackersForSide(const uint64_t &occupancy, int toSqua
 }
 
 uint64_t Board::getAllAttackers(const uint64_t &occupancy, int toSquare) {
-    return  getAttackersForSide(occupancy, toSquare, WHITE) | getAttackersForSide(occupancy, toSquare, BLACK);
+    return getAttackersForSide(occupancy, toSquare, WHITE) | getAttackersForSide(occupancy, toSquare, BLACK);
 }
 
-
+/***
+ * Static exchange evaluation (SEE) [Heuristic]
+ * "Simulation" of captures on one square.
+ * Ordered by least valuable attacker.
+ * We dont consider pinned pieces in SEE.
+ * @param move
+ * @param threshold
+ * @return
+ */
 bool Board::SEE(Move move, int threshold) {
     int from = move.fromSq;
     int to = move.toSq;
 
-    int target = getPieceType(to);
+    // En-passant handling.
+    int target = move.moveType == Move::EN_PASSANT ? PAWN : getPieceType(to);
     int value = -threshold;
 
     if(target != NO_PIECE) value += SEE_VALUES[target];
@@ -47,7 +56,6 @@ bool Board::SEE(Move move, int threshold) {
 
     int attacker = getPieceType(from);
     value -= SEE_VALUES[attacker];
-    // Good capture with threshold.
     if(value >= 0) return true;
 
     uint64_t white = MergeBBS(whitePieces, 6);
@@ -69,24 +77,28 @@ bool Board::SEE(Move move, int threshold) {
 
         uint64_t currentAttackers = (colorState == BLACK ? black : white) & attackers;
 
-        // no more attackers.
+        // No more attackers.
         if(currentAttackers == 0ULL) break;
 
+        // Least valuable attacker.
         int pieceType;
         for(pieceType = PAWN; pieceType <= KING; pieceType++){
             if(currentAttackers & (whitePieces[pieceType] | blackPieces[pieceType])) break;
         }
 
         colorState = !colorState;
+
         value = -value - 1 - SEE_VALUES[pieceType];
         if(value >= 0){
             if(pieceType == KING && (attackers & (colorState == WHITE ? white : black))) colorState = !colorState;
             break;
         }
 
+        // Make a capture.
         uint64_t tmp = currentAttackers & (whitePieces[pieceType] | blackPieces[pieceType]);
         occupied ^= (1ULL << bit_ops::bitScanForward(tmp));
 
+        // Maybe a capture creates a new attackers on a target square.
         if(pieceType == PAWN || pieceType == QUEEN || pieceType == BISHOP){
             attackers |= Magics::getBishopMoves(occupied, to) & bishops;
         }
