@@ -5,7 +5,8 @@
 
 static constexpr int SEE_VALUES[6] = {100, 300, 300, 500, 900, 0};
 
-inline uint64_t MergeBBS(uint64_t* bbs, int cnt){
+
+uint64_t Board::mergeBBS(const uint64_t* bbs, int cnt) const{
     uint64_t bb = 0ULL;
     for(int j = 0; j < cnt; j++){
         bb |= bbs[j];
@@ -13,7 +14,7 @@ inline uint64_t MergeBBS(uint64_t* bbs, int cnt){
     return bb;
 }
 
-inline uint64_t Board::getAttackersForSide(const uint64_t &occupancy, int toSquare, bool color){
+inline uint64_t Board::getAttackersForSide(const uint64_t &occupancy, int toSquare, bool color) const{
     auto bbs = color ? blackPieces : whitePieces;
     uint64_t pawns = bbs[PAWN];
     uint64_t bishops = bbs[BISHOP];
@@ -30,7 +31,7 @@ inline uint64_t Board::getAttackersForSide(const uint64_t &occupancy, int toSqua
     return attackers;
 }
 
-uint64_t Board::getAllAttackers(const uint64_t &occupancy, int toSquare) {
+uint64_t Board::getAllAttackers(const uint64_t &occupancy, int toSquare) const{
     return getAttackersForSide(occupancy, toSquare, WHITE) | getAttackersForSide(occupancy, toSquare, BLACK);
 }
 
@@ -43,7 +44,7 @@ uint64_t Board::getAllAttackers(const uint64_t &occupancy, int toSquare) {
  * @param threshold
  * @return
  */
-bool Board::SEE(Move move, int threshold) {
+bool Board::SEE(Move move, int threshold) const {
     int from = move.fromSq;
     int to = move.toSq;
 
@@ -58,8 +59,8 @@ bool Board::SEE(Move move, int threshold) {
     value -= SEE_VALUES[attacker];
     if(value >= 0) return true;
 
-    uint64_t white = MergeBBS(whitePieces, 6);
-    uint64_t black = MergeBBS(blackPieces, 6);
+    uint64_t white = mergeBBS(whitePieces, 6);
+    uint64_t black = mergeBBS(blackPieces, 6);
     uint64_t all = white | black;
 
     uint64_t occupied = (all ^ (1ULL << from)) ^ (1ULL << to);

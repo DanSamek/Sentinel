@@ -347,6 +347,9 @@ private:
             // pick a best move to play.
             Movepick::pickMove(moves, moveCount, j, moveScores);
 
+            // SEE pruning of losing captures.
+            if(!_board->SEE(moves[j], 0)) continue;
+
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
             int eval = -qsearch(-beta, -alpha, ply + 1);
             _board->undoMove(moves[j]);

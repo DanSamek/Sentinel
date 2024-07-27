@@ -144,7 +144,7 @@ public:
 
     const int NO_PIECE = -1;
     // inlined
-    inline int getPieceType(int square){
+    inline int getPieceType(int square) const{
         for(int j = 0; j < 6; j++){
             if(bit_ops::getNthBit(whitePieces[j], square) || bit_ops::getNthBit(blackPieces[j], square)) return j;
         }
@@ -230,6 +230,11 @@ private:
     static void initPawnIsolationBBS();
     static void initLineBBS();
 
+
+    uint64_t getAllAttackers(const uint64_t &occupancy, int toSquare) const;
+    uint64_t getAttackersForSide(const uint64_t &occupancy, int toSquare, bool color) const;
+
+    uint64_t mergeBBS(const uint64_t* bbs, int cnt) const;
 public:
     /***
      * Static exhange evaluation (simple)
@@ -237,7 +242,7 @@ public:
      * @param threshold
      * @return
      */
-    bool SEE(Move move, int threshold);
+    bool SEE(Move move, int threshold) const;
 };
 
 
