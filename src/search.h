@@ -231,11 +231,16 @@ private:
             Movepick::pickMove(moves, moveCount, j, moveScores);
 
             // Move pruning
-            // See pruning of quiet moves.
-
+            // SEE pruning of quiet moves.
             if(ply > 0 && !isCheckNMP && !moves[j].isCapture() && depth <= 7 && alpha > -CHECKMATE && !_board->SEE(moves[j], -80*depth)){
                 continue;
             }
+            // SEE pruning of captures.
+            // Dont prune so much captures, we can still be in good position even if we lose material in SEE (sacrifice for example).
+            else if(ply > 0 && depth <= 7 && moves[j].isCapture() && !_board->SEE(moves[j], -40*depth*depth)){
+                continue;
+            }
+
 
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
