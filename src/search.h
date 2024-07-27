@@ -230,6 +230,13 @@ private:
             // pick a move to play (sorting moves, can be slower, thanks to alpha beta pruning).
             Movepick::pickMove(moves, moveCount, j, moveScores);
 
+            // Move pruning
+            // See pruning of quiet moves.
+
+            if(ply > 0 && !isCheckNMP && !moves[j].isCapture() && depth <= 7 && alpha > -CHECKMATE && !_board->SEE(moves[j], -80*depth)){
+                continue;
+            }
+
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
             // late move reduction.
@@ -246,7 +253,7 @@ private:
                 // If move, that wasnt capture causes a beta cuttoff, we call it killer move, remember this move for move ordering.
                 if(!moves[j].isCapture()){
                     storeKillerMove(ply, moves[j]);
-                    _history[moves[j].fromSq][moves[j].toSq] += depth * depth + (depth / 2 + 1); // add little bit of bonus for beta cuttofs
+                    _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
                 }
                 TT->store(eval, depth, TranspositionTable::LOWER_BOUND, moves[j], ply);
                 return eval;
@@ -262,10 +269,11 @@ private:
                     _bestMoveIter = moves[j];
                     _bestScoreIter = eval;
                 }
-
+                /*
                 if(!moves[j].isCapture()){
                     _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
                 }
+                */
             }
 
 
