@@ -1,25 +1,26 @@
 #include "movepick.h"
 
 void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64],const Move& hashMove, std::vector<int>& moveScores) {
-    for(int j = 0; j < cnt; j++){
+    for(int moveIndex = 0; moveIndex < cnt; moveIndex++){
         int score = 0;
-        auto move = moves[j];
+        auto move = moves[moveIndex];
+        auto isCapture = move.isCapture();
 
-
-        if(move.isCapture()){
+        // MVV_VLA
+        if(isCapture){
             auto attacker = move.movePiece;
-            auto victim = board.getPieceType(move.toSq);
+            auto victim = move.moveType == Move::EN_PASSANT ? Board::PAWN : board.getPieceType(move.toSq);
             score += MVV_VLA[attacker][victim];
         }
 
-        if(killerMoves != nullptr) {
-            for(int j = 0; j < 2; j++){
-                if(move == killerMoves[board.halfMove][j]){
-                    score += KILLER_MOVES_ORDER_SCORE[j];
-                }
+        // killers
+        for(int killerIndex = 0; killerIndex < 2; killerIndex++){
+            if(move == killerMoves[board.halfMove][killerIndex]){
+                score += KILLER_MOVES_ORDER_SCORE[killerIndex];
             }
         }
 
+        // tt move
         if(hashMove == move){
             score += TT_MOVE_ORDER_SCORE;
         }
@@ -29,9 +30,34 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerM
             score += move.promotionType * 7;
         }
 
-        if(history != nullptr && !move.isCapture()) score += history[move.fromSq][move.toSq];
+        // history score.
+        if(!isCapture){
+            score += history[move.fromSq][move.toSq];
+        }
 
-        moveScores[j] = score;
+        moveScores[moveIndex] = score;
+    }
+}
+
+void Movepick::scoreMovesQSearch(Move *moves, int cnt, Board &board, const Move &hashMove, std::vector<int> &moveScores) {
+    for(int moveIndex = 0; moveIndex < cnt; moveIndex++){
+        int score = 0;
+        auto move = moves[moveIndex];
+
+        auto attacker = move.movePiece;
+        auto victim = move.moveType == Move::EN_PASSANT ? Board::PAWN : board.getPieceType(move.toSq);
+        score += MVV_VLA[attacker][victim];
+
+        if(hashMove == move){
+            score += TT_MOVE_ORDER_SCORE;
+        }
+
+        // promotion capture is good.
+        if(move.isPromotion()){
+            score += move.promotionType * 7;
+        }
+
+        moveScores[moveIndex] = score;
     }
 }
 

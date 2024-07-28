@@ -32,18 +32,17 @@ class Movepick {
 public:
 
     /***
-     * Score current moves
-     *  NOW:
-     *  - MVV_VLA
-     *  - Promotion's
-     *  - Killer moves
-     *  - TT moves
-     * @param moves from movegen
-     * @param cnt from movegen
-     * @param board current board.
+     * Move scoring for moves in main search.
      */
     static void scoreMoves(Move* moves, int cnt, Board& board, const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64], const Move& hashMove, std::vector<int>& moveScores);
 
+
+
+    /***
+     * Move scoring for moves in qsearch (simplier)
+     * TODO
+     */
+    static void scoreMovesQSearch(Move* moves, int cnt, Board& board, const Move& hashMove, std::vector<int>& moveScores);
     /***
      * Picks a best move with a biggest score
      * @note We dont sort moves, because it can be pretty slow - we can pick first move and after that it can be pruned and no more moves will be played => waste of time

@@ -232,12 +232,13 @@ private:
 
             // Move pruning
             // SEE pruning of quiet moves.
-            if(ply > 0 && !isCheckNMP && !moves[j].isCapture() && depth <= 7 && alpha > -CHECKMATE && !_board->SEE(moves[j], -80*depth)){
+            bool isCapture = moves[j].isCapture();
+            if(ply > 0 && !isCheckNMP && !isCapture && depth <= 7 && alpha > -CHECKMATE && !_board->SEE(moves[j], -80*depth)){
                 continue;
             }
             // SEE pruning of captures.
             // Dont prune so much captures, we can still be in good position even if we lose material in SEE (sacrifice for example).
-            else if(ply > 0 && depth <= 7 && moves[j].isCapture() && !_board->SEE(moves[j], -40*depth*depth)){
+            else if(ply > 0 && depth <= 7 && isCapture && !_board->SEE(moves[j], -40*depth*depth)){
                 continue;
             }
 
@@ -256,7 +257,7 @@ private:
 
             if(eval >= beta){
                 // If move, that wasnt capture causes a beta cuttoff, we call it killer move, remember this move for move ordering.
-                if(!moves[j].isCapture()){
+                if(!isCapture){
                     storeKillerMove(ply, moves[j]);
                     _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
                 }
@@ -274,11 +275,6 @@ private:
                     _bestMoveIter = moves[j];
                     _bestScoreIter = eval;
                 }
-                /*
-                if(!moves[j].isCapture()){
-                    _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
-                }
-                */
             }
 
 
@@ -350,11 +346,10 @@ private:
         if(currentEval >= beta) return beta;
         if(currentEval > alpha) alpha = currentEval;
 
-
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves, true);
         std::vector<int> moveScores(moveCount);
-        Movepick::scoreMoves(moves, moveCount, *_board, nullptr, nullptr, Move(), moveScores);
+        Movepick::scoreMovesQSearch(moves, moveCount, *_board, Move(), moveScores);
 
         for(int j = 0; j < moveCount; j++){
             // pick a best move to play.
