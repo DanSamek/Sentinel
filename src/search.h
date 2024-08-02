@@ -225,16 +225,28 @@ private:
         Move bestMoveInPos;
 
         int movesSearched = 0; // LMR
-
+        int quietMovesCount = 0;
         for(int j = 0; j < moveCount; j++){
             // pick a move to play (sorting moves, can be slower, thanks to alpha beta pruning).
             Movepick::pickMove(moves, moveCount, j, moveScores);
 
-            // Move pruning
-            // SEE pruning of quiet moves.
             bool isCapture = moves[j].isCapture();
-            if(ply > 0 && !isCheckNMP && !isCapture && depth <= 7 && alpha > -CHECKMATE && !_board->SEE(moves[j], -80*depth)){
-                continue;
+
+            /* Move pruning techniques */
+
+            if(!isCapture && ply > 0 && !isCheckNMP){
+
+                // Late move pruning.
+                auto lmpLimit = 3 + depth * depth;
+                if(!isPv && quietMovesCount > lmpLimit && depth <= 5 && !moves[j].isPromotion()){
+                    continue;
+                }
+
+                // SEE pruning of quiet moves.
+                if(depth <= 7 && alpha > -CHECKMATE && !_board->SEE(moves[j], -80*depth)){
+                    continue;
+                }
+
             }
             // SEE pruning of captures.
             // Dont prune so much captures, we can still be in good position even if we lose material in SEE (sacrifice for example).
@@ -249,6 +261,7 @@ private:
             int eval = lmr(depth, ply, alpha, beta, movesSearched, isPv, moveScores[j]);
 
             _board->undoMove(moves[j]);
+            quietMovesCount += !isCapture;
 
             // ! after undo move !
             if(_forceStopped){
