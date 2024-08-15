@@ -23,7 +23,6 @@ class Board {
     static inline uint64_t PAWN_ISOLATION_BITBOARDS[8]; // for each column.
     static inline uint64_t LINE_BITBOARDS[8]; // doubled pawns || rooks/queens on open/semi open files.
 
-
 public:
 
     enum pieceType{
@@ -54,16 +53,15 @@ public:
     static inline constexpr int Q_CASTLE = 0;
     std::array<std::array<bool, 2>,2> castling;
 
-    // static array for a performance
-    // Simple hack for multithreading <-> make it 2D :ez:
+    // static array for a performance.
     static constexpr int MAX_DEPTH = 1000; // Fuck it, we ball
-    static inline State STACK[MAX_DEPTH + 1];
+    State STACK[MAX_DEPTH + 1];
 
     // i love draws by repetitions.
-    static inline uint64_t threeFoldRepetition[MAX_DEPTH];
-    static inline int repetitionIndex = 0;
+    uint64_t threeFoldRepetition[MAX_DEPTH];
+    int repetitionIndex = 0;
 
-    static inline std::array<int, 2> fiftyMoveRule = {0,0};
+    std::array<int, 2> fiftyMoveRule = {0,0};
 
     uint64_t zobristKey;
 
