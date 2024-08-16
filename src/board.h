@@ -5,11 +5,11 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <bit_ops.h>
-#include <move.h>
-#include <state.h>
+#include "bit_ops.h"
+#include "move.h"
+#include "state.h"
 #include <unordered_map>
-#include <pst.h>
+#include "pst.h"
 
 class Board {
     static inline std::map<char, int> pieceIndexMap = {{'p',0}, {'n', 1}, {'b', 2}, {'r',3}, {'q',4}, {'k', 5}};
@@ -18,12 +18,12 @@ class Board {
     static inline std::map<char, int> files = {{'a', 0}, {'b', 1}, {'c', 2}, {'d',3}, {'e', 4}, {'f', 5}, {'g', 6}, {'h',7}};
     static inline std::map<char, int> ranks = {{'1',7}, {'2',6},{'3',5},{'4',4}, {'5',3}, {'6',2}, {'7',1}, {'8',0}};
 
+public:
+
     static inline uint64_t PAWN_PASSED_BITBOARDS[2][64];
     static inline uint64_t PAWN_FRIENDS_BITBOARDS[64];
     static inline uint64_t PAWN_ISOLATION_BITBOARDS[8]; // for each column.
     static inline uint64_t LINE_BITBOARDS[8]; // doubled pawns || rooks/queens on open/semi open files.
-
-public:
 
     enum pieceType{
         PAWN,
@@ -187,15 +187,15 @@ private:
      * @param bbs
      * @return eval.
      */
-    std::pair<int, int> evalSide(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us) const;
+    int32_t evalSide(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us) const;
 
 
-    void evalPawns(uint64_t *bbs, bool white, int& evalMg, int& evalEg) const;
-    void evalBishops(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const;
-    void evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const;
-    void evalQueens(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const;
-    void evalKnights(uint64_t *bbs, bool white, int& evalMg, int& evalEg) const;
-    void evalKing(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us, int& evalMg, int& evalEg) const;
+    void evalPawns(uint64_t *bbs, bool white, int32_t& eval) const;
+    void evalBishops(uint64_t *bbs, bool white, const uint64_t& all, int32_t& eval) const;
+    void evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int32_t& eval) const;
+    void evalQueens(uint64_t *bbs, bool white, const uint64_t& all, int32_t& eval) const;
+    void evalKnights(uint64_t *bbs, bool white, int32_t& eval) const;
+    void evalKing(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us, int32_t& eval) const;
 
 
 

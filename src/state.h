@@ -1,6 +1,6 @@
 #ifndef SENTINEL_STATE_H
 #define SENTINEL_STATE_H
-#include <move.h>
+#include "move.h"
 #include <array>
 
 struct State{

@@ -1,7 +1,7 @@
 #include <sstream>
-#include <board.h>
-#include <zobrist.h>
-#include <movegen.h>
+#include "board.h"
+#include "zobrist.h"
+#include "movegen.h"
 #include <iostream>
 #include <vector>
 

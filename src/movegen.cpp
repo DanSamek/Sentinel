@@ -1,5 +1,5 @@
-#include <movegen.h>
-#include <bit_ops.h>
+#include "movegen.h"
+#include "bit_ops.h"
 
 void Movegen::init() {
     if(_initDone) return;

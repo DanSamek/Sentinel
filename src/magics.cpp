@@ -1,6 +1,6 @@
-#include <magics.h>
+#include "magics.h"
 #include <set>
-#include <bit_ops.h>
+#include "bit_ops.h"
 #include <iostream>
 
 int getSquare(int rank, int file){

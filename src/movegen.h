@@ -2,10 +2,10 @@
 #define SENTINEL_MOVEGEN_H
 
 #include <vector>
-#include <magics.h>
-#include <move.h>
+#include "magics.h"
+#include "move.h"
 class Board;
-#include <board.h>
+#include "board.h"
 #include <span>
 
 #define UPDATE_BOARD_STATE(board, whoPlay) \

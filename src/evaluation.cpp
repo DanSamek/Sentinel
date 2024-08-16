@@ -1,136 +1,21 @@
-#include <board.h>
-#include <movegen.h>
+#include "board.h"
+#include "movegen.h"
 
 static inline constexpr int MAX_KING_DISTANCE = 14;
-static inline constexpr int KING_DISTANCE_MULTIPLIER = 10; // TODO buff!!
-static inline constexpr int TWO_BISHOPS_BONUS = 30;
-static inline constexpr int CASTLING_BONUS = 12;
-static inline constexpr int PASSED_PAWN_BONUS = 15;
-static inline constexpr int ISOLATED_PAWN_SUBTRACT = 15;
-static inline constexpr int STACKED_PAWN_SUBTRACT = 4;
-static inline constexpr int FRIEND_PAWN_BONUS = 8;
-
-static inline constexpr int ROOK_SEMI_OPEN_FILE_BONUS = 10;
-static inline constexpr int ROOK_OPEN_FILE_BONUS = 20;
-
-
-// pseudo-legal mobility bonus [totalSquares possible] -> value.
-// 0-13
-static inline constexpr int BISHOP_MOBILITY_BONUS[14] = {
-    -23,
-    -17,
-    -14,
-    -8,
-    -6,
-    -2,
-    2,
-    6,
-    9,
-    12,
-    15,
-    16,
-    15,
-    14
-};
-
-// 8 + 1 [0 moves]    [0,1] not possible thanks to pseudo legal movegen.
-static inline constexpr int KNIGHT_MOBILITY_BONUS[9] = {
-    -100,
-    -100,
-    -5,
-    -3,
-    0,
-    6,
-    8,
-    10,
-    12,
-};
-
-// 14 + 1 [0]
-static inline constexpr int ROOK_MOBILITY_BONUS[15] = {
-    -31,
-    -26,
-    -21,
-    -17,
-    -12,
-    -5,
-    0,
-    4,
-    6,
-    10,
-    14,
-    18,
-    20,
-    19,
-    18
-};
-
-// 27
-// Low values for a queen.
-static inline constexpr int QUEEN_MOBILITY_BONUS[28] = {
-    0,
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12,
-    13,
-    13,
-    14,
-    14,
-    14,
-    15,
-    15,
-    14,
-    14,
-    14,
-    13,
-    13,
-    13,
-    13,
-    13
-};
-
-// 27
-// Handling king as a queen -> add penalization if king has a lot of mobility.
-static inline constexpr int KING_VIRTUAL_MOBILITY[28] = {
-    0,
-    9,
-    12,
-    14,
-    13,
-    12,
-    11,
-    10,
-    8,
-    6,
-    4,
-    2,
-    -2,
-    -4,
-    -6,
-    -10,
-    -11,
-    -12,
-    -13,
-    -14,
-    -16,
-    -17,
-    -19,
-    -20,
-    -22,
-    -24,
-    -26,
-    -30
-};
-
+static inline constexpr int KING_DISTANCE_MULTIPLIER = S(4,15);
+static inline constexpr int TWO_BISHOPS_BONUS = S(32,84);
+static inline constexpr int CASTLING_BONUS = S(6,0);
+static inline constexpr int PASSED_PAWN_BONUS = S(9,40);
+static inline constexpr int ISOLATED_PAWN_SUBTRACT = S(-16,-5);
+static inline constexpr int STACKED_PAWN_SUBTRACT = S(0,-10);
+static inline constexpr int FRIEND_PAWN_BONUS = S(16,17);
+static inline constexpr int ROOK_SEMI_OPEN_FILE_BONUS = S(-16,6);
+static inline constexpr int ROOK_OPEN_FILE_BONUS = S(52,-7);
+static inline constexpr int BISHOP_MOBILITY_BONUS[] = {S(0,0), S(143,184), S(172,186), S(191,216), S(211,222), S(221,235), S(231,253), S(242,257), S(252,266), S(251,264), S(259,267), S(264,253), S(264,252), S(296,233)};
+static inline constexpr int KNIGHT_MOBILITY_BONUS[] = {S(0,0), S(0,0), S(168,255), S(202,240), S(233,289), S(0,0), S(278,285), S(0,0), S(247,253)};
+static inline constexpr int ROOK_MOBILITY_BONUS[] = {S(0,0), S(0,0), S(277,376), S(282,397), S(290,416), S(296,423), S(299,430), S(304,436), S(313,434), S(320,436), S(326,440), S(331,438), S(333,440), S(333,443), S(330,430)};
+static inline constexpr int QUEEN_MOBILITY_BONUS[] = {S(0,0), S(0,0), S(0,0), S(400,128), S(626,400), S(663,521), S(690,496), S(686,601), S(687,629), S(687,657), S(686,682), S(684,710), S(687,728), S(689,738), S(692,750), S(695,756), S(695,768), S(696,777), S(696,783), S(697,788), S(699,793), S(702,796), S(698,799), S(705,801), S(708,798), S(734,793), S(763,767), S(740,793)};
+static inline constexpr int KING_VIRTUAL_MOBILITY[] = {S(94,-37), S(93,-19), S(78,3), S(64,4), S(51,13), S(47,11), S(42,10), S(35,5), S(21,22), S(5,26), S(-6,26), S(-25,31), S(-38,33), S(-55,36), S(-73,35), S(-95,38), S(-107,31), S(-118,30), S(-127,24), S(-116,11), S(-113,1), S(-122,-5), S(-142,-15), S(-103,-32), S(-150,-42), S(-92,-63), S(-141,-80), S(-69,-91)};
 
 static inline int gamePhaseInc[] = { 0, 1, 1, 2, 4, 0 };
 
@@ -148,8 +33,8 @@ int Board::eval() {
     }
     all = white | black;
 
-    auto [whiteScoreMg, whiteScoreEg] = evalSide(whitePieces, true, all, white);
-    auto [blackScoreMg, blackScoreEg] = evalSide(blackPieces, false, all, black);
+    auto whiteScore = evalSide(whitePieces, true, all, white);
+    auto blackScore = evalSide(blackPieces, false, all, black);
 
     // Eval some things for endgames.
     // Now only king distances.
@@ -166,24 +51,24 @@ int Board::eval() {
     int scoreToAdd = KING_DISTANCE_MULTIPLIER * (MAX_KING_DISTANCE - distance);
 
     // Add bonus for side, if king is closer to enemy king
-    if(whiteScoreEg > blackScoreEg){
-        whiteScoreEg += scoreToAdd;
+    if(eg_score(whiteScore) > eg_score(blackScore)){
+        whiteScore += scoreToAdd;
     }
     else{
-        blackScoreEg += scoreToAdd;
+        blackScore += scoreToAdd;
     }
 
     // add bonus, if castling is still possible
     // if king is attacked, dont move king, just try block.
-    whiteScoreMg += (castling[pieceColor::WHITE][0] || castling[pieceColor::WHITE][1]) ? CASTLING_BONUS : 0;
-    blackScoreMg += (castling[pieceColor::WHITE][0] || castling[pieceColor::WHITE][1]) ? CASTLING_BONUS : 0;
+    whiteScore += (castling[pieceColor::WHITE][0] || castling[pieceColor::WHITE][1]) ? CASTLING_BONUS : 0;
+    blackScore += (castling[pieceColor::WHITE][0] || castling[pieceColor::WHITE][1]) ? CASTLING_BONUS : 0;
 
     int phase = countPhase(whitePieces) + countPhase(blackPieces);
     if (phase > 24) phase = 24;
     int egPhase = 24 - phase;
 
-    int mgScore = (whiteScoreMg - blackScoreMg) * (whoPlay ? 1 : -1);
-    int egScore = (whiteScoreEg - blackScoreEg) * (whoPlay ? 1 : -1);
+    int mgScore = (mg_score(whiteScore) - mg_score(blackScore)) * (whoPlay ? 1 : -1);
+    int egScore = (eg_score(whiteScore) - eg_score(blackScore)) * (whoPlay ? 1 : -1);
 
     int taperedEval = ((mgScore*phase + egScore * egPhase) / 24);
     return taperedEval;
@@ -198,53 +83,47 @@ int Board::countPhase(uint64_t *bbs) const{
     return phase;
 }
 
-std::pair<int, int> Board::evalSide(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us) const{
-    int evalMg = 0;
-    int evalEg = 0;
+int32_t Board::evalSide(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us) const{
+    int32_t eval = 0;
+    evalPawns(bbs, white, eval);
+    evalBishops(bbs, white, all, eval);
+    evalKnights(bbs, white, eval);
+    evalRooks(bbs, white, all, eval);
+    evalQueens(bbs, white, all, eval);
+    evalKing(bbs, white, all, us, eval);
 
-    evalPawns(bbs, white, evalMg, evalEg);
-    evalBishops(bbs, white, all, evalMg, evalEg);
-    evalKnights(bbs, white, evalMg, evalEg);
-    evalRooks(bbs, white, all, evalMg, evalEg);
-    evalQueens(bbs, white, all, evalMg, evalEg);
-    evalKing(bbs, white, all, us, evalMg, evalEg);
-
-    return {evalMg, evalEg};
+    return eval;
 }
 
 
-void Board::evalKnights(uint64_t *bbs, bool white, int& evalMg, int& evalEg) const {
+void Board::evalKnights(uint64_t *bbs, bool white, int32_t & eval) const {
 
     auto bb = bbs[KNIGHT];
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        evalMg +=PST::getValue(white, KNIGHT, pos, false);
-        evalEg += PST::getValue(white, KNIGHT, pos, true);
+        eval += PST::getValue(white, KNIGHT, pos);
 
         auto attacks = Movegen::KNIGHT_MOVES[pos];
         auto attackCount = bit_ops::countBits(attacks);
-        evalMg +=KNIGHT_MOBILITY_BONUS[attackCount];
-        evalEg += KNIGHT_MOBILITY_BONUS[attackCount];
+        eval += KNIGHT_MOBILITY_BONUS[attackCount];
     }
 }
 
-void Board::evalQueens(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const {
+void Board::evalQueens(uint64_t *bbs, bool white, const uint64_t& all, int32_t & eval) const {
     auto bb = bbs[QUEEN];
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        evalMg += PST::getValue(white, QUEEN, pos, false);
-        evalEg += PST::getValue(white, QUEEN, pos, true);
+        eval += PST::getValue(white, QUEEN, pos);
 
         auto attacks = Magics::getRookMoves(all, pos);
         attacks |= Magics::getBishopMoves(all, pos);
         auto attackCount = bit_ops::countBits(attacks);
-        evalMg += QUEEN_MOBILITY_BONUS[attackCount];
-        evalEg += QUEEN_MOBILITY_BONUS[attackCount];
+        eval += QUEEN_MOBILITY_BONUS[attackCount];
     }
 }
 
 
-void Board::evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const {
+void Board::evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int32_t & eval) const {
     auto friendlyPawns = white ? whitePieces[PAWN] : blackPieces[PAWN];
     auto enemyPawns = white ? blackPieces[PAWN] : whitePieces[PAWN];
     auto allPawns = friendlyPawns | enemyPawns;
@@ -252,64 +131,56 @@ void Board::evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int& evalM
     auto bb = bbs[ROOK];
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        evalMg += PST::getValue(white, ROOK, pos, false);
-        evalEg += PST::getValue(white, ROOK, pos, true);
+        eval += PST::getValue(white, ROOK, pos);
 
         auto attacks = Magics::getRookMoves(all, pos);
         auto attackCount = bit_ops::countBits(attacks);
-        evalMg += ROOK_MOBILITY_BONUS[attackCount];
-        evalEg += ROOK_MOBILITY_BONUS[attackCount];
+        eval += ROOK_MOBILITY_BONUS[attackCount];
 
         auto column = pos % 8;
         // open files -> no pawns on it.
         if((allPawns & LINE_BITBOARDS[column]) == 0){
-            evalMg += ROOK_OPEN_FILE_BONUS;
-            evalEg += ROOK_OPEN_FILE_BONUS;
+            eval += ROOK_OPEN_FILE_BONUS;
         }
         // semi-open files -> only enemy pawns on it.
         if(((LINE_BITBOARDS[column] & allPawns) ^ enemyPawns) == 0){
-            evalMg += ROOK_SEMI_OPEN_FILE_BONUS;
-            evalEg += ROOK_SEMI_OPEN_FILE_BONUS;
+            eval += ROOK_SEMI_OPEN_FILE_BONUS;
         }
     }
 }
 
 
-void Board::evalKing(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us, int& evalMg, int& evalEg) const {
+void Board::evalKing(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us, int32_t & eval) const {
     auto bb = bbs[KING];
     auto pos = bit_ops::bitScanForwardPopLsb(bb);
-    evalMg += PST::getValue(white, KING, pos, false);
-    evalEg += PST::getValue(white, KING, pos, true);
+    eval += PST::getValue(white, KING, pos);
 
     // King virtual mobility - apply in middlegame only.
     auto attacks = Magics::getRookMoves(all, pos);
     attacks |= Magics::getBishopMoves(all, pos);
     attacks &= ~us;
     auto attackCount = bit_ops::countBits(attacks);
-    evalEg += KING_VIRTUAL_MOBILITY[attackCount];
+    eval += KING_VIRTUAL_MOBILITY[attackCount];
 }
 
 
-void Board::evalBishops(uint64_t *bbs, bool white, const uint64_t& all, int& evalMg, int& evalEg) const {
+void Board::evalBishops(uint64_t *bbs, bool white, const uint64_t& all, int32_t & eval) const {
     // count number of bishops, add bonus.
     int bishopCount = 0;
     auto bb = bbs[BISHOP];
     while(bb){
         bishopCount++;
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        evalMg +=PST::getValue(white, BISHOP, pos, false);
-        evalEg +=PST::getValue(white, BISHOP, pos, true);
+        eval += PST::getValue(white, BISHOP, pos);
 
         auto attacks = Magics::getBishopMoves(all, pos);
         auto attackCount = bit_ops::countBits(attacks);
-        evalMg += BISHOP_MOBILITY_BONUS[attackCount];
-        evalEg += BISHOP_MOBILITY_BONUS[attackCount];
+        eval += BISHOP_MOBILITY_BONUS[attackCount];
     }
-    evalMg += bishopCount >= 2 ? TWO_BISHOPS_BONUS : 0; // Rays goes brr.
-    evalEg += bishopCount >= 2 ? TWO_BISHOPS_BONUS : 0; // Rays goes brr.
+    eval += bishopCount >= 2 ? TWO_BISHOPS_BONUS : 0; // Rays goes brr.
 }
 
-void Board::evalPawns(uint64_t *bbs, bool white, int& evalMg, int& evalEg) const{
+void Board::evalPawns(uint64_t *bbs, bool white, int32_t & eval) const{
     // Pawn eval.
     auto enemyPawnsBB = white ? blackPieces[PAWN] : whitePieces[PAWN];
     auto friendlyPawnsBB = white ? whitePieces[PAWN] : blackPieces[PAWN];
@@ -317,35 +188,30 @@ void Board::evalPawns(uint64_t *bbs, bool white, int& evalMg, int& evalEg) const
 
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        evalMg += PST::getValue(white, PAWN, pos, false);
-        evalEg += PST::getValue(white, PAWN, pos, true);
+        eval += PST::getValue(white, PAWN, pos);
 
         int distanceFromPromotionRev = white ? ((7 - (pos / 8)) - 1) : ((7 - (7 - (pos / 8))) - 1);
         assert(distanceFromPromotionRev >= 0);
         if((enemyPawnsBB & PAWN_PASSED_BITBOARDS[!white][pos]) == 0ULL){
-            evalMg += PASSED_PAWN_BONUS;
-            evalEg += PASSED_PAWN_BONUS * distanceFromPromotionRev;
+            eval += PASSED_PAWN_BONUS * distanceFromPromotionRev;
         }
 
         // Add bonus, if pawns are in some sort of structure.
         if((bb & PAWN_FRIENDS_BITBOARDS[pos]) != 0){
-            evalMg += FRIEND_PAWN_BONUS;
-            evalEg += (FRIEND_PAWN_BONUS * 2);
+            eval += FRIEND_PAWN_BONUS;
         }
 
         // If pawn is isolated, subtract value from current eval.
         auto column = pos % 8;
         if((friendlyPawnsBB & PAWN_ISOLATION_BITBOARDS[column]) == 0){
-            evalMg -= ISOLATED_PAWN_SUBTRACT;
-            evalEg -= ISOLATED_PAWN_SUBTRACT;
+            eval -= ISOLATED_PAWN_SUBTRACT;
         }
 
         // doubled/tripled pawns.
         uint64_t tmp = 0ULL;
         bit_ops::setNthBit(tmp, pos);
         if((friendlyPawnsBB & (LINE_BITBOARDS[column] ^ tmp)) != 0){
-            evalMg -= STACKED_PAWN_SUBTRACT;
-            evalEg -= STACKED_PAWN_SUBTRACT;
+            eval -= STACKED_PAWN_SUBTRACT;
         }
     }
 }

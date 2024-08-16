@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <ctime>
 #include <cstdlib>
-#include <magics.h>
-#include <board.h>
+#include "magics.h"
+#include "board.h"
 
 class Zobrist {
     static constexpr int BOARD_SIZE = 64;
