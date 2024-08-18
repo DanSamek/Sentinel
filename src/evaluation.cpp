@@ -2,20 +2,20 @@
 #include "movegen.h"
 
 static inline constexpr int MAX_KING_DISTANCE = 14;
-static inline constexpr int KING_DISTANCE_MULTIPLIER = S(4,15);
-static inline constexpr int TWO_BISHOPS_BONUS = S(32,84);
-static inline constexpr int CASTLING_BONUS = S(6,0);
-static inline constexpr int PASSED_PAWN_BONUS = S(9,40);
-static inline constexpr int ISOLATED_PAWN_SUBTRACT = S(-16,-5);
-static inline constexpr int STACKED_PAWN_SUBTRACT = S(0,-10);
-static inline constexpr int FRIEND_PAWN_BONUS = S(16,17);
-static inline constexpr int ROOK_SEMI_OPEN_FILE_BONUS = S(-16,6);
-static inline constexpr int ROOK_OPEN_FILE_BONUS = S(52,-7);
-static inline constexpr int BISHOP_MOBILITY_BONUS[] = {S(0,0), S(143,184), S(172,186), S(191,216), S(211,222), S(221,235), S(231,253), S(242,257), S(252,266), S(251,264), S(259,267), S(264,253), S(264,252), S(296,233)};
-static inline constexpr int KNIGHT_MOBILITY_BONUS[] = {S(0,0), S(0,0), S(168,255), S(202,240), S(233,289), S(0,0), S(278,285), S(0,0), S(247,253)};
-static inline constexpr int ROOK_MOBILITY_BONUS[] = {S(0,0), S(0,0), S(277,376), S(282,397), S(290,416), S(296,423), S(299,430), S(304,436), S(313,434), S(320,436), S(326,440), S(331,438), S(333,440), S(333,443), S(330,430)};
-static inline constexpr int QUEEN_MOBILITY_BONUS[] = {S(0,0), S(0,0), S(0,0), S(400,128), S(626,400), S(663,521), S(690,496), S(686,601), S(687,629), S(687,657), S(686,682), S(684,710), S(687,728), S(689,738), S(692,750), S(695,756), S(695,768), S(696,777), S(696,783), S(697,788), S(699,793), S(702,796), S(698,799), S(705,801), S(708,798), S(734,793), S(763,767), S(740,793)};
-static inline constexpr int KING_VIRTUAL_MOBILITY[] = {S(94,-37), S(93,-19), S(78,3), S(64,4), S(51,13), S(47,11), S(42,10), S(35,5), S(21,22), S(5,26), S(-6,26), S(-25,31), S(-38,33), S(-55,36), S(-73,35), S(-95,38), S(-107,31), S(-118,30), S(-127,24), S(-116,11), S(-113,1), S(-122,-5), S(-142,-15), S(-103,-32), S(-150,-42), S(-92,-63), S(-141,-80), S(-69,-91)};
+static inline constexpr int KING_DISTANCE_MULTIPLIER = S(4,18);
+static inline constexpr int TWO_BISHOPS_BONUS = S(27,65);
+static inline constexpr int CASTLING_BONUS = S(10,11);
+static inline constexpr int PASSED_PAWN_BONUS = S(8,31);
+static inline constexpr int ISOLATED_PAWN_SUBTRACT = S(-13,-5);
+static inline constexpr int STACKED_PAWN_SUBTRACT = S(0,-7);
+static inline constexpr int FRIEND_PAWN_BONUS = S(13,13);
+static inline constexpr int ROOK_SEMI_OPEN_FILE_BONUS = S(-14,6);
+static inline constexpr int ROOK_OPEN_FILE_BONUS = S(44,-4);
+static inline constexpr int BISHOP_MOBILITY_BONUS[] = {S(0,0), S(35,66), S(58,70), S(74,93), S(91,97), S(99,107), S(108,122), S(117,125), S(126,132), S(125,131), S(132,134), S(136,123), S(136,122), S(161,108)};
+static inline constexpr int KNIGHT_MOBILITY_BONUS[] = {S(0,0), S(0,0), S(20,102), S(79,102), S(90,134), S(0,0), S(129,135), S(0,0), S(118,122)};
+static inline constexpr int ROOK_MOBILITY_BONUS[] = {S(0,0), S(0,0), S(119,176), S(122,192), S(129,205), S(134,211), S(137,217), S(141,222), S(149,221), S(155,223), S(160,226), S(164,225), S(166,227), S(166,229), S(163,219)};
+static inline constexpr int QUEEN_MOBILITY_BONUS[] = {S(0,0), S(0,0), S(0,0), S(211,65), S(293,175), S(342,216), S(365,186), S(360,269), S(360,292), S(359,312), S(358,332), S(356,353), S(357,366), S(359,374), S(362,383), S(364,388), S(364,397), S(364,404), S(365,408), S(366,412), S(367,416), S(370,418), S(368,420), S(374,420), S(377,419), S(400,413), S(418,400), S(401,417)};
+static inline constexpr int KING_VIRTUAL_MOBILITY[] = {S(76,-26), S(76,-11), S(63,4), S(50,6), S(40,12), S(36,10), S(31,9), S(26,5), S(14,18), S(1,20), S(-9,20), S(-25,24), S(-35,25), S(-50,27), S(-65,27), S(-83,28), S(-93,23), S(-102,22), S(-110,17), S(-101,7), S(-99,0), S(-106,-6), S(-124,-14), S(-92,-27), S(-130,-36), S(-84,-53), S(-122,-67), S(-61,-77)};
 
 static inline int gamePhaseInc[] = { 0, 1, 1, 2, 4, 0 };
 
@@ -61,7 +61,7 @@ int Board::eval() {
     // add bonus, if castling is still possible
     // if king is attacked, dont move king, just try block.
     whiteScore += (castling[pieceColor::WHITE][0] || castling[pieceColor::WHITE][1]) ? CASTLING_BONUS : 0;
-    blackScore += (castling[pieceColor::WHITE][0] || castling[pieceColor::WHITE][1]) ? CASTLING_BONUS : 0;
+    blackScore += (castling[pieceColor::BLACK][0] || castling[pieceColor::BLACK][1]) ? CASTLING_BONUS : 0;
 
     int phase = countPhase(whitePieces) + countPhase(blackPieces);
     if (phase > 24) phase = 24;
@@ -204,14 +204,14 @@ void Board::evalPawns(uint64_t *bbs, bool white, int32_t & eval) const{
         // If pawn is isolated, subtract value from current eval.
         auto column = pos % 8;
         if((friendlyPawnsBB & PAWN_ISOLATION_BITBOARDS[column]) == 0){
-            eval -= ISOLATED_PAWN_SUBTRACT;
+            eval += ISOLATED_PAWN_SUBTRACT;
         }
 
         // doubled/tripled pawns.
         uint64_t tmp = 0ULL;
         bit_ops::setNthBit(tmp, pos);
         if((friendlyPawnsBB & (LINE_BITBOARDS[column] ^ tmp)) != 0){
-            eval -= STACKED_PAWN_SUBTRACT;
+            eval += STACKED_PAWN_SUBTRACT;
         }
     }
 }
