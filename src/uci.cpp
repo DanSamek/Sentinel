@@ -4,7 +4,7 @@
 #include <pst.h>
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-TemplatedEval" << std::endl;
+    std::cout << "id name Sentinel-InstanceMovegen" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl;
     std::cout << "uciok" << std::endl;
 }
@@ -66,11 +66,15 @@ void UCI::position(std::string command) {
 }
 
 void UCI::go(std::string command) {
-
+    if(!_ready){
+        std::cout << "command isready wasnt called. Run first isready before go." << std::endl;
+        return;
+    }
     /*
-         movetime 10 mseconds - exactly.
-         wtime 1000 btime 1000 winc 10 binc 10
-     */
+        movetime 10 mseconds - exactly.
+        wtime 1000 btime 1000 winc 10 binc 10
+    */
+
     std::istringstream iss(command);
     int miliseconds; std::string tmp;
     bool exact = false;
@@ -128,7 +132,7 @@ void UCI::makeStringMove(std::string move) {
     }
     // make move
     Move moves[Movegen::MAX_LEGAL_MOVES];
-    auto result = Movegen::generateMoves(_board, moves);
+    auto result = Movegen(_board, moves, false).generateMoves();
     bool played = false;
     for(int j = 0; j < result.first; j++){
         if(moves[j].promotionType == t && moves[j].fromSq == fromSquare && moves[j].toSq == toSquare){

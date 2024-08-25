@@ -15,7 +15,7 @@ struct NullMoveTests{
     static int generateMoves(Board& b, int depth){
         if(depth == 0) return 1;
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        auto result = Movegen::generateMoves(b, moves);
+        auto result = Movegen(b, moves, false).generateMoves();
         int res = 0;
         for(int j = 0; j < result.first; j++){
             auto key = b.zobristKey;

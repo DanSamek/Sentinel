@@ -28,12 +28,13 @@ struct SEETests{
         };
 
 
+
         for(const auto& test : tests){
             Board b;
             b.loadFEN(test.FEN);
 
             Move moves[Movegen::MAX_LEGAL_MOVES];
-            auto cnt = Movegen::generateMoves(b, moves);
+            auto cnt = Movegen(b, moves, false).generateMoves();
             Move m;
             while(--cnt.first >= 0){
                 if(moves[cnt.first].fromSq == test.from && moves[cnt.first].toSq == test.to){

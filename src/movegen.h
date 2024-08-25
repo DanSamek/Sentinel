@@ -8,18 +8,13 @@ class Board;
 #include "board.h"
 #include <span>
 
-#define UPDATE_BOARD_STATE(board, whoPlay) \
-    auto friendlyBits = whoPlay ? board.whitePieces : board.blackPieces; \
-    auto enemyBits = whoPlay ? board.blackPieces : board.whitePieces; \
-    Movegen::_friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5]; \
-    Movegen::_enemyMerged = enemyBits[0] | enemyBits[1] | enemyBits[2] | enemyBits[3] | enemyBits[4] | enemyBits[5]; \
-    Movegen::_all = Movegen::_friendlyMerged | Movegen::_enemyMerged
-
 /*
     !!! DOING PSEUDO LEGAL MOVE GENERATION !!!
         AKA generate all moves, check if moves are legal - king is not checked.
 */
 struct Movegen {
+    Movegen(Board& board, Move* moves, bool capturesOnly);
+
     // Color, square
     static constexpr int MAX_LEGAL_MOVES = 218;
     static inline uint64_t PAWN_ATTACK_MOVES[2][64];
@@ -47,22 +42,20 @@ struct Movegen {
      */
     static void init();
 
-    static inline int _index = 0;
-    static inline Move* _tmpMovesPtr;
+    int index = 0;
+    Move* movesPtr;
+    Board& board;
+    bool captures;
 
-    static inline uint64_t _all, _friendlyMerged, _enemyMerged;
-
-    /***
-     * Generates all possible pseudo-legal moves for a current position
-     * @param board board
-     * @param moves moves array to save all moves
-     * @param capturesOnly for qsearch.
-     * @return total number of moves, if king is checked.
-     */
-    static std::pair<int, bool> generateMoves(Board& board, Move* moves, bool capturesOnly = false);
+    uint64_t all, friendlyMerged, enemyMerged;
+    uint64_t *friendlyBits;
+    uint64_t *enemyBits;
 
 
-    static bool validateKingCheck(int kingPos, bool whoPlay, uint64_t enemyBits[6]);
+    std::pair<int, bool> generateMoves();
+
+
+    bool validateKingCheck(int kingPos);
 
     static inline int PAWN_PUSH[] = {8,16};
     static inline int PAWN_ATTACKS[] = {7,9};
@@ -73,7 +66,7 @@ struct Movegen {
      * @param enPassantSquare
      * @param color
      */
-    static void generatePawnMoves(uint64_t b, int enPassantSquare, bool color);
+    void generatePawnMoves(uint64_t b, int enPassantSquare, bool color);
 
     /***
      * ULL lookup tables for all king moves.
@@ -101,31 +94,31 @@ struct Movegen {
 
     /***
      * Converts moveBitboard and appends them into a move vector
-     * @param fromSquare bit _index from square
+     * @param fromSquare bit index from square
      * @param moveBitboard generated bitboard moves
      * @param pieceType
      * @note for all except pawns and kings. This method handles captures, quiets, checks, no more.
      */
-    static void bitboardToMoves(int fromSquare, uint64_t& moveBitboard, Board::pieceType pieceType);
+    void bitboardToMoves(int fromSquare, uint64_t& moveBitboard, Board::pieceType pieceType);
 
-    static void generateRookMoves(uint64_t rooks);
-    static void generateBishopMoves(uint64_t bishops);
-    static void generateQueenMoves(uint64_t queens);
-    static void generateKnightMoves(uint64_t knight);
-    static void generateKingMoves(uint64_t king,  const std::array<bool, 2>& castling, bool whoPlay);
-    static void generatePromotions(int fromSq, int toSq, bool capture);
+    void generateRookMoves(uint64_t rooks);
+    void generateBishopMoves(uint64_t bishops);
+    void generateQueenMoves(uint64_t queens);
+    void generateKnightMoves(uint64_t knight);
+    void generateKingMoves(uint64_t king,  const std::array<bool, 2>& castling);
+    void generatePromotions(int fromSq, int toSq, bool capture);
 
 
     /*
         All capture generations.
     */
-    static void generateRookCaptures(uint64_t rooks);
-    static void generateBishopCaptures(uint64_t bishops);
-    static void generateQueenCaptures(uint64_t queens);
-    static void generateKnightCaptures(uint64_t knight);
-    static void generateKingCaptures(uint64_t king);
-    static void generatePawnCaptures(uint64_t b, int enPassantSquare, bool color);
-    static void captureBitboardToMoves(int fromSquare, uint64_t& moveBitboard, Board::pieceType pieceType);
+    void generateRookCaptures(uint64_t rooks);
+    void generateBishopCaptures(uint64_t bishops);
+    void generateQueenCaptures(uint64_t queens);
+    void generateKnightCaptures(uint64_t knight);
+    void generateKingCaptures(uint64_t king);
+    void generatePawnCaptures(uint64_t b);
+    void captureBitboardToMoves(int fromSquare, uint64_t& moveBitboard, Board::pieceType pieceType);
 };
 
 

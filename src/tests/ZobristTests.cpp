@@ -10,7 +10,7 @@ struct ZobristTests{
         b.loadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         auto initHash = b.zobristKey;
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        Movegen::generateMoves(b, moves);
+        Movegen(b, moves, false).generateMoves();
 
         auto zobrist = b.zobristKey;
         assert(b.makeMove(moves[0]) == true);
@@ -26,7 +26,7 @@ struct ZobristTests{
         auto zobrist1 = b.zobristKey;
 
         Move moves2[Movegen::MAX_LEGAL_MOVES];
-        Movegen::generateMoves(b, moves2);
+        Movegen(b, moves2, false).generateMoves();
 
         assert(b.makeMove(moves2[0]) == true);
         auto zobrist2 = b.zobristKey; // uniq
@@ -45,7 +45,8 @@ struct ZobristTests{
         assert(b.zobristKey == initHash);
 
         Move Moves[Movegen::MAX_LEGAL_MOVES];
-        int cnt = Movegen::generateMoves(b, Moves).first;
+
+        int cnt = Movegen(b, Moves, false).generateMoves().first;
 
         // try play moves.
         // from = 52, double pawn up
@@ -53,17 +54,17 @@ struct ZobristTests{
         b.makeMove(move);
 
         // from = 1, to 18
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 1, 18);
         b.makeMove(move);
 
         // from = 62 to 45
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 62, 45);
         b.makeMove(move);
 
         // from = 11 to 27
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 11, 27);
         b.makeMove(move);
 
@@ -74,22 +75,22 @@ struct ZobristTests{
         assert(b.zobristKey == initHash);
 
         // from = 62 to 45
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 62, 45);
         b.makeMove(move);
 
         // from = 11 to 27
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 11, 27);
         b.makeMove(move);
 
         // from = 52, double pawn up
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 52, 36);
         b.makeMove(move);
 
         // from = 1, to 18
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 1, 18);
         b.makeMove(move);
 
@@ -101,18 +102,18 @@ struct ZobristTests{
         b.printBoard();
         initHash = b.zobristKey;
 
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         b.makeMove(trySearchMove(Moves, cnt, 56,0)); // UP w rook
 
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         b.makeMove(trySearchMove(Moves, cnt, 7,63)); // DOWN b rook
         assert(initHash != b.zobristKey);
         b.printBoard();
 
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         b.makeMove(trySearchMove(Moves, cnt, 0,56)); // DOWN w rook
 
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         b.makeMove(trySearchMove(Moves, cnt, 63,7)); // UP b rook
 
         b.printBoard();
@@ -121,18 +122,18 @@ struct ZobristTests{
         assert(!b.isDraw());
         // try 3-fold repetition.
 
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         b.makeMove(trySearchMove(Moves, cnt, 56,0)); // UP w rook
 
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         b.makeMove(trySearchMove(Moves, cnt, 7,63)); // DOWN b rook
         assert(initHash != b.zobristKey);
         b.printBoard();
 
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         b.makeMove(trySearchMove(Moves, cnt, 0,56)); // DOWN w rook
 
-        cnt = Movegen::generateMoves(b, Moves).first;
+        cnt = Movegen(b, Moves, false).generateMoves().first;
         b.makeMove(trySearchMove(Moves, cnt, 63,7)); // UP b rook
 
         b.printBoard();

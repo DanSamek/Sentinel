@@ -214,7 +214,7 @@ private:
         }
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves);
+        auto [moveCount, isCheck] = Movegen(*_board, moves, false).generateMoves();
         std::vector<int> moveScores(moveCount);
 
         // "move ordering"
@@ -360,7 +360,7 @@ private:
         if(currentEval > alpha) alpha = currentEval;
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        auto [moveCount, isCheck] = Movegen::generateMoves(*_board, moves, true);
+        auto [moveCount, isCheck] = Movegen(*_board, moves, true).generateMoves();
         std::vector<int> moveScores(moveCount);
         Movepick::scoreMovesQSearch(moves, moveCount, *_board, Move(), moveScores);
 
