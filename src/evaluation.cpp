@@ -19,6 +19,9 @@ static inline constexpr int KING_VIRTUAL_MOBILITY[] = {S(76,-26), S(76,-11), S(6
 
 static inline int gamePhaseInc[] = { 0, 1, 1, 2, 4, 0 };
 
+static inline constexpr bool E_WHITE = true;
+static inline constexpr bool E_BLACK = false;
+
 inline int getManhattanDist(const int posA[2], const int posB[2]){
     return std::abs(posA[0] - posB[0]) + std::abs(posA[1] - posB[1]);
 }
@@ -33,8 +36,8 @@ int Board::eval() {
     }
     all = white | black;
 
-    auto whiteScore = evalSide(whitePieces, true, all, white);
-    auto blackScore = evalSide(blackPieces, false, all, black);
+    auto whiteScore = evalSide<E_WHITE>(whitePieces, all, white);
+    auto blackScore = evalSide<E_BLACK>(blackPieces, all, black);
 
     // Eval some things for endgames.
     // Now only king distances.
@@ -83,25 +86,27 @@ int Board::countPhase(uint64_t *bbs) const{
     return phase;
 }
 
-int32_t Board::evalSide(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us) const{
+
+template<bool color>
+int32_t Board::evalSide(uint64_t *bbs, const uint64_t& all, const uint64_t& us) const{
     int32_t eval = 0;
-    evalPawns(bbs, white, eval);
-    evalBishops(bbs, white, all, eval);
-    evalKnights(bbs, white, eval);
-    evalRooks(bbs, white, all, eval);
-    evalQueens(bbs, white, all, eval);
-    evalKing(bbs, white, all, us, eval);
+    evalPawns<color>(bbs, eval);
+    evalBishops<color>(bbs, all, eval);
+    evalKnights<color>(bbs, eval);
+    evalRooks<color>(bbs, all, eval);
+    evalQueens<color>(bbs, all, eval);
+    evalKing<color>(bbs, all, us, eval);
 
     return eval;
 }
 
-
-void Board::evalKnights(uint64_t *bbs, bool white, int32_t & eval) const {
+template<bool color>
+void Board::evalKnights(uint64_t *bbs, int32_t & eval) const {
 
     auto bb = bbs[KNIGHT];
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        eval += PST::getValue(white, KNIGHT, pos);
+        eval += PST::getValue<color>(KNIGHT, pos);
 
         auto attacks = Movegen::KNIGHT_MOVES[pos];
         auto attackCount = bit_ops::countBits(attacks);
@@ -109,11 +114,13 @@ void Board::evalKnights(uint64_t *bbs, bool white, int32_t & eval) const {
     }
 }
 
-void Board::evalQueens(uint64_t *bbs, bool white, const uint64_t& all, int32_t & eval) const {
+
+template<bool color>
+void Board::evalQueens(uint64_t *bbs, const uint64_t& all, int32_t & eval) const {
     auto bb = bbs[QUEEN];
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        eval += PST::getValue(white, QUEEN, pos);
+        eval += PST::getValue<color>(QUEEN, pos);
 
         auto attacks = Magics::getRookMoves(all, pos);
         attacks |= Magics::getBishopMoves(all, pos);
@@ -123,15 +130,16 @@ void Board::evalQueens(uint64_t *bbs, bool white, const uint64_t& all, int32_t &
 }
 
 
-void Board::evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int32_t & eval) const {
-    auto friendlyPawns = white ? whitePieces[PAWN] : blackPieces[PAWN];
-    auto enemyPawns = white ? blackPieces[PAWN] : whitePieces[PAWN];
+template<bool color>
+void Board::evalRooks(uint64_t *bbs, const uint64_t& all, int32_t & eval) const {
+    auto friendlyPawns = color ? whitePieces[PAWN] : blackPieces[PAWN];
+    auto enemyPawns = color ? blackPieces[PAWN] : whitePieces[PAWN];
     auto allPawns = friendlyPawns | enemyPawns;
 
     auto bb = bbs[ROOK];
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        eval += PST::getValue(white, ROOK, pos);
+        eval += PST::getValue<color>(ROOK, pos);
 
         auto attacks = Magics::getRookMoves(all, pos);
         auto attackCount = bit_ops::countBits(attacks);
@@ -149,11 +157,11 @@ void Board::evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int32_t & 
     }
 }
 
-
-void Board::evalKing(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us, int32_t & eval) const {
+template<bool color>
+void Board::evalKing(uint64_t *bbs, const uint64_t& all, const uint64_t& us, int32_t & eval) const {
     auto bb = bbs[KING];
     auto pos = bit_ops::bitScanForwardPopLsb(bb);
-    eval += PST::getValue(white, KING, pos);
+    eval += PST::getValue<color>(KING, pos);
 
     // King virtual mobility - apply in middlegame only.
     auto attacks = Magics::getRookMoves(all, pos);
@@ -163,15 +171,15 @@ void Board::evalKing(uint64_t *bbs, bool white, const uint64_t& all, const uint6
     eval += KING_VIRTUAL_MOBILITY[attackCount];
 }
 
-
-void Board::evalBishops(uint64_t *bbs, bool white, const uint64_t& all, int32_t & eval) const {
+template<bool color>
+void Board::evalBishops(uint64_t *bbs, const uint64_t& all, int32_t & eval) const {
     // count number of bishops, add bonus.
     int bishopCount = 0;
     auto bb = bbs[BISHOP];
     while(bb){
         bishopCount++;
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        eval += PST::getValue(white, BISHOP, pos);
+        eval += PST::getValue<color>(BISHOP, pos);
 
         auto attacks = Magics::getBishopMoves(all, pos);
         auto attackCount = bit_ops::countBits(attacks);
@@ -180,19 +188,20 @@ void Board::evalBishops(uint64_t *bbs, bool white, const uint64_t& all, int32_t 
     eval += bishopCount >= 2 ? TWO_BISHOPS_BONUS : 0; // Rays goes brr.
 }
 
-void Board::evalPawns(uint64_t *bbs, bool white, int32_t & eval) const{
+template<bool color>
+void Board::evalPawns(uint64_t *bbs, int32_t & eval) const{
     // Pawn eval.
-    auto enemyPawnsBB = white ? blackPieces[PAWN] : whitePieces[PAWN];
-    auto friendlyPawnsBB = white ? whitePieces[PAWN] : blackPieces[PAWN];
+    auto enemyPawnsBB = color ? blackPieces[PAWN] : whitePieces[PAWN];
+    auto friendlyPawnsBB = color ? whitePieces[PAWN] : blackPieces[PAWN];
     auto bb = bbs[PAWN];
 
     while(bb){
         auto pos = bit_ops::bitScanForwardPopLsb(bb);
-        eval += PST::getValue(white, PAWN, pos);
+        eval += PST::getValue<color>(PAWN, pos);
 
-        int distanceFromPromotionRev = white ? ((7 - (pos / 8)) - 1) : ((7 - (7 - (pos / 8))) - 1);
+        int distanceFromPromotionRev = color ? ((7 - (pos / 8)) - 1) : ((7 - (7 - (pos / 8))) - 1);
         assert(distanceFromPromotionRev >= 0);
-        if((enemyPawnsBB & PAWN_PASSED_BITBOARDS[!white][pos]) == 0ULL){
+        if((enemyPawnsBB & PAWN_PASSED_BITBOARDS[!color][pos]) == 0ULL){
             eval += PASSED_PAWN_BONUS * distanceFromPromotionRev;
         }
 

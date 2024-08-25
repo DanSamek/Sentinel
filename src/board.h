@@ -177,25 +177,28 @@ public:
 private:
 
     void initPieces(uint64_t* pieces);
-    /***
-     * Side evaluation
-     * -> PST simple (TODO tune somehow(?))
-     * -> Mobility TODO
-     * -> rook on open/semi open files. TODO
-     * -> king safety TODO
-     * -> doubled/tripled pawns TODO
-     * @param bbs
-     * @return eval.
-     */
-    int32_t evalSide(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us) const;
 
 
-    void evalPawns(uint64_t *bbs, bool white, int32_t& eval) const;
-    void evalBishops(uint64_t *bbs, bool white, const uint64_t& all, int32_t& eval) const;
-    void evalRooks(uint64_t *bbs, bool white, const uint64_t& all, int32_t& eval) const;
-    void evalQueens(uint64_t *bbs, bool white, const uint64_t& all, int32_t& eval) const;
-    void evalKnights(uint64_t *bbs, bool white, int32_t& eval) const;
-    void evalKing(uint64_t *bbs, bool white, const uint64_t& all, const uint64_t& us, int32_t& eval) const;
+    template<bool color>
+    int32_t evalSide(uint64_t *bbs, const uint64_t& all, const uint64_t& us) const;
+
+    template<bool color>
+    void evalPawns(uint64_t *bbs, int32_t& eval) const;
+
+    template<bool color>
+    void evalBishops(uint64_t *bbs, const uint64_t& all, int32_t& eval) const;
+
+    template<bool color>
+    void evalRooks(uint64_t *bbs, const uint64_t& all, int32_t& eval) const;
+
+    template<bool color>
+    void evalQueens(uint64_t *bbs, const uint64_t& all, int32_t& eval) const;
+
+    template<bool color>
+    void evalKnights(uint64_t *bbs, int32_t& eval) const;
+
+    template<bool color>
+    void evalKing(uint64_t *bbs, const uint64_t& all, const uint64_t& us, int32_t& eval) const;
 
 
 

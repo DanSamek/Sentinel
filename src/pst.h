@@ -64,7 +64,8 @@ struct PST{
      * @param endgame if false => middlegame.
      * @return
      */
-    static inline int getValue(bool color, int pieceType, int square){
+    template<bool color>
+    static inline int getValue(int pieceType, int square){
         pieceType += color ? 0 : 6;
         return TABLE[pieceType][square];
     }
