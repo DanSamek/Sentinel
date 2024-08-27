@@ -23,6 +23,10 @@
   <li>Reverse futility pruning</li>
   <li>Late move pruning</li>
   <li>Late move reductions</li>
+  <li>Transposition table</li>
+  <ul>
+    <li>TT cut offs</li>
+  </ul>
 </ul>
 
 <h4>Eval</h4>
@@ -41,8 +45,14 @@
   <li>Castling bonus</li>
 </ul>
 
+<h4>Progress</h4>
+
+  | Version     | Estimated   | CCRL 40/15  | CCRL Blitz 2 + 1
+| ----------- | ----------- | ----------- | ---------------- |
+| 1.0         | ?        | ?        | ?         |
+
+
+
 
 <h4>Special thanks</h4>
 <p>Many thanks to all Chads on the Chess Engine Programming Discord who helped me and taught me the basics of engine programming.</p>
-
-
