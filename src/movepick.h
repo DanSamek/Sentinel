@@ -36,11 +36,8 @@ public:
      */
     static void scoreMoves(Move* moves, int cnt, Board& board, const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64], const Move& hashMove, std::vector<int>& moveScores);
 
-
-
     /***
      * Move scoring for moves in qsearch (simplier)
-     * TODO
      */
     static void scoreMovesQSearch(Move* moves, int cnt, Board& board, const Move& hashMove, std::vector<int>& moveScores);
     /***

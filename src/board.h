@@ -66,7 +66,7 @@ public:
     uint64_t zobristKey;
 
     /***
-     * Loads a fen to a _board.
+     * Loads a fen to a board.
      * @param FEN
      */
     void loadFEN(const std::string FEN);
@@ -84,11 +84,10 @@ public:
     const uint64_t& getPieceBitboard(pieceType type, pieceColor color) const;
 
     /***
-     * Makes a move on a _board.
+     * Makes a move on a board.
      * Validates a move - from a pseudolegal movegen.
      * Non const -> we will change move::capturePiece.
      * @param move
-     * @param depth Depth of a current state in search/movegen <-> static size stack (array)
      * @return if move was actually played - because of pseudolegal movegen
      */
     bool makeMove(const Move& move);
@@ -96,7 +95,6 @@ public:
     /***
      * Undo a move.
      * @param move
-     * @param depth Depth of a current state in search/movegen <-> static size stack (array)
      */
     void undoMove(const Move& move);
 
@@ -176,36 +174,112 @@ public:
     static void initPawnEvalBBS();
 private:
 
+    // inlined for a performance
+    inline void moveAPiece(uint64_t *currentPieces, int8_t movePiece, int8_t fromSq, int8_t toSq){
+        bit_ops::setNthBit(currentPieces[movePiece], toSq);
+        bit_ops::popNthBit(currentPieces[movePiece], fromSq);
+    }
+
+    // inlined for a performance
+    inline void handleCastling(Move move, bool whoPlay, bool* currentCastling)
+    {
+        switch (move.movePiece) {
+            case ROOK:
+                if (whoPlay) {
+                    switch (move.fromSq) {
+                        case 56:
+                            currentCastling[Q_CASTLE] = false;
+                            break;
+                        case 63:
+                            currentCastling[K_CASTLE] = false;
+                            break;
+                        default:
+                            break;
+                    }
+                } else {
+                    switch (move.fromSq) {
+                        case 0:
+                            currentCastling[Q_CASTLE] = false;
+                            break;
+                        case 7:
+                            currentCastling[K_CASTLE] = false;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                break;
+            case KING:
+                currentCastling[0] = false;
+                currentCastling[1] = false;
+                break;
+            default:
+                break;
+        }
+    }
+
+    // inlined for a performance
+    inline void handleEnemyCastling(std::pair<uint64_t , bool> type, Move move, bool whoPlay, bool* enemyCastling) {
+        switch (type.first) {
+            case ROOK:
+                if (whoPlay) {
+                    switch (move.toSq) {
+                        case 0:
+                            enemyCastling[Q_CASTLE] = false;
+                            break;
+                        case 7:
+                            enemyCastling[K_CASTLE] = false;
+                            break;
+                        default:
+                            break;
+                    }
+                } else {
+                    switch (move.toSq) {
+                        case 56:
+                            enemyCastling[Q_CASTLE] = false;
+                            break;
+                        case 63:
+                            enemyCastling[K_CASTLE] = false;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+
     void initPieces(uint64_t* pieces);
 
 
-    template<bool color>
+    template<bool white>
     int32_t evalSide(uint64_t *bbs, const uint64_t& all, const uint64_t& us) const;
 
-    template<bool color>
+    template<bool white>
     void evalPawns(uint64_t *bbs, int32_t& eval) const;
 
-    template<bool color>
+    template<bool white>
     void evalBishops(uint64_t *bbs, const uint64_t& all, int32_t& eval) const;
 
-    template<bool color>
+    template<bool white>
     void evalRooks(uint64_t *bbs, const uint64_t& all, int32_t& eval) const;
 
-    template<bool color>
+    template<bool white>
     void evalQueens(uint64_t *bbs, const uint64_t& all, int32_t& eval) const;
 
-    template<bool color>
+    template<bool white>
     void evalKnights(uint64_t *bbs, int32_t& eval) const;
 
-    template<bool color>
+    template<bool white>
     void evalKing(uint64_t *bbs, const uint64_t& all, const uint64_t& us, int32_t& eval) const;
 
 
 
     bool isInsufficientMaterial(uint64_t* bbs) const;
     bool isSquareAttacked(int square, bool isWhiteEnemy);
-    uint64_t getAllAttackers(const uint64_t& occupancy, int toSquare);
-    uint64_t getAttackersForSide(const uint64_t &occupancy, int toSquare, bool color);
     void push(bool setEnPassant, State &currentState);
     bool isThreeFoldRepetition() const;
 

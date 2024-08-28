@@ -9,8 +9,6 @@ TranspositionTable::TranspositionTable(int sizeMB, Board& board): _board(&board)
     uint64_t sizeInBytes = sizeMB * 1024 * 1024;
     uint64_t numberOfEntries = sizeInBytes / entrySize;
 
-    //uint64_t powerOfTwoEntries = 1ULL << static_cast<uint64_t>(std::log2(numberOfEntries));
-
     _count = numberOfEntries;
     _entries = new Entry[numberOfEntries];
     std::cout << numberOfEntries << std::endl;

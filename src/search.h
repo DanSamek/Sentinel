@@ -73,7 +73,6 @@ public:
             }
 
             // Aspiration windows
-            // TODO write some simple info about it
             int delta = ASPIRATION_DELTA_START;
             alpha = std::max(NEGATIVE_INF, score - delta);
             beta = std::min(POSITIVE_INF, score + delta);
@@ -84,12 +83,9 @@ public:
                 if(score <= alpha && score > -CHECKMATE_LOWER_BOUND){
                     alpha -= delta;
                     beta = (alpha + beta) / 2;
-                    //reduction = 0;
                 }
                 else if(score >= beta && score < CHECKMATE_LOWER_BOUND){
                     beta += delta;
-                    //reduction++;
-                    //std::cout << depth  <<  " " << reduction << std::endl;
                 }
                 else{
                     bestMove = _bestMoveIter;
@@ -104,9 +100,7 @@ public:
             }
         }
 
-        std::cout << "tt used:" << TTUsed << " nodesTotal:" << nodesVisited <<std::endl;
-        std::cout << "tt ratio: " << (TTUsed*1.0)/nodesVisited << std::endl;
-        std::cout << "pv ratio:" << (pvCounter*1.0)/nodesVisited << std::endl;
+        std::cout << "TT used:" << TTUsed << " nodesVisited:" << nodesVisited <<std::endl;
         return bestMove;
     }
 
@@ -129,20 +123,6 @@ private:
             }
         }
     }
-
-    /*
-     * -> LMR table (int)~~(log(depth) * log(moveindex)/2 - 0.3) MINUS ELO - no!
-     * -> SEE
-     * -> Razoring, late move pruning
-     * -> SearchInfo (for threads).
-     * -> Upgrade eval!.
-     *   -> king safety
-     *   -> rooks/queens on open/semi open files
-     *   -> sliders/all how many rays are around enemy king.
-     *   -> stacked pawns.
-     *   -> edit mobility values (?)
-     * -> PV
-     */
 
     // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
     static int negamax(int depth, int ply, int alpha, int beta, bool doNull, bool isPv){
@@ -295,10 +275,6 @@ private:
             movesSearched++; // for LMR
         }
 
-        // movegen returns cnt of moves total and if king is checked.
-        // if there is no move - eval == INT_MIN, we can easily return if it's draw or checkmate (for checkmate we use value < INT_MIN).
-        // checkmate || draw.
-
         if(!visitedAny && isCheck) return -CHECKMATE + ply; // checkmate.
         if(!visitedAny && !isCheck) return 0; // draw
 
@@ -309,19 +285,13 @@ private:
     }
 
 
-    /***
-     * LMR - late move reduction
-     * If move is quiet or not killer move, we will apply LMR
-     * // https://web.archive.org/web/20150212051846/http://www.glaurungchess.com/lmr.html
-     * @return
-     */
     static inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched, bool isPv, int moveScore) {
         int eval;
 
         int R = 0;
         if(depth > LMR_DEPTH && ply > 0){
             R += !isPv;
-            R += moveScore == 0; // dont reduce history moves as much.
+            R += moveScore == 0;
             R += movesSearched >= 4;
 
             R = std::clamp(R, 0, depth - 2);

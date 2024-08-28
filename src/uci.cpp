@@ -4,7 +4,7 @@
 #include <pst.h>
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-InstanceMovegen" << std::endl;
+    std::cout << "id name Sentinel-1.0" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl;
     std::cout << "uciok" << std::endl;
 }
@@ -44,7 +44,8 @@ void UCI::position(std::string command) {
         if (posMoves != std::string::npos) {
             size_t length = posMoves - start;
             fen = command.substr(start, length);
-        } else{
+        }
+        else{
             fen = command.substr(start);
         }
         _board.loadFEN(fen);
@@ -85,12 +86,14 @@ void UCI::go(std::string command) {
     else if(command.find("wtime") != std::string::npos){
         if(_board.whoPlay){
             iss >> tmp >> tmp >> miliseconds;
-        }else{
+        }
+        else{
             iss >> tmp >> tmp >> miliseconds >> tmp >> miliseconds;
         }
     }
     else{
-        // inf search.
+        // inf search
+        // TODO thread for a search -> stop command.
         miliseconds = INT_MAX;
     }
 

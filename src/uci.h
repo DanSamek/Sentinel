@@ -6,7 +6,7 @@
 #include <tt.h>
 
 /***
- * Simple implementation of UCI protocol for a chess guis (only needed co)
+ * Simple implementation of UCI for a chess GUIs (only needed commands).
  */
 struct UCI {
     static inline Board _board;
@@ -29,7 +29,8 @@ struct UCI {
      */
     static void newGame();
 
-    /*** Format: 'position startpos moves e2e4 e7e5'
+    /***
+     * Format: 'position startpos moves e2e4 e7e5'
      * Or: 'position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e4 e7e5'
      * Note: 'moves' section is optional
      */
@@ -38,13 +39,12 @@ struct UCI {
     /***
      * movetime 10
      * wtime 1000 btime 1000 winc 10 binc 10
-     * times are for searching.
-     * @param command
      */
     static void go(std::string command);
 
     /***
      * Only for debug, if position is equal to a actual position in a GUI.
+     * -> Not un UCI (i hope :D).
      */
     static void printPos();
 

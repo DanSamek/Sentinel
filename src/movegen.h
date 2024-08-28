@@ -43,8 +43,8 @@ struct Movegen {
     static void init();
 
     int index = 0;
-    Move* movesPtr;
     Board& board;
+    Move* movesPtr;
     bool captures;
 
     uint64_t all, friendlyMerged, enemyMerged;
