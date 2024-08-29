@@ -43,7 +43,7 @@ private:
 
     static inline int EFP[2] = {115, 600};
 public:
-    static Move search(int miliseconds, Board& board, bool exact){
+    static Move search(int timeRemaining, int increment, Board& board, bool exact){
         TTUsed = nodesVisited = 0;
         prepareForSearch();
 
@@ -53,7 +53,18 @@ public:
         _bestScoreIter = INT_MIN;
         _bestMoveIter = {};
 
-        double msCanBeUsed = exact ? miliseconds : miliseconds / 60;
+        // minimum search time at least for depth = 1 - for some move.
+        // TODO move this piece of code to timeManagement or something.
+        const auto minMs = 1;
+
+        auto msCanBeUsed = exact ? timeRemaining : timeRemaining / 25;
+        // increment
+        msCanBeUsed += increment / 2;
+
+        // if we are out of time, clamp it.
+        if(msCanBeUsed >= timeRemaining){
+            msCanBeUsed = std::clamp(msCanBeUsed, minMs, timeRemaining / 25);
+        }
 
         _timer = Timer(msCanBeUsed);
 
@@ -62,9 +73,9 @@ public:
         int score;
 
         Move bestMove;
+        Timer idTimer; // info about time.
         for(int depth = 1; depth < MAX_DEPTH; depth++){
             // for smaller search do a non aspirations.
-            Timer idTimer; // info about time.
             if(depth <= 5){
                 score = negamax(depth, 0, alpha, beta, true, true);
                 bestMove = _bestMoveIter;
@@ -369,7 +380,7 @@ private:
             movesToCheckmate = (plyToCheckmate + 1) / 2;
         }
         if(movesToCheckmate != 0 && _bestScoreIter != INT_MIN) std::cout << "info score mate " << movesToCheckmate << " depth " << depth << " time " << idTimer.getMs() << " move ";
-        else std::cout << "info cp score " << _bestScoreIter << " depth " << depth << " time " << idTimer.getMs() << " move ";
+        else std::cout << "info score cp " << _bestScoreIter << " depth " << depth << " time " << idTimer.getMs() << " move ";
         bestMove.print();
     }
 };

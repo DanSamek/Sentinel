@@ -4,7 +4,7 @@
 #include <pst.h>
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-1.0" << std::endl;
+    std::cout << "id name Sentinel-Time-management" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl;
     std::cout << "uciok" << std::endl;
 }
@@ -77,27 +77,29 @@ void UCI::go(std::string command) {
     */
 
     std::istringstream iss(command);
-    int miliseconds; std::string tmp;
+    int timeRemaining; std::string tmp;
+    int increment;
     bool exact = false;
     if(command.find("movetime") != std::string::npos){
-        iss >> tmp >> tmp >> miliseconds;
+        iss >> tmp >> tmp >> timeRemaining;
         exact = true;
     }
     else if(command.find("wtime") != std::string::npos){
+        // fuck it, we ball.
         if(_board.whoPlay){
-            iss >> tmp >> tmp >> miliseconds;
+            iss >> tmp >> tmp >> timeRemaining >> tmp >> increment >> tmp >> increment;
         }
         else{
-            iss >> tmp >> tmp >> miliseconds >> tmp >> miliseconds;
+            iss >> tmp >> tmp >> timeRemaining >> tmp >> timeRemaining >> tmp >> increment >> tmp >> increment;
         }
     }
     else{
         // inf search
         // TODO thread for a search -> stop command.
-        miliseconds = INT_MAX;
+        timeRemaining = INT_MAX;
     }
 
-    auto move = Search::search(miliseconds, _board, exact);
+    auto move = Search::search(timeRemaining, increment, _board, exact);
     std::cout << "bestmove ";
     move.print();
 
