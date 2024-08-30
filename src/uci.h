@@ -14,6 +14,12 @@ struct UCI {
     static inline int _hashSize = 128;
     static inline const std::string START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     static inline bool _ready = false;
+
+    /***
+     * Command line input loop for all commands.
+     */
+    static void loop();
+
     /***
      * Prints info about an engine
      */
@@ -48,10 +54,17 @@ struct UCI {
      */
     static void printPos();
 
+    /***
+     * @param command - for example set option Hash value 32
+     */
+    static void setOption(std::string command);
+
+
     ~UCI();
 private:
     static std::vector<std::string> parseMoves(std::string command);
     static void makeStringMove(std::string move);
+    static void reallocHashTable();
 };
 
 

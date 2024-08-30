@@ -3,6 +3,7 @@
 #include <movegen.h>
 #include <cassert>
 #include <chrono>
+#include "zobrist.h"
 
 struct PerftTests{
 

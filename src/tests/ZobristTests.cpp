@@ -52,21 +52,25 @@ struct ZobristTests{
         // from = 52, double pawn up
         auto move = trySearchMove(Moves, cnt, 52, 36);
         b.makeMove(move);
+        b.printBoard();
 
         // from = 1, to 18
         cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 1, 18);
         b.makeMove(move);
+        b.printBoard();
 
         // from = 62 to 45
         cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 62, 45);
         b.makeMove(move);
+        b.printBoard();
 
         // from = 11 to 27
         cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 11, 27);
         b.makeMove(move);
+        b.printBoard();
 
         auto patternHash = b.zobristKey;
 
@@ -79,21 +83,26 @@ struct ZobristTests{
         move = trySearchMove(Moves, cnt, 62, 45);
         b.makeMove(move);
 
+
         // from = 11 to 27
         cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 11, 27);
         b.makeMove(move);
+        b.printBoard();
 
         // from = 52, double pawn up
         cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 52, 36);
         b.makeMove(move);
+        b.printBoard();
 
         // from = 1, to 18
         cnt = Movegen(b, Moves, false).generateMoves().first;
         move = trySearchMove(Moves, cnt, 1, 18);
         b.makeMove(move);
+        b.printBoard();
 
+        std::cout << b.zobristKey << " != " << patternHash << std::endl;
         assert(b.zobristKey == patternHash);
 
 

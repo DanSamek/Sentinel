@@ -25,6 +25,7 @@ public:
                 zobristTable[piece][square] = Magics::randUInt64();
             }
         }
+
         // lazy to figure out enpassant for each side.
         for(int i = 0; i < NUM_FILES; i++){
             enPassantTable[i] = Magics::randUInt64();
@@ -42,18 +43,22 @@ public:
         int toSquare = move.toSq;
         auto piece = move.movePiece + (board.whoPlay ? 0 : 6);
 
-        hash ^= zobristTable[piece][fromSquare];
-        hash ^= zobristTable[piece][toSquare];
-
         if(move.moveType == Move::CAPTURE){
             auto capturedPiece = state.captureType + (board.whoPlay ? 6 : 0);
             hash ^= zobristTable[capturedPiece][toSquare];
         }
-        else if(move.moveType == Move::DOUBLE_PAWN_UP){
+
+        hash ^= zobristTable[piece][fromSquare];
+        hash ^= zobristTable[piece][toSquare];
+
+        if(move.moveType == Move::DOUBLE_PAWN_UP){
             hash ^= enPassantTable[board.enPassantSquare % 8];
         }
 
-        if(move.toSq == 0 || move.toSq == 7 || move.toSq == 63 || move.toSq == 56){
+        // capture
+        if(move.toSq == 0 || move.toSq == 7 || move.toSq == 63 || move.toSq == 56 ||
+        // rook moves.
+            (move.movePiece == Board::ROOK  && (move.fromSq == 0 || move.fromSq == 7 || move.fromSq == 63 || move.fromSq == 56))){
             updateCastlingRightsHash(hash, board, state);
         }
         hash ^= sideToMove;
@@ -109,7 +114,7 @@ public:
         if(state.castling == board.castling && !force) return; // Dont xor same castlings!
 
         uint prevCastling = (uint)state.castling[0][0] << 3 | (uint)state.castling[0][1] << 2 | (uint)state.castling[1][0] << 1 | (uint)state.castling[1][1] << 0;
-        hash ^= prevCastling;
+        hash ^= castlingTable[prevCastling];
 
         uint castling = (uint)board.castling[0][0] << 3 | (uint)board.castling[0][1] << 2 | (uint)board.castling[1][0] << 1 | (uint)board.castling[1][1] << 0;
         hash ^= castlingTable[castling];
@@ -128,7 +133,8 @@ public:
         // en passant square
         if(board.enPassantSquare != -1) hash ^= enPassantTable[board.enPassantSquare % 8];
 
-        updateCastlingRightsHash(hash, board, {}, true);
+        uint castling = (uint)board.castling[0][0] << 3 | (uint)board.castling[0][1] << 2 | (uint)board.castling[1][0] << 1 | (uint)board.castling[1][1] << 0;
+        hash ^= castlingTable[castling];
         return hash;
     }
 

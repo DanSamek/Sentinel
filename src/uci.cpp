@@ -3,9 +3,44 @@
 #include <zobrist.h>
 #include <pst.h>
 
+void UCI::loop() {
+    srand(time(nullptr));
+    std::string command;
+    while(getline(std::cin, command)){
+        size_t commandEnd = command.find(" ");
+        std::string commandName = command.substr(0, commandEnd);
+
+        if(commandName == "uci"){
+            UCI::uciInit();
+        }
+        else if(commandName == "isready"){
+            UCI::isReady();
+        }
+        else if(commandName == "quit"){
+            break;
+        }
+        else if(commandName == "ucinewgame"){
+            UCI::newGame();
+        }
+        else if(commandName == "position"){
+            UCI::position(command);
+        }
+        else if(commandName == "go"){
+            UCI::go(command);
+        }
+        else if(commandName == "printPos"){
+            UCI::printPos();
+        }
+        else if(commandName == "setoption"){
+            UCI::setOption(command);
+        }
+    }
+}
+
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-Time-management" << std::endl;
-    std::cout << "id author Daniel Samek" << std::endl;
+    std::cout << "id name Sentinel-TT-fix5" << std::endl;
+    std::cout << "id author Daniel Samek" << std::endl << std::endl;
+    std::cout << "option name Hash type spin default "<< _hashSize << " min 1 max 30000" << std::endl;
     std::cout << "uciok" << std::endl;
 }
 
@@ -15,8 +50,8 @@ void UCI::isReady() {
         Movegen::init();
         Zobrist::init();
         PST::init();
-        _TT = TranspositionTable(_hashSize, _board);
-        Search::TT = &_TT;
+        reallocHashTable();
+        _board.loadFEN(START_POS); // No more segfaults.
     }
     std::cout << "readyok" << std::endl;
     _ready = true;
@@ -77,8 +112,8 @@ void UCI::go(std::string command) {
     */
 
     std::istringstream iss(command);
-    int timeRemaining; std::string tmp;
-    int increment;
+    int timeRemaining = 0; std::string tmp;
+    int increment = 0;
     bool exact = false;
     if(command.find("movetime") != std::string::npos){
         iss >> tmp >> tmp >> timeRemaining;
@@ -107,6 +142,17 @@ void UCI::go(std::string command) {
     _board.printBoard();
 }
 
+
+void UCI::setOption(std::string command) {
+    auto stream = std::stringstream(command);
+    std::string type, value;
+    stream >> type >> type >> type >> value >> value;
+
+    if(type == "Hash"){
+        _hashSize = std::stoi(value);
+        reallocHashTable();
+    }
+}
 
 void UCI::printPos() {
     _board.printBoard();
@@ -164,4 +210,10 @@ std::vector<std::string> UCI::parseMoves(std::string command) {
 
 UCI::~UCI(){
     if(_ready) _TT.free();
+}
+
+void UCI::reallocHashTable(){
+    if(_ready) _TT.free();
+    _TT = TranspositionTable(_hashSize, _board);
+    Search::TT = &_TT;
 }

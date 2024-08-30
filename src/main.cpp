@@ -14,12 +14,12 @@ int main(){
     if(RUN_TESTS){
         Board::initPawnEvalBBS();
         Movegen::init();
-        PST::init();
         Zobrist::init();
+        PST::init();
+        ZobristTests::runTests();
         SEETests::run();
         BoardTests::testBoard();
         NullMoveTests::runTests();
-        ZobristTests::runTests();
         auto start = std::chrono::high_resolution_clock::now();
         PerftTests::runTests();
         auto end = std::chrono::high_resolution_clock::now();
@@ -30,39 +30,8 @@ int main(){
         std::cout << "Elapsed time: " << microseconds << " ms" << std::endl;
 
     }else{
-        srand(time(nullptr));
-        std::string command;
-        while(getline(std::cin, command)){
-            size_t commandEnd = command.find(" ");
-            std::string commandName = command.substr(0, commandEnd);
-
-            if(commandName == "uci"){
-                UCI::uciInit();
-            }
-            else if(commandName == "isready"){
-                UCI::isReady();
-            }
-            else if(commandName == "quit"){
-                break;
-            }
-            else if(commandName == "ucinewgame"){
-                UCI::newGame();
-            }
-            else if(commandName == "position"){
-                UCI::position(command);
-            }
-            else if(commandName == "go"){
-                UCI::go(command);
-            }
-            else if(commandName == "printPos"){
-                UCI::printPos();
-            }
-
-        }
+        UCI::loop();
     }
-
-
-
 
     return 0;
 }

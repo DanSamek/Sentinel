@@ -12,8 +12,8 @@ std::mt19937_64 generator;
 
 void Magics::init() {
     int seed = 123456;
-    std::mt19937_64 generator(seed);
-    std::uniform_int_distribution<uint64_t> distribution(0, std::numeric_limits<uint64_t>::max());
+    generator = std::mt19937_64(seed);
+    distribution = std::uniform_int_distribution<uint64_t>(0, std::numeric_limits<uint64_t>::max());
     generateBishopBlockers();
     generateRookBlockers();
     initMagics();

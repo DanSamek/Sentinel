@@ -62,7 +62,7 @@ public:
         msCanBeUsed += increment / 2;
 
         // if we are out of time, clamp it.
-        if(msCanBeUsed >= timeRemaining){
+        if(msCanBeUsed >= timeRemaining && !exact){
             msCanBeUsed = std::clamp(msCanBeUsed, minMs, timeRemaining / 25);
         }
 
