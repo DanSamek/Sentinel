@@ -34,7 +34,6 @@
 <ul>
   <li>Tapered eval</li>
   <li>Piece square tables</li>
-  <li>King distance</li>
   <li>King virtual mobility</li>
   <li>Simple piece mobility</li>
   <li>Rooks on open and semiopen files</li>

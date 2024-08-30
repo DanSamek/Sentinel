@@ -1,8 +1,6 @@
 #include "board.h"
 #include "movegen.h"
 
-static inline constexpr int MAX_KING_DISTANCE = 14;
-static inline constexpr int KING_DISTANCE_MULTIPLIER = S(4,18);
 static inline constexpr int TWO_BISHOPS_BONUS = S(27,65);
 static inline constexpr int CASTLING_BONUS = S(10,11);
 static inline constexpr int PASSED_PAWN_BONUS = S(8,31);
@@ -22,10 +20,6 @@ static inline int gamePhaseInc[] = { 0, 1, 1, 2, 4, 0 };
 static inline constexpr bool E_WHITE = true;
 static inline constexpr bool E_BLACK = false;
 
-inline int getManhattanDist(const int posA[2], const int posB[2]){
-    return std::abs(posA[0] - posB[0]) + std::abs(posA[1] - posB[1]);
-}
-
 int Board::eval() {
     uint64_t all;
     uint64_t white = 0ULL;
@@ -38,28 +32,6 @@ int Board::eval() {
 
     auto whiteScore = evalSide<E_WHITE>(whitePieces, all, white);
     auto blackScore = evalSide<E_BLACK>(blackPieces, all, black);
-
-    // Eval some things for endgames.
-    // Now only king distances.
-    // only endgames
-
-    auto whiteKingIndex = bit_ops::bitScanForward(whitePieces[KING]);
-    auto blackKingIndex = bit_ops::bitScanForward(blackPieces[KING]);
-
-    int whiteKingPos[2] = {whiteKingIndex/8, whiteKingIndex % 8};
-    int blackKingPos[2] = {blackKingIndex/8, blackKingIndex % 8};
-
-    // Manhattan distance between kings.
-    auto distance = getManhattanDist(whiteKingPos, blackKingPos);
-    int scoreToAdd = KING_DISTANCE_MULTIPLIER * (MAX_KING_DISTANCE - distance);
-
-    // Add bonus for side, if king is closer to enemy king
-    if(eg_score(whiteScore) > eg_score(blackScore)){
-        whiteScore += scoreToAdd;
-    }
-    else{
-        blackScore += scoreToAdd;
-    }
 
     // add bonus, if castling is still possible
     // if king is attacked, dont move king, just try block.
