@@ -38,7 +38,7 @@ void UCI::loop() {
 }
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-Another-Time-Management" << std::endl;
+    std::cout << "id name Sentinel-CE" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl << std::endl;
     std::cout << "option name Hash type spin default "<< _hashSize << " min 1 max 30000" << std::endl;
     std::cout << "uciok" << std::endl;

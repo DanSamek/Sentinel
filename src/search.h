@@ -145,6 +145,9 @@ private:
 
         nodesVisited++;
 
+        // Check extension.
+        if(ply > MAX_DEPTH - 1) return _board->eval();
+
         if(_board->isDraw()) return 0;
 
         // Try get eval from TT.
@@ -161,6 +164,10 @@ private:
         // after tt search, eval position.
         if(depth <= 0) return qsearch(alpha, beta, ply);
         bool isCheckNMP = _board->inCheck(); // If current king is checked, logically we can't do NMP (enemy will capture our king).
+
+        // Check extension.
+        if(isCheckNMP) depth++;
+
         int currentEval = _board->eval();
 
         // Null move pruning
