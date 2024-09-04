@@ -18,7 +18,6 @@ void Move::print() {
         default:
             break;
     }
-    std::cout<< std::endl;
 }
 
 

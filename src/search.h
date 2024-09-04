@@ -33,6 +33,7 @@ class Search {
     static inline int nodesVisited;
     static inline int pvCounter;
 
+
 public:
     static inline constexpr int MAX_DEPTH = 128;
 private:
@@ -41,7 +42,10 @@ private:
     static inline Move _killerMoves[MAX_DEPTH][2];
     static inline int _history[64][64];
 
-    static inline int EFP[2] = {115, 600};
+    // PV
+    static inline Move PVTable[MAX_DEPTH][MAX_DEPTH];
+    static inline int PVLength[MAX_DEPTH];
+
 public:
     static Move search(int timeRemaining, int increment, Board& board, bool exact){
         TTUsed = nodesVisited = 0;
@@ -133,6 +137,11 @@ private:
                 _history[j][i] = 0;
             }
         }
+
+        for(int i = 0; i < MAX_DEPTH; i++)
+        {
+            PVLength[i] = 0;
+        }
     }
 
     // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
@@ -142,8 +151,11 @@ private:
             return 0;
         }
         assert(isPv || alpha + 1 == beta);
-
         nodesVisited++;
+
+        // Pv.
+        PVLength[ply] = ply;
+
 
         // Check extension.
         if(ply > MAX_DEPTH - 1) return _board->eval();
@@ -264,6 +276,15 @@ private:
             // ! after undo move !
             if(_forceStopped){
                 return 0;
+            }
+
+            // update PV
+            if(eval > alpha){
+                PVTable[ply][ply] = moves[j];
+                for (int index = ply + 1; index < PVLength[ply + 1]; index++) {
+                    PVTable[ply][index] = PVTable[ply + 1][index];
+                }
+                PVLength[ply] = PVLength[ply + 1];
             }
 
             if(eval >= beta){
@@ -389,6 +410,14 @@ private:
         if(movesToCheckmate != 0 && _bestScoreIter != INT_MIN) std::cout << "info score mate " << movesToCheckmate << " depth " << depth << " time " << idTimer.getMs() << " move ";
         else std::cout << "info score cp " << _bestScoreIter << " depth " << depth << " time " << idTimer.getMs() << " move ";
         bestMove.print();
+
+        // PV
+        std::cout << " pv ";
+        for(int j = 0; j < PVLength[0]; j++){
+            PVTable[0][j].print();
+            std::cout << " ";
+        }
+        std::cout << std::endl;
     }
 };
 
