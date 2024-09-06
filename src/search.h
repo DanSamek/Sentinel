@@ -31,7 +31,6 @@ class Search {
     // Debug.
     static inline int TTUsed;
     static inline int nodesVisited;
-    static inline int pvCounter;
 
 
 public:
@@ -398,6 +397,8 @@ private:
 
 
     static inline void printInfo(int depth, Timer idTimer, Move& bestMove){
+        auto ms = idTimer.getMs() / 1000.0;
+        auto nps = nodesVisited / (ms == 0 ? 1 : ms);
 
         int movesToCheckmate = 0;
         if (_bestScoreIter <= -(CHECKMATE - MAX_DEPTH)) {
@@ -407,8 +408,10 @@ private:
             int plyToCheckmate = CHECKMATE - _bestScoreIter;
             movesToCheckmate = (plyToCheckmate + 1) / 2;
         }
-        if(movesToCheckmate != 0 && _bestScoreIter != INT_MIN) std::cout << "info score mate " << movesToCheckmate << " depth " << depth << " time " << idTimer.getMs() << " move ";
-        else std::cout << "info score cp " << _bestScoreIter << " depth " << depth << " time " << idTimer.getMs() << " move ";
+        if(movesToCheckmate != 0 && _bestScoreIter != INT_MIN) std::cout << "info score mate " << movesToCheckmate;
+        else std::cout << "info score cp " << _bestScoreIter;
+
+        std::cout << " depth " << depth <<" nodes " << nodesVisited << " time " << idTimer.getMs() << " nps " << (int)nps << " move ";
         bestMove.print();
 
         // PV
