@@ -13,13 +13,6 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerM
             score += MVV_VLA[attacker][victim];
         }
 
-        // killers
-        for(int killerIndex = 0; killerIndex < 2; killerIndex++){
-            if(move == killerMoves[board.halfMove][killerIndex]){
-                score += KILLER_MOVES_ORDER_SCORE[killerIndex];
-            }
-        }
-
         // tt move
         if(hashMove == move){
             score += TT_MOVE_ORDER_SCORE;
@@ -27,11 +20,18 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerM
 
         // promotion is good.
         if(move.isPromotion()){
-            score += move.promotionType * 7;
+            score += move.promotionType * 70000;
         }
 
         // history score.
         if(!isCapture){
+            // killers
+            for(int killerIndex = 0; killerIndex < 2; killerIndex++){
+                if(move == killerMoves[board.halfMove][killerIndex]){
+                    score += KILLER_MOVES_ORDER_SCORE[killerIndex];
+                    break;
+                }
+            }
             score += history[move.fromSq][move.toSq];
         }
 
