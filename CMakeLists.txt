@@ -41,4 +41,5 @@ add_executable(Sentinel
         src/tests/nullMoveTests.cpp
         src/see.cpp
         src/tests/SEETests.cpp
+        src/timemanager.cpp
 )

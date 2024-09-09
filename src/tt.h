@@ -13,53 +13,6 @@ public:
         UPPER_BOUND,
         LOWER_BOUND
     };
-    static constexpr int LOOKUP_ERROR = -1000000000;
-    static constexpr int FOUND_NOT_ACCEPTED = -2000000000;
-
-    // Default .ctor for uci init (not used)
-    TranspositionTable() = default;
-
-    /***
-     * @param sizeMB size of TT in MB (64,128,256,..) even custom.
-     * @param board for getting current zobrist key.
-     */
-    TranspositionTable(int sizeMB, Board& board);
-
-    /***
-     * @param depth current depth in search.
-     * @param alpha
-     * @param beta
-     * @return a value from TT, if not found, returns @see TranspositionTable::LOOKUP_ERROR.
-     */
-    int getEval(int depth, int alpha, int beta, int ply);
-
-    /***
-     * Stores a current position to a TT.
-     * @param eval @see Board::eval().
-     * @param depth current depth in search.
-     * @param type "hash type".
-     * @param move best move for this position.
-     */
-    void store(int eval, int depth, HashType type, const Move& move, int ply);
-
-    /***
-     * @return best move for a current position.
-     */
-    Move getMove();
-
-    /***
-     * @return current flag @see HashType
-     */
-    HashType getHashFlag();
-
-    /***
-     * Frees an allocated memory for a table.
-     */
-    void free();
-private:
-
-    int index();
-    static inline Move NO_MOVE = Move();
 
     struct Entry{
         int eval;
@@ -76,9 +29,88 @@ private:
         }
     };
 
-    Entry* _entries;
+    Entry* entries;
+
+    static constexpr int LOOKUP_ERROR = -1000000000;
+    static constexpr int FOUND_NOT_ACCEPTED = -2000000000;
+
+    static constexpr int WIN_BOUND = 1000000 - 128;
+
+    // Default .ctor for uci init (not used)
+    TranspositionTable() = default;
+
+    /***
+     * @param sizeMB size of TT in MB (64,128,256,..) even custom.
+     */
+    TranspositionTable(int sizeMB);
+
+
+    /***
+     * @param zobristKey current key of a position.
+     * @param depth current depth in search.
+     * @param alpha
+     * @param beta
+     * @return a value from TT, if not found, returns @see TranspositionTable::LOOKUP_ERROR.
+     */
+    inline int getEval(const uint64_t& zobristKey, int index,int depth, int alpha, int beta, int ply) {
+        Entry entry = entries[index];
+        if(entry.hash != zobristKey) return LOOKUP_ERROR;
+
+        if(entry.depth >= depth){
+
+            auto correctedEval = getCorrectedScore(entry.eval, ply);
+
+            if(entry.flag == HashType::EXACT){
+                return correctedEval;
+            }
+
+            if(entry.flag == HashType::UPPER_BOUND && entry.eval <= alpha){
+                return correctedEval;
+            }
+
+            if(entry.flag == HashType::LOWER_BOUND && entry.eval >= beta){
+                return correctedEval;
+            }
+        }
+
+        return FOUND_NOT_ACCEPTED;
+    }
+
+    /***
+     * Stores a current position to a TT.
+     * @param zobristKey current key of a position.
+     * @param eval @see Board::eval().
+     * @param depth current depth in search.
+     * @param type "hash type".
+     * @param move best move for this position.
+     */
+    inline void store(const uint64_t& zobristKey, int index, int eval, int depth, TranspositionTable::HashType type, const Move &move, int ply) {
+        if (eval >= WIN_BOUND) eval += ply;
+        else if (eval <= -WIN_BOUND) eval -= ply;
+
+        //if(zobristKey == entries[index].hash && entries[index].depth > depth && entries[index].age+2 > ply) return;
+        entries[index] = {eval, depth, zobristKey, type, move};
+    }
+
+    /***
+     * @return current flag @see HashType
+     */
+    HashType getHashFlag();
+
+    /***
+     * Frees an allocated memory for a table.
+     */
+    void free();
+
+    inline int index(const uint64_t& key) {
+        return (int)(key % _count);
+    }
+private:
+
+    static inline Move NO_MOVE = Move();
+    int getCorrectedScore(int score, int ply);
+
     uint64_t _count;
-    Board* _board;
 };
 
 

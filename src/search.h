@@ -7,6 +7,7 @@
 #include <tt.h>
 #include <chrono>
 #include <timer.h>
+#include <timemanager.h>
 
 class Search {
     static constexpr int POSITIVE_INF = 100000000;
@@ -19,10 +20,6 @@ class Search {
     static inline constexpr int ASPIRATION_DELTA_START = 7;
     static inline constexpr int ASPIRATION_MAX_DELTA_SIZE = 4'096;
 
-    static inline constexpr int RAZOR_MARGIN = 558;
-    static inline constexpr int RAZOR_MIN_DEPTH = 3;
-
-
     static inline Board* _board;
     static inline bool _forceStopped = false;
 
@@ -34,6 +31,7 @@ class Search {
 
 
 public:
+    // !!!! Same value has to be in TT.h !!!!
     static inline constexpr int MAX_DEPTH = 128;
 private:
     // Killer moves, that did beta cutoffs, use them in move order.
@@ -56,18 +54,7 @@ public:
         _bestScoreIter = INT_MIN;
         _bestMoveIter = {};
 
-        // TODO move this piece of code to timeManagement or something.
-        // minimum search time at least for depth = 1 - for some move.
-        const auto minMs = 1;
-
-        auto msCanBeUsed = exact ? timeRemaining : timeRemaining / 18;
-        // increment
-        msCanBeUsed += increment / 2 + increment / 4;
-
-        // if we are out of time, clamp it.
-        if(msCanBeUsed >= timeRemaining && !exact){
-            msCanBeUsed = std::clamp(msCanBeUsed, minMs, timeRemaining / 18);
-        }
+        auto msCanBeUsed = Timemanager::getSearchTime(timeRemaining, increment, exact);
 
         _timer = Timer(msCanBeUsed);
 
@@ -118,6 +105,7 @@ public:
         return bestMove;
     }
 
+    // !!!! Same value has to be in TT.h !!!!
     static constexpr int CHECKMATE = 1000000;
     static constexpr int CHECKMATE_LOWER_BOUND = 1000000 - 1000;
     static inline TranspositionTable* TT;
@@ -162,8 +150,9 @@ private:
         if(_board->isDraw()) return 0;
 
         // Try get eval from TT.
-        int ttEval = TT->getEval(depth, alpha, beta, ply);
-        auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->getMove() : Move();
+        auto ttIndex =  TT->index(_board->zobristKey);
+        int ttEval = TT->getEval(_board->zobristKey, ttIndex, depth, alpha, beta, ply);
+        auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->entries[ttIndex].best : Move();
 
         if(ttEval > TranspositionTable::LOOKUP_ERROR && !isPv){
             TTUsed++;
@@ -194,27 +183,6 @@ private:
             if(eval >= beta) return eval;
             if(_forceStopped) return 0;
         }
-
-        // Razoring
-        // if eval of current position is so bad, we can prune it.
-        // pretty crazy and experimental.
-        /*
-            Without razoring - bullet
-            Results of sentinel-dev vs sentinel (60+1, 1t, MB, 8moves_v3.pgn):
-            Elo: -41.89 +/- 50.73, nElo: -57.20 +/- 68.10
-            LOS: 4.98 %, DrawRatio: 30.00 %, PairsRatio: 0.52
-            Games: 100, Wins: 26, Losses: 38, Draws: 36, Points: 44.0 (44.00 %)
-
-            Without razoring - rapid
-            Results of sentinel-dev vs sentinel (1.8e+02+1, 1t, MB, 8moves_v3.pgn):
-            Elo: -147.19 +/- 148.05, nElo: -262.64 +/- 215.34
-            LOS: 0.84 %, DrawRatio: 40.00 %, PairsRatio: 0.00
-        */
-
-        /*
-        if(!isPv && !isCheckNMP && ply > 0 && depth <= RAZOR_MIN_DEPTH && currentEval + RAZOR_MARGIN * depth <= alpha){
-            return qsearch(alpha - 1, alpha, ply);
-        }*/
 
         // Reverse futility pruning
         // If current pos - margin is too good (>= beta), we can return currentEval.
@@ -292,7 +260,7 @@ private:
                     storeKillerMove(ply, moves[j]);
                     _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
                 }
-                TT->store(eval, depth, TranspositionTable::LOWER_BOUND, moves[j], ply);
+                TT->store(_board->zobristKey, ttIndex,eval, depth, TranspositionTable::LOWER_BOUND, moves[j], ply);
                 return eval;
             }
 
@@ -317,8 +285,7 @@ private:
         if(!visitedAny && !isCheck) return 0; // draw
 
 
-
-        TT->store(alpha, depth, TTType, bestMoveInPos, ply);
+        TT->store(_board->zobristKey, ttIndex, alpha, depth, TTType, bestMoveInPos, ply );
         return alpha;
     }
 
@@ -391,8 +358,8 @@ private:
     }
 
     static inline void storeKillerMove(int ply, const Move& move){
-        _killerMoves[ply][1] = std::move(_killerMoves[ply][0]);
-        _killerMoves[ply][0] = std::move(move);
+        _killerMoves[ply][1] = _killerMoves[ply][0];
+        _killerMoves[ply][0] = move;
     }
 
 
