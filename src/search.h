@@ -162,7 +162,11 @@ private:
         if(ttEval == TranspositionTable::LOOKUP_ERROR && ply > 0 && depth >= 5) depth--;
 
         // after tt search, eval position.
-        if(depth <= 0) return qsearch(alpha, beta, ply);
+        if(depth <= 0)
+        {
+            nodesVisited--;
+            return qsearch(alpha, beta, ply);
+        }
         bool isCheckNMP = _board->inCheck(); // If current king is checked, logically we can't do NMP (enemy will capture our king).
 
         // Check extension.
