@@ -7,6 +7,14 @@
 
 <hr />
 
+<h3>Build</h3>
+
+```  
+cmake -DCMAKE_BUILD_TYPE=Release
+
+cmake --build . --config Release
+```
+
 <h3>Features</h3>
 
 <h4>Search</h4>
