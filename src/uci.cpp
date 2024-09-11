@@ -128,8 +128,8 @@ void UCI::go(std::string command) {
         }
     }
     else{
-        // inf findBestMove
-        // TODO thread for a findBestMove -> stop command.
+        // inf search
+        // TODO thread for a search -> stop command.
         timeRemaining = INT_MAX;
     }
 

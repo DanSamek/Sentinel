@@ -75,7 +75,7 @@ public:
         Move bestMove;
         Timer idTimer; // info about time.
         for(int depth = 1; depth < MAX_DEPTH; depth++){
-            // for smaller findBestMove do a non aspirations.
+            // for smaller search do a non aspirations.
             if(depth <= 5){
                 score = negamax(depth, 0, alpha, beta, true, true);
                 bestMove = _bestMoveIter;
@@ -164,7 +164,6 @@ private:
         // IIR
         if(ttEval == TranspositionTable::LOOKUP_ERROR && ply > 0 && depth >= 5) depth--;
 
-        // after tt findBestMove, eval position.
         if(depth <= 0)
         {
             _nodesVisited--;
@@ -315,13 +314,13 @@ private:
             eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv, move);
         }
         else{
-            // do reduced findBestMove (null window)
+            // do reduced search (null window)
             eval = -negamax(depth - 1 - R, ply + 1, -alpha - 1, -alpha, true, false, move);
 
-            // do non reduced findBestMove (null window)
+            // do non reduced search (null window)
             if(eval > alpha && R != 0) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true, false, move);
 
-            // if LMR fails, do normal full findBestMove.
+            // if LMR fails, do normal full search.
             if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv, move);
         }
         return eval;
