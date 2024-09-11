@@ -17,24 +17,27 @@ class Movepick {
      */
     // MVV-LVA (most valuable victim, least valuable attacker).
     static constexpr int MVV_VLA[6][6] ={
-        {10050000, 20050000, 30050000, 40050000, 50050000, 60050000, },
-        {10040000, 20040000, 30040000, 40040000, 50040000, 60040000, },
-        {10030000, 20030000, 30030000, 40030000, 50030000, 60030000, },
-        {10020000, 20020000, 30020000, 40020000, 50020000, 60020000, },
-        {10010000, 20010000, 30010000, 40010000, 50010000, 60010000, },
-        {10000000, 20000000, 30000000, 40000000, 50000000, 60000000, }
+        {100500000, 200500000, 300500000, 400500000, 500500000, 600500000, },
+        {100400000, 200400000, 300400000, 400400000, 500400000, 600400000, },
+        {100300000, 200300000, 300300000, 400300000, 500300000, 600300000, },
+        {100200000, 200200000, 300200000, 400200000, 500200000, 600200000, },
+        {100100000, 200100000, 300100000, 400100000, 500100000, 600100000, },
+        {100000000, 200000000, 300000000, 400000000, 500000000, 600000000, }
     };
 
     // after MVV_VLA
-    static inline constexpr int KILLER_MOVES_ORDER_SCORE[2] = {9'000'000,8'000'000};
+    static inline constexpr int COUNTER_MOVE_SCORE = 70'000'000;
+    static inline constexpr int KILLER_MOVES_ORDER_SCORE[2] = {90'000'000,80'000'000};
     static inline constexpr int TT_MOVE_ORDER_SCORE = 1'000'000'000; // best move from prev iteration, lets pick it first!
 
 public:
 
     /***
-     * Move scoring for moves in main search.
+     * Move scoring for moves in main findBestMove.
      */
-    static void scoreMoves(Move* moves, int cnt, Board& board, const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64], const Move& hashMove, std::vector<int>& moveScores);
+    static void scoreMoves(Move *moves, int cnt, Board &board,
+                           const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64],
+                           const Move& hashMove, const Move& counterMove, std::vector<int>& moveScores);
 
     /***
      * Move scoring for moves in qsearch (simplier)

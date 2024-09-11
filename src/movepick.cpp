@@ -1,6 +1,8 @@
 #include "movepick.h"
 
-void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64],const Move& hashMove, std::vector<int>& moveScores) {
+void Movepick::scoreMoves(Move *moves, int cnt, Board &board,
+                          const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64],
+                          const Move& hashMove, const Move& counterMove, std::vector<int>& moveScores) {
     for(int moveIndex = 0; moveIndex < cnt; moveIndex++){
         int score = 0;
         auto move = moves[moveIndex];
@@ -10,12 +12,24 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerM
         if(isCapture){
             auto attacker = move.movePiece;
             auto victim = move.moveType == Move::EN_PASSANT ? Board::PAWN : board.getPieceType(move.toSq);
-            score += MVV_VLA[attacker][victim];
+            score = MVV_VLA[attacker][victim];
         }
+        else{
+            // history score.
+            score = history[move.fromSq][move.toSq];
 
-        // tt move
-        if(hashMove == move){
-            score += TT_MOVE_ORDER_SCORE;
+            // countermoves
+            if(move == counterMove){
+                score = COUNTER_MOVE_SCORE;
+            }
+
+            // killers
+            for(int killerIndex = 0; killerIndex < 2; killerIndex++){
+                if(move == killerMoves[board.halfMove][killerIndex]){
+                    score = KILLER_MOVES_ORDER_SCORE[killerIndex];
+                    break;
+                }
+            }
         }
 
         // promotion is good.
@@ -23,16 +37,9 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const Move killerM
             score += move.promotionType * 70000;
         }
 
-        // history score.
-        if(!isCapture){
-            // killers
-            for(int killerIndex = 0; killerIndex < 2; killerIndex++){
-                if(move == killerMoves[board.halfMove][killerIndex]){
-                    score += KILLER_MOVES_ORDER_SCORE[killerIndex];
-                    break;
-                }
-            }
-            score += history[move.fromSq][move.toSq];
+        // tt move
+        if(hashMove == move){
+            score = TT_MOVE_ORDER_SCORE;
         }
 
         moveScores[moveIndex] = score;
