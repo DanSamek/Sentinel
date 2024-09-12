@@ -56,7 +56,7 @@ cmake --build . --config Release
 
   | Version     | Estimated   | CCRL 40/15  | CCRL Blitz 2 + 1
 | ----------- | ----------- | ----------- | ---------------- |
-| 1.0         | ?        | ?        | ?         |
+| 1.0         | 2.3-2.5k       | ?        | ?         |
 
 
 
