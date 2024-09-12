@@ -113,10 +113,10 @@ public:
         // << 0
         if(state.castling == board.castling && !force) return; // Dont xor same castlings!
 
-        uint prevCastling = (uint)state.castling[0][0] << 3 | (uint)state.castling[0][1] << 2 | (uint)state.castling[1][0] << 1 | (uint)state.castling[1][1] << 0;
+        uint8_t prevCastling =  getCastlingUInt(state.castling);
         hash ^= castlingTable[prevCastling];
 
-        uint castling = (uint)board.castling[0][0] << 3 | (uint)board.castling[0][1] << 2 | (uint)board.castling[1][0] << 1 | (uint)board.castling[1][1] << 0;
+        uint8_t  castling = getCastlingUInt(board.castling);
         hash ^= castlingTable[castling];
 
     }
@@ -133,7 +133,7 @@ public:
         // en passant square
         if(board.enPassantSquare != -1) hash ^= enPassantTable[board.enPassantSquare % 8];
 
-        uint castling = (uint)board.castling[0][0] << 3 | (uint)board.castling[0][1] << 2 | (uint)board.castling[1][0] << 1 | (uint)board.castling[1][1] << 0;
+        auto castling = getCastlingUInt(board.castling);
         hash ^= castlingTable[castling];
         return hash;
     }
@@ -168,6 +168,10 @@ private:
                 hash ^= zobristTable[j+mover][pos];
             }
         }
+    }
+
+    static inline uint8_t getCastlingUInt(std::array<std::array<bool, 2>,2> castling){
+        return (uint8_t)castling[0][0] << 3 | (uint8_t)castling[0][1] << 2 | (uint8_t)castling[1][0] << 1 | (uint8_t)castling[1][1] << 0;
     }
 };
 

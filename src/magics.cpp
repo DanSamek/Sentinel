@@ -31,19 +31,15 @@ uint64_t Magics::getSlidingMoves(const uint64_t& blockers, int square, bool rook
 
 uint64_t Magics::getRookMoves(const uint64_t& blockers, int square){
     uint64_t hashBlockers = blockers & ROOK_BLOCKERS[square];
-    uint64_t magics = ROOK_MAGICS[square] ;
-    uint64_t hash;
-    __builtin_umull_overflow(hashBlockers, magics, &hash);
-    uint64_t index = (hash >> (uint64_t)(64ULL - ROOK_MAGICS_SHIFT[square]));
+    uint64_t hash =  hashBlockers * ROOK_MAGICS[square] ;
+    uint64_t index = (hash >> (64ULL - ROOK_MAGICS_SHIFT[square]));
     return ROOK_TABLE[square][index];
 }
 
 uint64_t Magics::getBishopMoves(const uint64_t& blockers, int square){
     uint64_t hashBlockers = blockers & BISHOP_BLOCKERS[square];
-    uint64_t magics = BISHOP_MAGICS[square] ;
-    uint64_t hash;
-    __builtin_umull_overflow(hashBlockers, magics, &hash);
-    uint64_t index = (hash >> (uint64_t)(64ULL - BISHOP_MAGICS_SHIFT[square]));
+    uint64_t hash = hashBlockers * BISHOP_MAGICS[square];
+    uint64_t index = (hash >> (64ULL - BISHOP_MAGICS_SHIFT[square]));
     return BISHOP_TABLE[square][index];
 }
 

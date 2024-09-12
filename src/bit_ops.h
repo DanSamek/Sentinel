@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <array>
+#include <bit>
 
 struct bit_ops {
     inline static bool getNthBit(const uint64_t& value, int pos){
@@ -19,7 +20,7 @@ struct bit_ops {
     }
 
     inline static int bitScanForward(const uint64_t & value){
-        return __builtin_ctzll(value); // lsb
+        return std::countr_zero(value); // lsb
     }
 
     inline static int bitScanForwardPopLsb(uint64_t& value){

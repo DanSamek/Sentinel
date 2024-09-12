@@ -201,7 +201,8 @@ private:
         std::vector<int> moveScores(moveCount);
 
         // "move ordering"
-        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves, _history ,hashMove, _counterMoves[prevMove.fromSq][prevMove.toSq] ,moveScores);
+        auto counterMove = prevMove.fromSq == -1 ? NO_MOVE : _counterMoves[prevMove.fromSq][prevMove.toSq];
+        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves, _history ,hashMove, counterMove,moveScores);
         bool visitedAny = false;
 
         TranspositionTable::HashType TTType = TranspositionTable::UPPER_BOUND;

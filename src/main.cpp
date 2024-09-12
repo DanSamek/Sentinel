@@ -25,7 +25,6 @@ int main(){
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration = end - start;
 
-        // Convert duration to microseconds for better readability
         double microseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
         std::cout << "Elapsed time: " << microseconds << " ms" << std::endl;
 

@@ -37,7 +37,7 @@ void UCI::loop() {
 }
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-CounterMoves" << std::endl;
+    std::cout << "id name Sentinel-1.0" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl << std::endl;
     std::cout << "option name Hash type spin default "<< _hashSize << " min 1 max 30000" << std::endl;
     std::cout << "uciok" << std::endl;
