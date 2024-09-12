@@ -37,7 +37,7 @@ void UCI::loop() {
 }
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel" << std::endl;
+    std::cout << "id name Sentinel-CounterMoves" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl << std::endl;
     std::cout << "option name Hash type spin default "<< _hashSize << " min 1 max 30000" << std::endl;
     std::cout << "uciok" << std::endl;
@@ -133,7 +133,8 @@ void UCI::go(std::string command) {
         timeRemaining = INT_MAX;
     }
 
-    auto move = Search::search(timeRemaining, increment, _board, exact);
+    auto search = Search();
+    auto move = search.findBestMove(timeRemaining, increment, _board, exact);
     std::cout << "bestmove ";
     move.print();
     std::cout << std::endl;

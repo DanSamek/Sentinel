@@ -13,39 +13,49 @@ class Search {
     static constexpr int POSITIVE_INF = 100000000;
     static constexpr int NEGATIVE_INF = -100000000;
 
-    static inline int _bestScoreIter = INT_MIN;
-    static inline Move _bestMoveIter;
     static inline constexpr int LMR_DEPTH = 2;
 
     static inline constexpr int ASPIRATION_DELTA_START = 7;
     static inline constexpr int ASPIRATION_MAX_DELTA_SIZE = 4'096;
 
-    static inline Board* _board;
-    static inline bool _forceStopped = false;
-
-    static inline Timer _timer;
-
-    // Debug.
-    static inline int TTUsed;
-    static inline int nodesVisited;
-
-
-public:
     // !!!! Same value has to be in TT.h !!!!
     static inline constexpr int MAX_DEPTH = 128;
-private:
+
+    Board* _board;
+    bool _forceStopped = false;
+
+    Timer _timer;
+
+    // Debug.
+    int _ttUsed;
+    int _nodesVisited;
+
+    int _bestScoreIter = INT_MIN;
+    Move _bestMoveIter;
+
     // Killer moves, that did beta cutoffs, use them in move order.
     // Now only 2 killer moves per ply.
-    static inline Move _killerMoves[MAX_DEPTH][2];
-    static inline int _history[64][64];
+    Move _killerMoves[MAX_DEPTH][2];
+    int _history[64][64];
+
+    // Some moves can have natural response.
+    Move _counterMoves[64][64];
 
     // PV
-    static inline Move PVTable[MAX_DEPTH][MAX_DEPTH];
-    static inline int PVLength[MAX_DEPTH];
+    Move _pvTable[MAX_DEPTH][MAX_DEPTH];
+    int _pvLength[MAX_DEPTH];
+
+    // !!!! Same value has to be in TT.h !!!!
+    static constexpr int CHECKMATE = 1000000;
+    static constexpr int CHECKMATE_LOWER_BOUND = 1000000 - 1000;
+
+
+    static inline Move NO_MOVE = Move();
 
 public:
-    static Move search(int timeRemaining, int increment, Board& board, bool exact){
-        TTUsed = nodesVisited = 0;
+    static inline TranspositionTable* TT;
+    Move findBestMove(int timeRemaining, int increment, Board& board, bool exact){
+        _ttUsed = _nodesVisited = 0;
         prepareForSearch();
 
         // get first moves, only legal.
@@ -101,47 +111,40 @@ public:
             }
         }
 
-        std::cout << "TT used:" << TTUsed << " nodesVisited:" << nodesVisited <<std::endl;
+        std::cout << "TT used:" << _ttUsed << " _nodesVisited:" << _nodesVisited << std::endl;
         return bestMove;
     }
 
-    // !!!! Same value has to be in TT.h !!!!
-    static constexpr int CHECKMATE = 1000000;
-    static constexpr int CHECKMATE_LOWER_BOUND = 1000000 - 1000;
-    static inline TranspositionTable* TT;
-
 private:
 
-    static void prepareForSearch(){
-        for(int j = 0; j <= 1; j++){
-            for(int d = 0; d < MAX_DEPTH; d++){
-                _killerMoves[d][j] = Move();
-            }
+    void prepareForSearch(){
+        for (auto& killers : _killerMoves) {
+            std::fill(std::begin(killers), std::end(killers), Move());
         }
 
-        for(int j = 0; j < 63; j++){
-            for(int i = 0; i < 63; i++){
-                _history[j][i] = 0;
-            }
+        for (auto& counterMoves : _counterMoves) {
+            std::fill(std::begin(counterMoves), std::end(counterMoves), Move());
         }
 
-        for(int i = 0; i < MAX_DEPTH; i++)
-        {
-            PVLength[i] = 0;
+        for (auto& row : _history) {
+            std::fill(std::begin(row), std::end(row), 0);
         }
+
+        std::fill(std::begin(_pvLength), std::end(_pvLength), 0);
     }
 
+
     // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
-    static int negamax(int depth, int ply, int alpha, int beta, bool doNull, bool isPv){
+    int negamax(int depth, int ply, int alpha, int beta, bool doNull, bool isPv, const Move& prevMove = NO_MOVE){
         if(_timer.isTimeout()){
             _forceStopped = true;
             return 0;
         }
         assert(isPv || alpha + 1 == beta);
-        nodesVisited++;
+        _nodesVisited++;
 
         // Pv.
-        PVLength[ply] = ply;
+        _pvLength[ply] = ply;
 
 
         // Check extension.
@@ -155,16 +158,15 @@ private:
         auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->entries[ttIndex].best : Move();
 
         if(ttEval > TranspositionTable::LOOKUP_ERROR && !isPv){
-            TTUsed++;
+            _ttUsed++;
             return ttEval;
         }
         // IIR
         if(ttEval == TranspositionTable::LOOKUP_ERROR && ply > 0 && depth >= 5) depth--;
 
-        // after tt search, eval position.
         if(depth <= 0)
         {
-            nodesVisited--;
+            _nodesVisited--;
             return qsearch(alpha, beta, ply);
         }
         bool isCheckNMP = _board->inCheck(); // If current king is checked, logically we can't do NMP (enemy will capture our king).
@@ -199,7 +201,7 @@ private:
         std::vector<int> moveScores(moveCount);
 
         // "move ordering"
-        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves, _history ,hashMove, moveScores);
+        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves, _history ,hashMove, _counterMoves[prevMove.fromSq][prevMove.toSq] ,moveScores);
         bool visitedAny = false;
 
         TranspositionTable::HashType TTType = TranspositionTable::UPPER_BOUND;
@@ -235,11 +237,10 @@ private:
                 continue;
             }
 
-
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
             // late move reduction.
-            int eval = lmr(depth, ply, alpha, beta, movesSearched, isPv, moveScores[j]);
+            int eval = lmr(depth, ply, alpha, beta, movesSearched, isPv, moveScores[j], moves[j]);
 
             _board->undoMove(moves[j]);
             quietMovesCount += !isCapture;
@@ -251,11 +252,11 @@ private:
 
             // update PV
             if(eval > alpha){
-                PVTable[ply][ply] = moves[j];
-                for (int index = ply + 1; index < PVLength[ply + 1]; index++) {
-                    PVTable[ply][index] = PVTable[ply + 1][index];
+                _pvTable[ply][ply] = moves[j];
+                for (int index = ply + 1; index < _pvLength[ply + 1]; index++) {
+                    _pvTable[ply][index] = _pvTable[ply + 1][index];
                 }
-                PVLength[ply] = PVLength[ply + 1];
+                _pvLength[ply] = _pvLength[ply + 1];
             }
 
             if(eval >= beta){
@@ -263,7 +264,12 @@ private:
                 if(!isCapture){
                     storeKillerMove(ply, moves[j]);
                     _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
+
+                    if(ply > 0 && prevMove != NO_MOVE){
+                        _counterMoves[prevMove.fromSq][prevMove.toSq] = moves[j];
+                    }
                 }
+
                 TT->store(_board->zobristKey, ttIndex,eval, depth, TranspositionTable::LOWER_BOUND, moves[j], ply);
                 return eval;
             }
@@ -280,7 +286,6 @@ private:
                 }
             }
 
-
             visitedAny = true; // for draw / checkmate checking.
             movesSearched++; // for LMR
         }
@@ -294,7 +299,7 @@ private:
     }
 
 
-    static inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched, bool isPv, int moveScore) {
+    inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched, bool isPv, int moveScore, const Move& move) {
         int eval;
 
         int R = 0;
@@ -306,17 +311,17 @@ private:
             R = std::clamp(R, 0, depth - 2);
         }
         if(movesSearched == 1 && isPv){
-            eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
+            eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv, move);
         }
         else{
             // do reduced search (null window)
-            eval = -negamax(depth - 1 - R, ply + 1, -alpha - 1, -alpha, true, false);
+            eval = -negamax(depth - 1 - R, ply + 1, -alpha - 1, -alpha, true, false, move);
 
             // do non reduced search (null window)
-            if(eval > alpha && R != 0) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true, false);
+            if(eval > alpha && R != 0) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true, false, move);
 
             // if LMR fails, do normal full search.
-            if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
+            if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv, move);
         }
         return eval;
     }
@@ -328,8 +333,8 @@ private:
      *  -> qsearch.
      * @return eval of the position without captures.
      */
-    static int qsearch(int alpha, int beta, int ply){
-        nodesVisited++;
+    int qsearch(int alpha, int beta, int ply){
+        _nodesVisited++;
 
         if(_board->isDraw()) return 0;
         if(ply >= MAX_DEPTH) return _board->eval();
@@ -361,15 +366,15 @@ private:
         return alpha;
     }
 
-    static inline void storeKillerMove(int ply, const Move& move){
+    inline void storeKillerMove(int ply, const Move& move){
         _killerMoves[ply][1] = _killerMoves[ply][0];
         _killerMoves[ply][0] = move;
     }
 
 
-    static inline void printInfo(int depth, Timer idTimer, Move& bestMove){
+    void printInfo(int depth, Timer idTimer, Move& bestMove){
         auto ms = idTimer.getMs() / 1000.0;
-        auto nps = nodesVisited / (ms == 0 ? 1 : ms);
+        auto nps = _nodesVisited / (ms == 0 ? 1 : ms);
 
         int movesToCheckmate = 0;
         if (_bestScoreIter <= -(CHECKMATE - MAX_DEPTH)) {
@@ -382,13 +387,13 @@ private:
         if(movesToCheckmate != 0 && _bestScoreIter != INT_MIN) std::cout << "info score mate " << movesToCheckmate;
         else std::cout << "info score cp " << _bestScoreIter;
 
-        std::cout << " depth " << depth <<" nodes " << nodesVisited << " time " << idTimer.getMs() << " nps " << (int)nps << " move ";
+        std::cout << " depth " << depth << " nodes " << _nodesVisited << " time " << idTimer.getMs() << " nps " << (int)nps << " move ";
         bestMove.print();
 
         // PV
         std::cout << " pv ";
-        for(int j = 0; j < PVLength[0]; j++){
-            PVTable[0][j].print();
+        for(int j = 0; j < _pvLength[0]; j++){
+            _pvTable[0][j].print();
             std::cout << " ";
         }
         std::cout << std::endl;
