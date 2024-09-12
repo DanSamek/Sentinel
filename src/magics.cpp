@@ -62,8 +62,7 @@ std::vector<uint64_t> Magics::getMagics(int file, int rank, uint64_t* sliderBloc
 
 uint64_t Magics::magic_index(uint64_t currentBlockers, uint64_t tableBlocker, int indexBits, uint64_t magics){
     uint64_t blockers = currentBlockers & tableBlocker;
-    uint64_t hash;
-    __builtin_umull_overflow(blockers, magics, &hash);
+    uint64_t hash = blockers * magics;
     uint64_t index = (hash >> (uint64_t)(64 - indexBits));
     return index;
 }
