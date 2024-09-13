@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <cstdint>
 
 struct Move {
     enum type :int8_t{
