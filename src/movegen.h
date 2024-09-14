@@ -13,7 +13,7 @@ class Board;
         AKA generate all moves, check if moves are legal - king is not checked.
 */
 struct Movegen {
-    Movegen(Board& board, Move* moves, bool capturesOnly);
+    Movegen(Board& board, Move* moves);
 
     // Color, square
     static constexpr int MAX_LEGAL_MOVES = 218;
@@ -45,14 +45,35 @@ struct Movegen {
     int index = 0;
     Board& board;
     Move* movesPtr;
-    bool captures;
 
     uint64_t all, friendlyMerged, enemyMerged;
     uint64_t *friendlyBits;
     uint64_t *enemyBits;
 
 
-    std::pair<int, bool> generateMoves();
+    template <bool capturesOnly>
+    std::pair<int, bool> generateMoves(){
+        auto kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
+
+        bool checked = !validateKingCheck(kingPos);
+        if (capturesOnly){
+            generatePawnCaptures(friendlyBits[Board::PAWN]);
+            generateRookCaptures(friendlyBits[Board::ROOK]);
+            generateBishopCaptures(friendlyBits[Board::BISHOP]);
+            generateQueenCaptures(friendlyBits[Board::QUEEN]);
+            generateKnightCaptures(friendlyBits[Board::KNIGHT]);
+            generateKingCaptures(friendlyBits[Board::KING]);
+            return {index, checked};
+        }
+        generatePawnMoves(friendlyBits[Board::PAWN], board.enPassantSquare, board.whoPlay);
+        generateRookMoves(friendlyBits[Board::ROOK]);
+        generateBishopMoves(friendlyBits[Board::BISHOP]);
+        generateQueenMoves(friendlyBits[Board::QUEEN]);
+        generateKnightMoves(friendlyBits[Board::KNIGHT]);
+        generateKingMoves(friendlyBits[Board::KING], board.castling[!board.whoPlay]);
+
+        return {index, checked};
+    }
 
 
     bool validateKingCheck(int kingPos);

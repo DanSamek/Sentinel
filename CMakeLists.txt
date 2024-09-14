@@ -7,9 +7,11 @@ set(CMAKE_CXX_FLAGS "-Wall -pedantic")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address,undefined")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
-set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib)
-set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ -lpthread")
 
+if(MAKE_CXX_FLAGS_RELEASE)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib)
+    set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ -lpthread")
+endif ()
 
 include_directories(src/tests)
 include_directories(src)

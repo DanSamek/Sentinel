@@ -2,6 +2,7 @@
 #include <search.h>
 #include <zobrist.h>
 #include <pst.h>
+#include "development.h"
 
 void UCI::loop() {
     std::string command;
@@ -37,7 +38,7 @@ void UCI::loop() {
 }
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-1.0" << std::endl;
+    std::cout << "id name Sentinel-1.02" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl << std::endl;
     std::cout << "option name Hash type spin default "<< _hashSize << " min 1 max 30000" << std::endl;
     std::cout << "uciok" << std::endl;
@@ -114,6 +115,8 @@ void UCI::go(std::string command) {
     int timeRemaining = 0; std::string tmp;
     int increment = 0;
     bool exact = false;
+    int depth = -1;
+    bool inf = false;
     if(command.find("movetime") != std::string::npos){
         iss >> tmp >> tmp >> timeRemaining;
         exact = true;
@@ -121,25 +124,30 @@ void UCI::go(std::string command) {
     else if(command.find("wtime") != std::string::npos){
         // fuck it, we ball.
         if(_board.whoPlay){
-            iss >> tmp >> tmp >> timeRemaining >> tmp >> increment >> tmp >> increment;
+            iss >> tmp >> tmp >> timeRemaining >> tmp >> tmp >> tmp >> increment;
         }
         else{
             iss >> tmp >> tmp >> timeRemaining >> tmp >> timeRemaining >> tmp >> increment >> tmp >> increment;
         }
     }
+    else if(command.find("depth") != std::string::npos){
+        iss >> tmp >> tmp >> depth;
+        inf = true;
+    }
     else{
-        // inf search
-        // TODO thread for a search -> stop command.
-        timeRemaining = INT_MAX;
+        inf = true;
     }
 
     auto search = Search();
-    auto move = search.findBestMove(timeRemaining, increment, _board, exact);
+    auto move = search.findBestMove(timeRemaining, increment, _board, exact, depth, inf);
     std::cout << "bestmove ";
     move.print();
     std::cout << std::endl;
     _board.makeMove(move);
+
+#if DEVELOPMENT
     _board.printBoard();
+#endif
 }
 
 
@@ -183,7 +191,7 @@ void UCI::makeStringMove(std::string move) {
     }
     // make move
     Move moves[Movegen::MAX_LEGAL_MOVES];
-    auto result = Movegen(_board, moves, false).generateMoves();
+    auto result = Movegen(_board, moves).generateMoves<false>();
     bool played = false;
     for(int j = 0; j < result.first; j++){
         if(moves[j].promotionType == t && moves[j].fromSq == fromSquare && moves[j].toSq == toSquare){

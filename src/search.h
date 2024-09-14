@@ -8,6 +8,7 @@
 #include <chrono>
 #include <timer.h>
 #include <timemanager.h>
+#include <development.h>
 
 class Search {
     static constexpr int POSITIVE_INF = 100000000;
@@ -54,11 +55,12 @@ class Search {
 
 public:
     static inline TranspositionTable* TT;
-    Move findBestMove(int timeRemaining, int increment, Board& board, bool exact){
+    Move findBestMove(int timeRemaining, int increment, Board& board, bool exact, int maxDepth, bool inf){
+#if DEVELOPMENT
         _ttUsed = _nodesVisited = 0;
+#endif
         prepareForSearch();
 
-        // get first moves, only legal.
         _board = &board;
         _forceStopped = false;
         _bestScoreIter = INT_MIN;
@@ -66,7 +68,7 @@ public:
 
         auto msCanBeUsed = Timemanager::getSearchTime(timeRemaining, increment, exact);
 
-        _timer = Timer(msCanBeUsed);
+        _timer = Timer(msCanBeUsed, inf);
 
         int alpha = NEGATIVE_INF;
         int beta = POSITIVE_INF;
@@ -74,7 +76,9 @@ public:
 
         Move bestMove;
         Timer idTimer; // info about time.
-        for(int depth = 1; depth < MAX_DEPTH; depth++){
+        maxDepth = maxDepth <= 0 ? MAX_DEPTH : maxDepth + 1;
+
+        for(int depth = 1; depth < maxDepth; depth++){
             // for smaller search do a non aspirations.
             if(depth <= 5){
                 score = negamax(depth, 0, alpha, beta, true, true);
@@ -111,7 +115,9 @@ public:
             }
         }
 
+#if DEVELOPMENT
         std::cout << "TT used:" << _ttUsed << " _nodesVisited:" << _nodesVisited << std::endl;
+#endif
         return bestMove;
     }
 
@@ -134,7 +140,7 @@ private:
     }
 
 
-    // https://en.wikipedia.org/wiki/Negamax with alpha beta + TT.
+    // https://en.wikipedia.org/wiki/Negamax ,PVS, alpha beta, TT, ...
     int negamax(int depth, int ply, int alpha, int beta, bool doNull, bool isPv, const Move& prevMove = NO_MOVE){
         if(_timer.isTimeout()){
             _forceStopped = true;
@@ -197,7 +203,7 @@ private:
         }
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        auto [moveCount, isCheck] = Movegen(*_board, moves, false).generateMoves();
+        auto [moveCount, isCheck] = Movegen(*_board, moves).generateMoves<false>();
         std::vector<int> moveScores(moveCount);
 
         // "move ordering"
@@ -345,7 +351,7 @@ private:
         if(currentEval > alpha) alpha = currentEval;
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        auto [moveCount, isCheck] = Movegen(*_board, moves, true).generateMoves();
+        auto [moveCount, isCheck] = Movegen(*_board, moves).generateMoves<true>();
         std::vector<int> moveScores(moveCount);
         Movepick::scoreMovesQSearch(moves, moveCount, *_board, Move(), moveScores);
 

@@ -34,7 +34,7 @@ struct SEETests{
             b.loadFEN(test.FEN);
 
             Move moves[Movegen::MAX_LEGAL_MOVES];
-            auto cnt = Movegen(b, moves, false).generateMoves();
+            auto cnt = Movegen(b, moves).generateMoves<false>();
             Move m;
             while(--cnt.first >= 0){
                 if(moves[cnt.first].fromSq == test.from && moves[cnt.first].toSq == test.to){

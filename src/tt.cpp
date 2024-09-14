@@ -1,6 +1,6 @@
 #include <tt.h>
 #include <cmath>
-#include "search.h"
+#include "development.h"
 
 
 TranspositionTable::TranspositionTable(int sizeMB){
@@ -10,8 +10,10 @@ TranspositionTable::TranspositionTable(int sizeMB){
 
     _count = numberOfEntries;
     entries = new Entry[numberOfEntries];
+#if  DEVELOPMENT
     std::cout << numberOfEntries << std::endl;
     std::cout << sizeof(Entry)<< std::endl;
+#endif
 }
 
 int TranspositionTable::getCorrectedScore(int score, int ply){

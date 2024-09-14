@@ -12,7 +12,7 @@ void Movegen::init() {
     _initDone = true;
 }
 
-Movegen::Movegen(Board &board, Move *moves, bool capturesOnly): board(board), movesPtr(moves), captures(capturesOnly){
+Movegen::Movegen(Board &board, Move *moves): board(board), movesPtr(moves){
     friendlyBits = board.whoPlay ? board.whitePieces : board.blackPieces;
     enemyBits = board.whoPlay ? board.blackPieces : board.whitePieces;
     friendlyMerged = friendlyBits[0] | friendlyBits[1] | friendlyBits[2] | friendlyBits[3] | friendlyBits[4] | friendlyBits[5]; \
@@ -160,33 +160,7 @@ void Movegen::initAndBitsForKKP(){
 }
 /* LOOKUP TABLES IMPLEMENTATIONS  END */
 
-std::pair<int, bool> Movegen::generateMoves() {
-    auto kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
-    // if its not valid <-> checked king !!!
-    bool checked = !validateKingCheck(kingPos);
 
-    if(captures){
-        // generate only captures
-        // Yea, maybe copy paste kinda, but dont waste time on every if statement.
-        generatePawnCaptures(friendlyBits[Board::PAWN]);
-        generateRookCaptures(friendlyBits[Board::ROOK]);
-        generateBishopCaptures(friendlyBits[Board::BISHOP]);
-        generateQueenCaptures(friendlyBits[Board::QUEEN]);
-        generateKnightCaptures(friendlyBits[Board::KNIGHT]);
-        generateKingCaptures(friendlyBits[Board::KING]);
-        return {index, checked};
-    }
-    // generate all possible moves for current player.
-    generatePawnMoves(friendlyBits[Board::PAWN], board.enPassantSquare, board.whoPlay);
-    generateRookMoves(friendlyBits[Board::ROOK]);
-    generateBishopMoves(friendlyBits[Board::BISHOP]);
-    generateQueenMoves(friendlyBits[Board::QUEEN]);
-    generateKnightMoves(friendlyBits[Board::KNIGHT]);
-    generateKingMoves(friendlyBits[Board::KING], board.castling[!board.whoPlay]);
-
-    // copy to a result, if we want all pseudolegal moves <-> we will check it in search/perft (just a performance try).
-    return {index, checked};
-}
 
 void Movegen::generatePawnMoves(uint64_t b, int enPassantSquare, bool color) {
     uint64_t enPassantBB = enPassantSquare != -1 ? 1ULL << enPassantSquare : 0;

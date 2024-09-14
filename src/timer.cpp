@@ -1,6 +1,8 @@
 #include "timer.h"
 
 bool Timer::isTimeout() const {
+    if(_infinity) return false;
+
     auto now = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = now - startTime;
     return (elapsed.count() * 1000 ) >= _maxDurationMs;

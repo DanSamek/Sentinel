@@ -19,7 +19,7 @@ struct PerftTests{
     static int generateMoves(Board& b, int depth){
         if(depth == 0) return 1;
         Move moves[Movegen::MAX_LEGAL_MOVES];
-        auto result = Movegen(b, moves, false).generateMoves();
+        auto result = Movegen(b, moves).generateMoves<false>();
         int res = 0;
         for(int j = 0; j < result.first; j++){
             auto key = b.zobristKey;
