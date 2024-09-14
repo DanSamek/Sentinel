@@ -11,8 +11,12 @@
 
 ```  
 cmake -DCMAKE_BUILD_TYPE=Release
+or for AVX
+cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_AVX=ON
 
-cmake --build . --config Release
+cmake --build .
+or
+make
 ```
 
 <h3>Features</h3>
