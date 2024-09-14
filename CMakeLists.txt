@@ -8,10 +8,28 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address,undefined")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 
-if(MAKE_CXX_FLAGS_RELEASE)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib)
     set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ -lpthread")
 endif ()
+
+
+
+include(CheckCXXCompilerFlag)
+
+check_cxx_compiler_flag("-mavx" COMPILER_SUPPORTS_AVX)
+check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+
+if(COMPILER_SUPPORTS_AVX)
+    message(STATUS "AVX supported by compiler, adding AVX flags.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx")
+endif()
+
+if(COMPILER_SUPPORTS_AVX2)
+    message(STATUS "AVX2 supported by compiler, adding AVX2 flags.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+endif()
+
 
 include_directories(src/tests)
 include_directories(src)
