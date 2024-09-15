@@ -19,6 +19,11 @@ class Search {
     static inline constexpr int ASPIRATION_DELTA_START = 7;
     static inline constexpr int ASPIRATION_MAX_DELTA_SIZE = 4'096;
 
+    static inline constexpr int PROBCUT_DEPTH = 5;
+    static inline constexpr int PROBCUT_MARGIN = 225;
+    static inline constexpr int PROBCUT_SEE_THRESHOLD = 301;
+
+
     // !!!! Same value has to be in TT.h !!!!
     static inline constexpr int MAX_DEPTH = 128;
 
@@ -200,6 +205,39 @@ private:
         // If current pos - margin is too good (>= beta), we can return currentEval.
         if(!isPv && !isCheckNMP && ply > 0 && depth <= 8 && currentEval - 92 * depth >= beta){
             return currentEval;
+        }
+
+
+        // Probcut
+        // If we make a good capture [pxq, bxq, ...] and lower search approves that it's better than beta + threshold, we can safely return eval.
+        if(!isPv && !isCheckNMP && depth >= PROBCUT_DEPTH && someBigPiece){
+
+            Move moves[Movegen::MAX_LEGAL_MOVES];
+            auto [moveCount, isCheck] = Movegen(*_board, moves).generateMoves<true>();
+            std::vector<int> moveScores(moveCount);
+            Movepick::scoreMovesQSearch(moves, moveCount, *_board, hashMove, moveScores);
+
+            auto probcutThreshold = beta + PROBCUT_MARGIN;
+
+            for(int j = 0; j < moveCount; j++) {
+                Movepick::pickMove(moves, moveCount, j, moveScores);
+                // We can predict, that moves, that wins material are going to be pretty good.
+                // pxB is good.
+                // > how about bxR, maybe TODO [?]
+                if(!_board->SEE(moves[j], PROBCUT_SEE_THRESHOLD)){
+                    continue;
+                }
+
+                if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
+
+                int eval = -negamax(depth - PROBCUT_DEPTH + 1, ply + 1, -probcutThreshold, -probcutThreshold + 1, true, false, moves[j]);
+
+                _board->undoMove(moves[j]);
+
+                if(eval >= probcutThreshold){
+                    return eval;
+                }
+            }
         }
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
