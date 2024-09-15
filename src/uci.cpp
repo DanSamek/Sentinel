@@ -62,7 +62,6 @@ void UCI::newGame() {
     if(_ready){
         _TT.free();
         _TT = TranspositionTable(_hashSize);
-        Search::TT = &_TT;
     }
 }
 
@@ -139,6 +138,7 @@ void UCI::go(std::string command) {
     }
 
     auto search = Search();
+    search.TT = &_TT;
     auto move = search.findBestMove(timeRemaining, increment, _board, exact, depth, inf);
     std::cout << "bestmove ";
     move.print();
@@ -223,5 +223,4 @@ UCI::~UCI(){
 void UCI::reallocHashTable(){
     if(_ready) _TT.free();
     _TT = TranspositionTable(_hashSize);
-    Search::TT = &_TT;
 }

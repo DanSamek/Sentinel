@@ -67,4 +67,6 @@ add_executable(Sentinel
         src/see.cpp
         src/tests/SEETests.cpp
         src/timemanager.cpp
+        src/nnue/datagen.h
+        src/nnue/datagen.cpp
 )

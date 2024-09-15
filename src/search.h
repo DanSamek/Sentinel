@@ -54,7 +54,7 @@ class Search {
     static inline Move NO_MOVE = Move();
 
 public:
-    static inline TranspositionTable* TT;
+    TranspositionTable* TT;
     Move findBestMove(int timeRemaining, int increment, Board& board, bool exact, int maxDepth, bool inf){
 #if DEVELOPMENT
         _ttUsed = _nodesVisited = 0;
@@ -119,6 +119,60 @@ public:
         std::cout << "TT used:" << _ttUsed << " _nodesVisited:" << _nodesVisited << std::endl;
 #endif
         return bestMove;
+    }
+
+    std::pair<Move, int> datagen(Board& board, int searchDepth){
+        prepareForSearch();
+
+        _board = &board;
+        _forceStopped = false;
+        _bestScoreIter = INT_MIN;
+        _bestMoveIter = {};
+
+        _timer = Timer(0, true);
+
+        int alpha = NEGATIVE_INF;
+        int beta = POSITIVE_INF;
+        int score;
+
+        Move bestMove;
+        Timer idTimer; // info about time.
+        for(int depth = 1; depth <= searchDepth; depth++){
+            // for smaller search do a non aspirations.
+            if(depth <= 5){
+                score = negamax(depth, 0, alpha, beta, true, true);
+                bestMove = _bestMoveIter;
+                continue;
+            }
+
+            // Aspiration windows
+            int delta = ASPIRATION_DELTA_START;
+            alpha = std::max(NEGATIVE_INF, score - delta);
+            beta = std::min(POSITIVE_INF, score + delta);
+
+            int reduction = 0;
+            while(!_forceStopped){
+                score = negamax(depth - reduction, 0, alpha, beta, true, true);
+                if(score <= alpha && score > -CHECKMATE_LOWER_BOUND){
+                    alpha -= delta;
+                    beta = (alpha + beta) / 2;
+                }
+                else if(score >= beta && score < CHECKMATE_LOWER_BOUND){
+                    beta += delta;
+                }
+                else{
+                    bestMove = _bestMoveIter;
+                    break;
+                }
+                delta *= 2;
+                if(delta >= ASPIRATION_MAX_DELTA_SIZE){
+                    alpha = NEGATIVE_INF;
+                    beta = POSITIVE_INF;
+                }
+            }
+        }
+
+        return {bestMove, _bestScoreIter};
     }
 
 private:

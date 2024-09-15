@@ -4,14 +4,19 @@
 #include <tests/ZobristTests.cpp>
 #include <tests/nullMoveTests.cpp>
 #include <tests/SEETests.cpp>
-
+#include "nnue/datagen.h"
 #include <chrono>
 #include <uci.h>
 
 #define RUN_TESTS false
+#define RUN_DATAGEN true
 
 int main(){
-    if(RUN_TESTS){
+    if(RUN_DATAGEN){
+        // TODO.
+        Datagen(8).run();
+    }
+    else if(RUN_TESTS){
         Board::initPawnEvalBBS();
         Movegen::init();
         Zobrist::init();
