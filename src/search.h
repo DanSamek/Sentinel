@@ -189,7 +189,8 @@ private:
 
         if(!isPv && depth >= 3 && doNull && !isCheckNMP && someBigPiece && ply > 0){
             _board->makeNullMove();
-            int eval = -negamax(depth - 3, ply + 1, -beta, -beta + 1, false, false);
+            int R = 3 + depth / 3;
+            int eval = -negamax(depth - R + 1, ply + 1, -beta, -beta + 1, false, false);
             _board->undoNullMove();
 
             if(eval >= beta) return eval;
