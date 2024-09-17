@@ -121,7 +121,7 @@ public:
         return bestMove;
     }
 
-    std::pair<Move, int> datagen(Board& board, int searchDepth){
+    std::pair<Move, int> datagen(Board& board, int softNodeLimit){
         prepareForSearch();
 
         _board = &board;
@@ -135,9 +135,13 @@ public:
         int beta = POSITIVE_INF;
         int score;
 
+        _nodesVisited = 0;
         Move bestMove;
         Timer idTimer; // info about time.
-        for(int depth = 1; depth <= searchDepth; depth++){
+        for(int depth = 1; depth < MAX_DEPTH; depth++){
+            if(_nodesVisited > softNodeLimit) {
+                break;
+            }
             // for smaller search do a non aspirations.
             if(depth <= 5){
                 score = negamax(depth, 0, alpha, beta, true, true);
@@ -189,22 +193,25 @@ private:
         for (auto& row : _history) {
             std::fill(std::begin(row), std::end(row), 0);
         }
-
+#if !RUN_DATAGEN
         std::fill(std::begin(_pvLength), std::end(_pvLength), 0);
+#endif
     }
 
 
     // https://en.wikipedia.org/wiki/Negamax ,PVS, alpha beta, TT, ...
     int negamax(int depth, int ply, int alpha, int beta, bool doNull, bool isPv, const Move& prevMove = NO_MOVE){
+#if !RUN_DATAGEN
         if(_timer.isTimeout()){
             _forceStopped = true;
             return 0;
         }
-        assert(isPv || alpha + 1 == beta);
-        _nodesVisited++;
 
         // Pv.
         _pvLength[ply] = ply;
+#endif
+        assert(isPv || alpha + 1 == beta);
+        _nodesVisited++;
 
 
         // Check extension.
@@ -243,7 +250,8 @@ private:
 
         if(!isPv && depth >= 3 && doNull && !isCheckNMP && someBigPiece && ply > 0){
             _board->makeNullMove();
-            int eval = -negamax(depth - 3, ply + 1, -beta, -beta + 1, false, false);
+            int R = 3 + depth / 3;
+            int eval = -negamax(depth - R + 1, ply + 1, -beta, -beta + 1, false, false);
             _board->undoNullMove();
 
             if(eval >= beta) return eval;
@@ -306,6 +314,7 @@ private:
             _board->undoMove(moves[j]);
             quietMovesCount += !isCapture;
 
+#if! RUN_DATAGEN
             // ! after undo move !
             if(_forceStopped){
                 return 0;
@@ -319,7 +328,7 @@ private:
                 }
                 _pvLength[ply] = _pvLength[ply + 1];
             }
-
+#endif
             if(eval >= beta){
                 // If move, that wasnt capture causes a beta cuttoff, we call it killer move, remember this move for move ordering.
                 if(!isCapture){

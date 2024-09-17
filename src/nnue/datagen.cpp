@@ -18,11 +18,12 @@ void Datagen::run() {
 
     srand(time(nullptr));
 
+    _timer = Timer(0, true);
     // worker threads.
     std::vector<std::thread> workers;
     for(int i = 0; i < _threadCnt; i++){
         workers.emplace_back([this, i](){
-            runWorker(_searchDepth, i);
+            runWorker(_softNodeLimit, i);
         });
     }
 
@@ -45,29 +46,23 @@ void Datagen::run() {
     }
 }
 
-// TODO, when search will be faster !
-void Datagen::runWorker(int maxDepth, int threadId) {
+
+void Datagen::runWorker(int softNodeLimit, int threadId) {
     // init of search.
+    std::cout << "worker - " << threadId << " is running." << std::endl;
     auto board = Board();
     std::ostringstream oss;
 
-    auto now = std::chrono::high_resolution_clock::now();
-    auto duration = now.time_since_epoch();
-    oss << "th-id" << threadId << "time" << duration.count();
     auto fileName = oss.str();
-    auto gamesPlayed = 0;
-    auto totalPos = 0;
     const Move NO_MOVE = Move();
+
+    Search s = Search();
     while(!_stopSignal){
-        // position startup.
+        // Position startup.
         again:
         board.loadFEN(START_POS);
         
-        auto TT = TranspositionTable(16);
-        Search s = Search();
-        s.TT = &TT;
-        
-        // playout 8 or 9 random moves.
+        // Play out 8 or 9 random moves.
         int moveCnt = rand() % 50 ? 8 : 9;
         while(moveCnt--){
             Move moves[Movegen::MAX_LEGAL_MOVES];
@@ -76,66 +71,92 @@ void Datagen::runWorker(int maxDepth, int threadId) {
             auto cnt = 1;
             while(!board.makeMove(moves[randomMoveIndex])){
                 randomMoveIndex = rand () % moveCount;
-                if(isCheck && cnt >= 5){
-                    TT.free();
+                if(isCheck && cnt >= 3){
                     goto again;
                 }
                 cnt++;
             }
         }
 
-        auto [move, score] = s.datagen(board, maxDepth);
+        auto TT = TranspositionTable(16);
+        s.TT = &TT;
 
-        // filter out pretty unbalanced positions.
+        auto [move, score] = s.datagen(board, 11);
+
+        // Filter out pretty unbalanced positions.
         if(std::abs(score) >= 1000){
-            std::lock_guard<std::mutex> lock(_coutMutex);
-            std::cout << "skipping position";
             TT.free();
             continue;
         }
 
-        // playout a game.
+        // Play out a game.
+        int totalPos = 0;
+        double winner = 0; // Draw = 0.5, white = 1, black = 0;
+
+        int win_counter = 0;
+        int draw_counter = 0;
+
+        std::vector<Position> positions;
+
         while(true){
-            auto [move, score] = s.datagen(board, maxDepth);
+            auto [move, score] = s.datagen(board, softNodeLimit);
             board.makeMove(move);
-            if(!move.isCapture() && move.moveType != Move::EN_PASSANT && !board.inCheck()){
-                // TODO.
+
+            auto isCheck = board.inCheck();
+            if(!move.isCapture() && move.moveType != Move::EN_PASSANT && !isCheck){
+                totalPos++;
+                auto whiteRelativeScore = !board.whoPlay ? score : -score;
+                positions.push_back({board.FEN(), whiteRelativeScore, winner});
             }
 
-            if(std::abs(score) >= 1000){
-                // winning game
+            auto absScore = std::abs(score);
+            if(absScore >= 2000){
+                win_counter++;
+                draw_counter = 0;
+            }
+            else if(absScore <= 5){
+                draw_counter++;
+                win_counter = 0;
+            }
+            else{
+                win_counter = 0;
+                draw_counter = 0;
+            }
+
+
+            if(win_counter > 5){
+                winner = score > 0 ? !board.whoPlay ? 1 : 0 : board.whoPlay ? 0 : 1;
                 break;
             }
 
-            if(board.isDraw() || NO_MOVE == move){
-                // TODO.
+            if(draw_counter > 8){
+                winner = 0.5;
                 break;
             }
-            // if we are in check, generate moves, if its mate.
 
-            if(board.inCheck()){
-                Move moves[Movegen::MAX_LEGAL_MOVES];
-                auto [moveCount, isCheck] = Movegen(board, moves).generateMoves<false>();
-                bool madeAMove = false;
-                for(int j = 0; j < moveCount; j++){
-                    if(!board.makeMove(moves[j])) continue;
-                    madeAMove = true;
-                    board.undoMove(moves[j]);
-                    break;
-                }
-                if(!madeAMove){
-                    // checkmate.
-                    break;
-                }
+            // Checkmate
+            if(NO_MOVE == move && std::abs(score) >= (1000000 - 1000)){
+                winner = score > 0 ? !board.whoPlay ? 1 : 0 : board.whoPlay ? 0 : 1;
+                break;
+            }
+            // Draw [stalemate,..]
+            else if(NO_MOVE == move){
+                winner = 0.5;
+                break;
             }
 
-            totalPos++;
+            if(_stopSignal) break;
         }
         TT.free();
-        gamesPlayed++;
-        if(gamesPlayed % 10 == 0){
-            std::lock_guard<std::mutex> lock(_coutMutex);
-            std::cout << "thread-" << threadId << " games played: " << gamesPlayed  << " totalPositions: " << totalPos << std::endl;
+        _gamesPlayed++;
+        _totalPos += totalPos;
+
+        // TODO save positions to a file.
+        for(const auto& position : positions){
+            // write to a file.
+        }
+        if(threadId == 0){
+            std::cout << " games played: " << _gamesPlayed  << " pos/s " << (_totalPos) / (_timer.getMs() / 1000.0) << " total pos: " << _totalPos << " total " << _timer.getMs() << std::endl;
             std::cout.flush();
         }
     }

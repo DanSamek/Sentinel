@@ -25,7 +25,7 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board,
 
             // killers
             for(int killerIndex = 0; killerIndex < 2; killerIndex++){
-                if(move == killerMoves[board.halfMove][killerIndex]){
+                if(move == killerMoves[board.ply][killerIndex]){
                     score = KILLER_MOVES_ORDER_SCORE[killerIndex];
                     break;
                 }

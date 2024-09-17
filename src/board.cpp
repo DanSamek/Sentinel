@@ -21,7 +21,7 @@ void Board::initPieces(uint64_t* pieces) {
 
 void Board::loadFEN(const std::string FEN) {
     // reset repetitions.
-    fiftyMoveRule[0] = 0; fiftyMoveRule[1] = 0;
+    halfMove = 0;
     repetitionIndex = 0;
 
     castling[0][0] = false; castling[0][1] = false; castling[1][0] = false; castling[1][1] = false;
@@ -35,6 +35,7 @@ void Board::loadFEN(const std::string FEN) {
         std::cout << "FEN is not valid!"<< std::endl;
         return;
     }
+    ply = 0;
 
     // parse a _board.
     int square = 0;
@@ -82,7 +83,7 @@ bool Board::makeMove(const Move &move) {
 
     bool setEnPassant = false;
 
-    State currentState{-1,enPassantSquare, castling, fiftyMoveRule, zobristKey};
+    State currentState{-1,enPassantSquare, castling, halfMove, zobristKey};
 
     std::pair<uint64_t , bool> type;
     switch (move.moveType) {
@@ -99,7 +100,7 @@ bool Board::makeMove(const Move &move) {
 
             handleEnemyCastling(type, move, whoPlay, enemyCastling);
             handleCastling(move, whoPlay, currentCastling);
-            fiftyMoveRule[whoPlay] = 0;
+            halfMove = 0;
             break;
         case Move::PROMOTION:
         case Move::PROMOTION_CAPTURE:
@@ -133,21 +134,21 @@ bool Board::makeMove(const Move &move) {
                 // pawn can capture rook -> no castling.
                 handleEnemyCastling(type, move, whoPlay, enemyCastling);
             }
-            fiftyMoveRule[whoPlay] = 0;
+            halfMove = 0;
             break;
         case Move::QUIET:
             // !!! rooks  !!! <-> disable castling.
             moveAPiece(currentPieces, move.movePiece, move.fromSq, move.toSq);
             handleCastling(move, whoPlay, currentCastling);
 
-            if(move.movePiece == Board::PAWN) fiftyMoveRule[whoPlay] = 0;
-            else fiftyMoveRule[whoPlay]++;
+            if(move.movePiece == Board::PAWN) halfMove = 0;
+            else halfMove++;
             break;
         case Move::EN_PASSANT:
             moveAPiece(currentPieces, move.movePiece, move.fromSq, move.toSq);
             bit_ops::popNthBit(enemyPieces[move.movePiece], whoPlay ? move.toSq + 8 : move.toSq - 8);
 
-            fiftyMoveRule[whoPlay] = 0;
+            halfMove = 0;
             break;
         case Move::CASTLING:
             // kingSide
@@ -162,14 +163,14 @@ bool Board::makeMove(const Move &move) {
             currentCastling[0] = false;
             currentCastling[1] = false;
 
-            fiftyMoveRule[whoPlay]++;
+            halfMove++;
             break;
         case Move::DOUBLE_PAWN_UP:
             moveAPiece(currentPieces, move.movePiece, move.fromSq, move.toSq);
             enPassantSquare = (move.fromSq + move.toSq) / 2;
             setEnPassant = true;
 
-            fiftyMoveRule[whoPlay] = 0;
+            halfMove = 0;
             break;
     }
 
@@ -191,6 +192,8 @@ bool Board::makeMove(const Move &move) {
         undoMove(move);
         return false;
     }
+
+    fullMove += !whoPlay ? 1 : 0;
 
     // update and add to a move "stack".
     // save state to a current depth
@@ -229,16 +232,16 @@ void Board::push(bool setEnPassant, State &currentState) {
         zobristKey ^= Zobrist::noEnPassant;
     }
 
-    halfMove++;
+    ply++;
     repetitionIndex++;
-    STACK[halfMove] = std::move(currentState);
+    STACK[ply] = std::move(currentState);
 
     whoPlay = !whoPlay;
     enPassantSquare = setEnPassant ? enPassantSquare : -1;
 }
 
 void Board::undoMove(const Move &move) {
-    auto prevState = std::move(STACK[halfMove]);
+    auto prevState = std::move(STACK[ply]);
     whoPlay = !whoPlay;
     repetitionIndex--;
 
@@ -249,8 +252,9 @@ void Board::undoMove(const Move &move) {
     enPassantSquare = prevState.enPassantSquare; // reset of an en passant square.
 
     zobristKey = prevState.zobristHash;
-    fiftyMoveRule = prevState.fiftyMoveRule;
+    halfMove = prevState.halfMove;
 
+    fullMove -= !whoPlay ? 1 : 0;
     switch (move.moveType) {
         case Move::CAPTURE:
             moveAPiece(currentPieces, move.movePiece, move.toSq, move.fromSq);
@@ -303,7 +307,7 @@ void Board::undoMove(const Move &move) {
             moveAPiece(currentPieces, move.movePiece, move.toSq, move.fromSq);
             break;
     }
-    halfMove--;
+    ply--;
 }
 
 void Board::printBoard() const{
@@ -337,9 +341,9 @@ void Board::printBoard() const{
 bool Board::isDraw(){
     if(isThreeFoldRepetition()) return true;
 
-    if(fiftyMoveRule[0] >= 50 && fiftyMoveRule[1] >= 50) return true;
+    if(halfMove >= 100) return true;
 
-    // _count material from bbs
+    // count material from bbs
     return isInsufficientMaterial(whitePieces) && isInsufficientMaterial(blackPieces);
 }
 
@@ -392,22 +396,87 @@ bool Board::isSquareAttacked(int square, bool isWhiteEnemy) {
 
 
 void Board::makeNullMove() {
-    State currentState{-1,enPassantSquare, castling, fiftyMoveRule, zobristKey};
+    State currentState{-1,enPassantSquare, castling, halfMove, zobristKey};
     push(false, currentState);
 
     zobristKey ^= Zobrist::sideToMove;
 }
 
 void Board::undoNullMove() {
-    auto prevState = std::move(STACK[halfMove]);
+    auto prevState = std::move(STACK[ply]);
 
     zobristKey = prevState.zobristHash;
     enPassantSquare = prevState.enPassantSquare;
     castling = prevState.castling;
-    fiftyMoveRule = prevState.fiftyMoveRule;
+    halfMove = prevState.halfMove;
 
     whoPlay = !whoPlay;
 
     repetitionIndex--;
-    halfMove--;
+    ply--;
+}
+
+std::string Board::FEN() const{
+    std::stringstream ss;
+    std::array<std::array<char, 8>,8> posArray;
+    for (auto& row : posArray) {
+        std::fill(row.begin(), row.end(), ' ');
+    }
+
+    for(int color = 0; color <= 1; color ++){
+        for(int piece = 0; piece <= KING; piece++){
+            auto white = color == 0;
+            auto tmpBB = white ? whitePieces[piece] : blackPieces[piece];
+            while(tmpBB){
+                auto pos = bit_ops::bitScanForwardPopLsb(tmpBB);
+                auto lIndex = pos / 8;
+                auto rIndex = pos % 8;
+                assert(rIndex < 8 && lIndex < 8);
+                posArray[lIndex][rIndex] = white ? toupper(reversedPieceIndexMap[piece]) : reversedPieceIndexMap[piece];
+            }
+        }
+    }
+    for(int row = 0; row < 8; row++){
+        auto emptyColumns = 0;
+        for(int column = 0; column < 8; column++){
+            if(posArray[row][column] == ' ') {
+                emptyColumns++;
+                continue;
+            }
+            if(emptyColumns != 0){
+                ss << (char)('0' + emptyColumns);
+                emptyColumns = 0;
+            }
+            ss << posArray[row][column];
+        }
+        if(emptyColumns != 0) ss << (char)('0' + emptyColumns);
+        if(row != 7) ss << "/";
+    }
+
+    ss << " " << (whoPlay ? "w" : "b") << " ";
+
+    auto any = castling[WHITE][K_CASTLE] || castling[WHITE][Q_CASTLE] || castling[BLACK][K_CASTLE] || castling[BLACK][Q_CASTLE];
+    if(castling[WHITE][K_CASTLE]) ss << "K";
+    if(castling[WHITE][Q_CASTLE]) ss << "Q";
+    if(castling[BLACK][K_CASTLE]) ss << "k";
+    if(castling[BLACK][Q_CASTLE]) ss << "q";
+
+    if(!any) ss << "-";
+    ss << " ";
+
+    // en-passant square.
+    if(enPassantSquare != -1){
+        auto lIndex = enPassantSquare / 8;
+        auto rIndex = enPassantSquare % 8;
+        ss << (char)('a' + rIndex) << (char)('8' - lIndex);
+    }
+    else ss << "-";
+
+    ss << " ";
+    ss << halfMove << " ";
+    // halfMove
+    ss << fullMove;
+
+    auto result = ss.str();
+    return result;
 }

@@ -27,7 +27,7 @@ struct BoardTests {
         tmp[1]= {true, true};
         assert(sameCastling(board.castling ,tmp));
         assert(board.enPassantSquare == 44);
-        assert(board.halfMove == 0);
+        assert(board.ply == 0);
         assert(board.fullMove == 1);
         // _board validation with bitboards.
 
@@ -72,7 +72,7 @@ struct BoardTests {
         tmp3[0] = {true, false};
         tmp3[1] = {false, true};
         assert(board.enPassantSquare  == -1);
-        assert(board.halfMove == 0);
+        assert(board.ply == 0);
         assert(board.fullMove == 1);
         assert(sameCastling(board.castling ,tmp3));
 
@@ -100,12 +100,11 @@ struct BoardTests {
         assert(board.getPieceBitboard(Board::BISHOP, Board::BLACK)  == 0ull);
         assert(board.getPieceBitboard(Board::PAWN, Board::BLACK)  == 0ull);
 
-        std::cout << "_board tests: DONE" << std::endl;
+        std::cout << "board tests: DONE" << std::endl;
 
 
 
         board.loadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPP3PP/RNBQKBNR b KQkq - 0 1");
-        board.eval();
-
+        assert(board.FEN() == "rnbqkbnr/pppppppp/8/8/8/8/PPP3PP/RNBQKBNR b KQkq - 0 1");
     }
 };

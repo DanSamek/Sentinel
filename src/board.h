@@ -44,7 +44,7 @@ public:
     uint64_t blackPieces[6];
 
     // enPassantSquare is set to -1 if there is no enpassant
-    int halfMove, fullMove, enPassantSquare;
+    int ply, fullMove, enPassantSquare;
     // true -> white, false -> black
     bool whoPlay;
 
@@ -61,7 +61,7 @@ public:
     uint64_t threeFoldRepetition[MAX_DEPTH];
     int repetitionIndex = 0;
 
-    std::array<int, 2> fiftyMoveRule = {0,0};
+    int halfMove = 1;
 
     uint64_t zobristKey;
 
@@ -311,6 +311,7 @@ private:
 
     uint64_t mergeBBS(const uint64_t* bbs, int cnt) const;
 public:
+
     /***
      * Static exhange evaluation (simple)
      * @param move
@@ -318,6 +319,11 @@ public:
      * @return
      */
     bool SEE(Move move, int threshold) const;
+
+    /***
+     * @return current position/state of board in FEN.
+     */
+    std::string FEN() const;
 };
 
 

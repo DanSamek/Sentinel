@@ -7,14 +7,12 @@
 #include "nnue/datagen.h"
 #include <chrono>
 #include <uci.h>
+#include "development.h"
 
-#define RUN_TESTS false
-#define RUN_DATAGEN true
 
 int main(){
     if(RUN_DATAGEN){
-        // TODO.
-        Datagen(8).run();
+        Datagen(8,5'000).run();
     }
     else if(RUN_TESTS){
         Board::initPawnEvalBBS();

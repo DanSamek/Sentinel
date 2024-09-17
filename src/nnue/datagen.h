@@ -2,17 +2,27 @@
 #define SENTINEL_DATAGEN_H
 
 #include <atomic>
+#include "timer.h"
 
 class Datagen {
 public:
-    Datagen(int threadCount, int searchDepth = 9) : _threadCnt(threadCount), _searchDepth(searchDepth) {};
+    Datagen(int threadCount, int softNodeLimit = 5000, int maximumPositions = 1000) : _threadCnt(threadCount), _softNodeLimit(softNodeLimit), _maximumPositions(maximumPositions){};
     void run();
 private:
-    void runWorker(int maxDepth, int threadId);
-    int _threadCnt = 0;
-    int _searchDepth;
+    void runWorker(int softNodeLimit, int threadId);
+    int _threadCnt;
+    int _softNodeLimit;
     std::atomic<bool> _stopSignal;
-    std::mutex _coutMutex;
+    Timer _timer;
+    std::atomic<int> _gamesPlayed = 0;
+    std::atomic<int> _totalPos = 0;
+    int _maximumPositions = 0;
+
+    struct Position{
+        std::string fen;
+        int score; // white relative.
+        double winner; // white relative.
+    };
 };
 
 #endif //SENTINEL_DATAGEN_H
