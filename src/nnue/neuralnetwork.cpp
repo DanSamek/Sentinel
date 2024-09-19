@@ -10,24 +10,36 @@ T readNumber(std::ifstream& stream){
     return value;
 }
 
-int getIndex(bool us, Board::pieceType piece, int square){
-    auto index = us ? (int)piece * 64 + square : ((int)piece + 6) * 64 + square;
-    return index;
+int getIndex(Board::pieceColor perspective, Board::pieceColor color, Board::pieceType piece, int square) {
+    auto colorIndex = (perspective == color) ? 0 : 1;
+    auto pieceIndex = (int)piece;
+    auto squareIndex = (perspective == Board::WHITE) ? square ^ 56 : square;
+
+    auto result = (colorIndex * 6 + pieceIndex) * 64 + squareIndex;
+    return result;
 }
 
 template<Board::pieceColor us, Board::pieceColor opp>
 std::array<int, INPUT_LAYER_SIZE> getInputLayer(const Board& board){
     std::array<int, INPUT_LAYER_SIZE> result = {0};
 
-    for(int square = 0; square< 63; square++){
+    // merge all bitboards.
+    uint64_t all = 0ULL;
+    for(int j = 0; j <= Board::KING; j++){
+        all |= board.colorBBS(us)[j];
+        all |= board.colorBBS(opp)[j];
+    }
+
+    while(all){
+        auto square = bit_ops::bitScanForwardPopLsb(all);
         auto piece = board.getPieceTypeFromSQ(square, board.colorBBS(us));
         if(piece.second){
-            result[getIndex(true, piece.first, square)] = 1;
+            result[getIndex(us, us, piece.first, square)] = 1;
             continue;
         }
         piece = board.getPieceTypeFromSQ(square, board.colorBBS(opp));
         if(piece.second){
-            result[getIndex(false, piece.first, square)] = 1;
+            result[getIndex(us, opp, piece.first, square)] = 1;
         }
     }
 
@@ -61,6 +73,7 @@ int NeuralNetwork::forwardHiddenLayer(const std::array<int, HIDDEN_LAYER_SIZE * 
     return result;
 }
 
+
 int NeuralNetwork::eval(const Board& board) {
     auto usInputLayer = board.whoPlay ? getInputLayer<Board::WHITE, Board::BLACK>(board) : getInputLayer<Board::BLACK, Board::WHITE>(board);
     auto oppInputLayer = board.whoPlay ? getInputLayer<Board::BLACK, Board::WHITE>(board) : getInputLayer<Board::WHITE, Board::BLACK>(board);
@@ -79,6 +92,7 @@ int NeuralNetwork::eval(const Board& board) {
     result += HIDDEN_LAYER_BIASES[0];
     result *= SCALE;
     result /= QA * QB;
+    std::cout << result << std::endl;
     return result;
 }
 
@@ -106,7 +120,6 @@ void NeuralNetwork::load() {
     assert(!stream.eof());
 
     HIDDEN_LAYER_BIASES[0] = readNumber<int16_t>(stream);
-
 }
 
 int NeuralNetwork::crelu(int value) {

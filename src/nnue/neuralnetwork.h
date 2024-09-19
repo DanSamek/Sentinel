@@ -18,7 +18,7 @@ class NeuralNetwork {
     const int QB = 64;
     const int SCALE = 400;
 
-    const std::string NET_PATH = "/home/daniel/Desktop/Sentinel/src/nnue/hl16.bin";
+    const std::string NET_PATH = "../src/nnue/hl16.bin";
 public:
     /***
      * Loads a NN from a binary file.
