@@ -74,4 +74,6 @@ add_executable(Sentinel
         src/nnue/const.h
         src/nnue/neuralnetwork.cpp
         src/nnue/neuralnetwork.cpp
+        src/nnue/accumulator.cpp
+        src/nnue/nnue.cpp
 )
