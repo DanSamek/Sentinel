@@ -3,6 +3,6 @@
 
 #define DEVELOPMENT false
 #define RUN_TESTS false
-#define RUN_DATAGEN false
+#define RUN_DATAGEN true
 
 #endif //SENTINEL_DEVELOPMENT_H

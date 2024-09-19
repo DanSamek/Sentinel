@@ -83,7 +83,7 @@ bool Board::makeMove(const Move &move) {
 
     bool setEnPassant = false;
 
-    State currentState{-1,enPassantSquare, castling, halfMove, zobristKey};
+    State currentState{-1,enPassantSquare, castling, halfMove, zobristKey, fullMove};
 
     std::pair<uint64_t , bool> type;
     switch (move.moveType) {
@@ -253,8 +253,8 @@ void Board::undoMove(const Move &move) {
 
     zobristKey = prevState.zobristHash;
     halfMove = prevState.halfMove;
+    fullMove = prevState.fullMove;
 
-    fullMove -= !whoPlay ? 1 : 0;
     switch (move.moveType) {
         case Move::CAPTURE:
             moveAPiece(currentPieces, move.movePiece, move.toSq, move.fromSq);

@@ -9,6 +9,7 @@ struct State{
     std::array<std::array<bool, 2>, 2> castling; // current state castling.
     int halfMove;
     uint64_t zobristHash;
+    int fullMove;
 };
 
 #endif //SENTINEL_STATE_H

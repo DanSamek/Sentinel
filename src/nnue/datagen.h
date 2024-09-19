@@ -21,7 +21,6 @@ private:
     struct Position{
         std::string fen;
         int score; // white relative.
-        double winner; // white relative.
     };
 };
 

@@ -32,6 +32,7 @@ if(ENABLE_AVX)
     endif()
 endif()
 
+
 include_directories(src/tests)
 include_directories(src)
 
@@ -69,4 +70,8 @@ add_executable(Sentinel
         src/timemanager.cpp
         src/nnue/datagen.h
         src/nnue/datagen.cpp
+        src/nnue/neuralnetwork.h
+        src/nnue/const.h
+        src/nnue/neuralnetwork.cpp
+        src/nnue/neuralnetwork.cpp
 )

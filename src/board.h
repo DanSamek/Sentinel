@@ -165,6 +165,9 @@ public:
     }
 
 
+    inline const uint64_t * colorBBS(pieceColor color) const{
+        return color == WHITE ? whitePieces : blackPieces;
+    }
 
     /***
      * Function, that calls

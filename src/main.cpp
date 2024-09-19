@@ -8,11 +8,21 @@
 #include <chrono>
 #include <uci.h>
 #include "development.h"
-
+#include "nnue/neuralnetwork.h"
 
 int main(){
+
     if(RUN_DATAGEN){
-        Datagen(8,5'000).run();
+        NeuralNetwork n;
+        n.load();
+        Board b;
+        b.loadFEN("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1");
+        n.eval(b);
+        b.loadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB1KBNR w KQkq - 0 1");
+        n.eval(b);
+
+        return 0;
+        Datagen(24,7'500,2'000'000).run();
     }
     else if(RUN_TESTS){
         Board::initPawnEvalBBS();

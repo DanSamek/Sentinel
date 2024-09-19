@@ -1,0 +1,8 @@
+#ifndef SENTINEL_CONST_H
+#define SENTINEL_CONST_H
+
+#define INPUT_LAYER_SIZE 768
+#define HIDDEN_LAYER_SIZE 16
+#define OUTPUT_SIZE 1
+
+#endif //SENTINEL_CONST_H
