@@ -21,6 +21,7 @@ void Board::initPieces(uint64_t* pieces) {
 
 void Board::loadFEN(const std::string FEN) {
     // reset repetitions.
+    nnue.reset();
     halfMove = 0;
     repetitionIndex = 0;
 
@@ -49,8 +50,14 @@ void Board::loadFEN(const std::string FEN) {
         auto color = isupper(character) ?  WHITE  : BLACK;
         auto index = pieceIndexMap[tolower(character)];
 
-        if(color == WHITE)  bit_ops::setNthBit(whitePieces[index], square);
-        else   bit_ops::setNthBit(blackPieces[index], square);
+        nnue.updateAccumulatorAdd(color, static_cast<PIECE_TYPE>(index), square);
+
+        if(color == WHITE){
+            bit_ops::setNthBit(whitePieces[index], square);
+        }
+        else{
+            bit_ops::setNthBit(blackPieces[index], square);
+        }
         square++;
     }
     whoPlay = whoPlayTmp == "w" ? true : false;
@@ -68,7 +75,7 @@ void Board::loadFEN(const std::string FEN) {
     threeFoldRepetition[repetitionIndex] = zobristKey;
 }
 
-const uint64_t & Board::getPieceBitboard(pieceType type, pieceColor color) const {
+const uint64_t & Board::getPieceBitboard(PIECE_TYPE type, PIECE_COLOR color) const {
     return color == WHITE ? whitePieces[type] : blackPieces[type];
 }
 
@@ -83,6 +90,7 @@ bool Board::makeMove(const Move &move) {
 
     bool setEnPassant = false;
 
+    nnue.push(); // save current accumulator.
     State currentState{-1,enPassantSquare, castling, halfMove, zobristKey, fullMove};
 
     std::pair<uint64_t , bool> type;
@@ -141,7 +149,7 @@ bool Board::makeMove(const Move &move) {
             moveAPiece(currentPieces, move.movePiece, move.fromSq, move.toSq);
             handleCastling(move, whoPlay, currentCastling);
 
-            if(move.movePiece == Board::PAWN) halfMove = 0;
+            if(move.movePiece == PIECE_TYPE::PAWN) halfMove = 0;
             else halfMove++;
             break;
         case Move::EN_PASSANT:
@@ -219,6 +227,44 @@ bool Board::makeMove(const Move &move) {
             break;
     }
 
+
+    // NNUE accumulator updates.
+    auto us = whoPlay ? PIECE_COLOR::WHITE : PIECE_COLOR::BLACK;
+    auto enemy = whoPlay ? PIECE_COLOR::BLACK : PIECE_COLOR::WHITE;
+    switch (move.moveType) {
+        // DONE.
+        case Move::QUIET:
+        case Move::DOUBLE_PAWN_UP:
+            nnue.moveAPiece(us, static_cast<PIECE_TYPE>(move.movePiece), move.fromSq, move.toSq);
+            break;
+        case Move::CAPTURE:
+            nnue.moveAPiece(us, static_cast<PIECE_TYPE>(move.movePiece), move.fromSq, move.toSq);
+            nnue.updateAccumulatorSub(enemy, static_cast<PIECE_TYPE>(currentState.captureType), move.toSq);
+            break;
+        case Move::PROMOTION:
+            nnue.updateAccumulatorSub(us, static_cast<PIECE_TYPE>(move.movePiece), move.fromSq);
+            nnue.updateAccumulatorAdd(us, static_cast<PIECE_TYPE>(move.promotionType), move.toSq);
+            break;
+        case Move::EN_PASSANT:
+            nnue.moveAPiece(us, static_cast<PIECE_TYPE>(move.movePiece), move.fromSq, move.toSq);
+            nnue.updateAccumulatorSub(enemy, PAWN, whoPlay ? move.toSq + 8 : move.toSq - 8);
+            break;
+        case Move::CASTLING:
+            nnue.moveAPiece(us, KING, move.fromSq, move.toSq);
+            if(move.fromSq < move.toSq){
+                nnue.moveAPiece(us, ROOK, move.toSq + 1, move.toSq - 1);
+            }
+            else{
+                nnue.moveAPiece(us, ROOK, move.toSq - 2, move.toSq + 1);
+            }
+            break;
+        case Move::PROMOTION_CAPTURE:
+            nnue.updateAccumulatorSub(us, static_cast<PIECE_TYPE>(move.movePiece), move.fromSq);
+            nnue.updateAccumulatorAdd(us, static_cast<PIECE_TYPE>(move.promotionType), move.toSq);
+            nnue.updateAccumulatorSub(enemy, static_cast<PIECE_TYPE>(currentState.captureType), move.toSq);
+            break;
+    }
+
     push(setEnPassant, currentState);
     threeFoldRepetition[repetitionIndex] = zobristKey; // just add key to an array.
     return true;
@@ -254,6 +300,8 @@ void Board::undoMove(const Move &move) {
     zobristKey = prevState.zobristHash;
     halfMove = prevState.halfMove;
     fullMove = prevState.fullMove;
+
+    nnue.pop(); // get prev accumulator.
 
     switch (move.moveType) {
         case Move::CAPTURE:
@@ -382,15 +430,15 @@ bool Board::isSquareAttacked(int square, bool isWhiteEnemy) {
         all |= enemies[j];
         all |= current[j];
     }
-    if(Magics::getRookMoves(all, square) & (enemies[Board::ROOK] | enemies[Board::QUEEN])) return true;
+    if(Magics::getRookMoves(all, square) & (enemies[PIECE_TYPE::ROOK] | enemies[PIECE_TYPE::QUEEN])) return true;
 
-    if(Magics::getBishopMoves(all, square) & (enemies[Board::BISHOP] | enemies[Board::QUEEN])) return true;
+    if(Magics::getBishopMoves(all, square) & (enemies[PIECE_TYPE::BISHOP] | enemies[PIECE_TYPE::QUEEN])) return true;
 
-    if(Movegen::KNIGHT_MOVES[square] & enemies[Board::KNIGHT]) return true;
+    if(Movegen::KNIGHT_MOVES[square] & enemies[PIECE_TYPE::KNIGHT]) return true;
 
-    if(Movegen::PAWN_ATTACK_MOVES[!whoPlay][square] & enemies[Board::PAWN]) return true;
+    if(Movegen::PAWN_ATTACK_MOVES[!whoPlay][square] & enemies[PIECE_TYPE::PAWN]) return true;
 
-    if(Movegen::KING_MOVES[square] & enemies[Board::KING]) return true;
+    if(Movegen::KING_MOVES[square] & enemies[PIECE_TYPE::KING]) return true;
     return false;
 }
 

@@ -118,14 +118,14 @@ void Datagen::runWorker(int softNodeLimit, int threadId) {
                 break;
             }
             auto absScore = std::abs(score);
-            auto isMate = absScore >= (1000000 - 1000);
+            auto isMate = absScore >= (1'000'000 - 1000);
 
 
             auto isCheck = board.inCheck();
             auto whiteRelativeScore = board.whoPlay ? score : -score;
             if(!move.isCapture() && move.moveType != Move::EN_PASSANT && !isCheck){
-                if(isMate && whiteRelativeScore > 0) whiteRelativeScore -= 50'000; // int16 range.
-                if(isMate && whiteRelativeScore < 0) whiteRelativeScore += 50'000; // int16 range.
+                if(isMate && whiteRelativeScore > 0) whiteRelativeScore -= 970'000; // int16 range.
+                if(isMate && whiteRelativeScore < 0) whiteRelativeScore += 970'000; // int16 range.
 
                 totalPos++;
                 positions.push_back({board.FEN(), whiteRelativeScore});
@@ -182,4 +182,8 @@ void Datagen::runWorker(int softNodeLimit, int threadId) {
     }
     // close a stream
     file.close();
+
+    std::lock_guard<std::mutex> guard(_printMutex);
+    std::cout << "worker - " << threadId << " ended." << std::endl;
+
 }

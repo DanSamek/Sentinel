@@ -17,6 +17,7 @@ private:
     std::atomic<int> _gamesPlayed = 0;
     std::atomic<int> _totalPos = 0;
     int _maximumPositions = 0;
+    std::mutex _printMutex;
 
     struct Position{
         std::string fen;

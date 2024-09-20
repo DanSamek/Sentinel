@@ -3,7 +3,7 @@
 
 #include "array"
 #include "const.h"
-#include "board.h"
+#include "boardEnums.h"
 
 // Part of an UE [effective updates]
 // After each move we can update accumulator ["pre-calculation of IL->HL"].
@@ -13,13 +13,13 @@
 class Accumulator {
     // 0 -> white.
     // 1 -> black.
-    std::array<std::array<int, HIDDEN_LAYER_SIZE>, 2> data;
+    std::array<std::array<int, HIDDEN_LAYER_SIZE>, 2> data = {};
 
 public:
     /***
      * Updates accumulator for a color - add: move from -> to, initialization of a pieces.
      */
-    template<Board::pieceColor color>
+    template<PIECE_COLOR color>
     void add(const std::array<int, HIDDEN_LAYER_SIZE>& weights) {
         for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
             data[color][i] += weights[i];
@@ -29,14 +29,14 @@ public:
     /***
      * Updates accumulator for a color - substitution -> capture/ move from -> to.
      */
-    template<Board::pieceColor color>
+    template<PIECE_COLOR color>
     void sub(const std::array<int, HIDDEN_LAYER_SIZE>& weights) {
         for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
             data[color][i] -= weights[i];
         }
     }
 
-    template<Board::pieceColor color>
+    template<PIECE_COLOR color>
     const std::array<int, HIDDEN_LAYER_SIZE> &get() {
         return data[color];
     }

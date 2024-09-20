@@ -1,6 +1,8 @@
 #include "neuralnetwork.h"
 #include "fstream"
 #include "algorithm"
+#include "chrono"
+#include "boardEnums.h"
 
 
 template<typename T>
@@ -10,22 +12,20 @@ T readNumber(std::ifstream& stream){
     return value;
 }
 
-int getIndex(Board::pieceColor perspective, Board::pieceColor color, Board::pieceType piece, int square) {
+inline int getIndex(PIECE_COLOR perspective, PIECE_COLOR color, PIECE_TYPE piece, int square) {
     auto colorIndex = (perspective == color) ? 0 : 1;
     auto pieceIndex = (int)piece;
-    auto squareIndex = (perspective == Board::WHITE) ? square ^ 56 : square;
+    auto squareIndex = (perspective == PIECE_COLOR::WHITE) ? square ^ 56 : square;
 
     auto result = (colorIndex * 6 + pieceIndex) * 64 + squareIndex;
     return result;
 }
 
-template<Board::pieceColor us, Board::pieceColor opp>
-std::array<int, INPUT_LAYER_SIZE> getInputLayer(const Board& board){
-    std::array<int, INPUT_LAYER_SIZE> result = {0};
-
-    // merge all bitboards.
+template<PIECE_COLOR us, PIECE_COLOR opp>
+std::vector<int> getInputLayer(const Board& board){
+    std::vector<int> indexes;
     uint64_t all = 0ULL;
-    for(int j = 0; j <= Board::KING; j++){
+    for(int j = 0; j <= PIECE_TYPE::KING; j++){
         all |= board.colorBBS(us)[j];
         all |= board.colorBBS(opp)[j];
     }
@@ -34,65 +34,51 @@ std::array<int, INPUT_LAYER_SIZE> getInputLayer(const Board& board){
         auto square = bit_ops::bitScanForwardPopLsb(all);
         auto piece = board.getPieceTypeFromSQ(square, board.colorBBS(us));
         if(piece.second){
-            result[getIndex(us, us, piece.first, square)] = 1;
+            indexes.push_back(getIndex(us, us, piece.first, square));
             continue;
         }
         piece = board.getPieceTypeFromSQ(square, board.colorBBS(opp));
         if(piece.second){
-            result[getIndex(us, opp, piece.first, square)] = 1;
+            indexes.push_back(getIndex(us, opp, piece.first, square));
         }
     }
 
-    return result;
+    return indexes;
 }
 
-std::array<int, HIDDEN_LAYER_SIZE> NeuralNetwork::forwardInputLayer(const std::array<int, INPUT_LAYER_SIZE>& inputLayer){
+std::array<int, HIDDEN_LAYER_SIZE> NeuralNetwork::forwardInputLayer(const std::vector<int> & inputLayer){
     std::array<int, HIDDEN_LAYER_SIZE> result = {};
-    for(int i = 0; i < INPUT_LAYER_SIZE; i++){
-        if(!inputLayer[i]) continue;
 
+    for(auto i : inputLayer){
         for(int x = 0; x < HIDDEN_LAYER_SIZE; x++){
             result[x] += INPUT_LAYER[i][x];
         }
     }
 
-    for(int hiddenIndex = 0; hiddenIndex < HIDDEN_LAYER_SIZE; hiddenIndex++){
-        result[hiddenIndex] += INPUT_LAYER_BIASES[hiddenIndex];
+    for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
+        result[i] += INPUT_LAYER_BIASES[i];
     }
 
-    return result;
-}
-
-
-int NeuralNetwork::forwardHiddenLayer(const std::array<int, HIDDEN_LAYER_SIZE * 2>& hiddenLayer){
-    int result = 0;
-
-    for(int i = 0; i < HIDDEN_LAYER_SIZE * 2; i++){
-        result += crelu(hiddenLayer[i]) * HIDDEN_LAYER_WEIGHTS[i];
-    }
     return result;
 }
 
 
 int NeuralNetwork::eval(const Board& board) {
-    auto usInputLayer = board.whoPlay ? getInputLayer<Board::WHITE, Board::BLACK>(board) : getInputLayer<Board::BLACK, Board::WHITE>(board);
-    auto oppInputLayer = board.whoPlay ? getInputLayer<Board::BLACK, Board::WHITE>(board) : getInputLayer<Board::WHITE, Board::BLACK>(board);
+    auto usInputLayer = board.whoPlay ? getInputLayer<PIECE_COLOR::WHITE, PIECE_COLOR::BLACK>(board) : getInputLayer<PIECE_COLOR::BLACK, PIECE_COLOR::WHITE>(board);
+    auto oppInputLayer = board.whoPlay ? getInputLayer<PIECE_COLOR::BLACK, PIECE_COLOR::WHITE>(board) : getInputLayer<PIECE_COLOR::WHITE, PIECE_COLOR::BLACK>(board);
 
     auto usForward = forwardInputLayer(usInputLayer);
     auto oppForward = forwardInputLayer(oppInputLayer);
 
-    std::array<int, HIDDEN_LAYER_SIZE * 2> mergedForward;
+    auto result = HIDDEN_LAYER_BIASES[0];
+
     for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
-        mergedForward[i] = usForward[i];
-        mergedForward[i + HIDDEN_LAYER_SIZE] = oppForward[i];
+        result += crelu(usForward[i]) * HIDDEN_LAYER_WEIGHTS[i];
+        result += crelu(oppForward[i]) * HIDDEN_LAYER_WEIGHTS[i + HIDDEN_LAYER_SIZE];
     }
 
-    auto result = forwardHiddenLayer(mergedForward);
-
-    result += HIDDEN_LAYER_BIASES[0];
     result *= SCALE;
     result /= QA * QB;
-    std::cout << result << std::endl;
     return result;
 }
 
@@ -122,6 +108,57 @@ void NeuralNetwork::load() {
     HIDDEN_LAYER_BIASES[0] = readNumber<int16_t>(stream);
 }
 
-int NeuralNetwork::crelu(int value) {
-    return std::clamp(value, 0, QA);
+
+void NeuralNetwork::test() {
+    load();
+
+    Board b;
+    auto testSuite = [&](std::string fen) ->void{
+        int result;
+        b.loadFEN(fen);
+
+        for(int i = 0; i < 250'000; i++){
+            result = eval(b);
+            if((i + 1) % 250'000 == 0){
+                std::cout << result << std::endl;
+            }
+        }
+    };
+
+    auto start = std::chrono::high_resolution_clock::now();
+    testSuite("r1bqkbnr/ppp1pppp/2n5/3p4/3P4/1BN2N2/PPP1PPPP/R1BQ1RK1 w kq - 0 1");
+    testSuite("r2qkb1r/ppp1pppp/2n2n2/3p1b2/3P4/1BN2N2/PPP1PPPP/R1BQ1RK1 w kq - 0 1");
+    testSuite("rnbqkbnr/pppppppp/8/3P4/4P3/1BN2N2/PPP1QPPP/R1B2RK1 w kq - 0 1");
+    testSuite("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/3P4/PPP2PPP/RNBQKBNR w KQkq - 0 1");
+    testSuite("1kr2b1r/ppp2ppp/2np1n2/4pb2/8/8/PPPPPPPP/RNB1KBNR w KQk - 1 1");
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+
+    double microseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    std::cout << "Elapsed time: " << microseconds << " ms" << std::endl;
+    auto testSuiteClassic = [&](std::string fen) ->void{
+        int result;
+        b.loadFEN(fen);
+
+        for(int i = 0; i < 250'000; i++){
+            result = b.eval();
+            if((i + 1) % 250'000 == 0){
+                std::cout << result << std::endl;
+            }
+        }
+    };
+
+    start = std::chrono::high_resolution_clock::now();
+    testSuiteClassic("r1bqkbnr/ppp1pppp/2n5/3p4/3P4/1BN2N2/PPP1PPPP/R1BQ1RK1 w kq - 0 1");
+    testSuiteClassic("r2qkb1r/ppp1pppp/2n2n2/3p1b2/3P4/1BN2N2/PPP1PPPP/R1BQ1RK1 w kq - 0 1");
+    testSuiteClassic("rnbqkbnr/pppppppp/8/3P4/4P3/1BN2N2/PPP1QPPP/R1B2RK1 w kq - 0 1");
+    testSuiteClassic("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/3P4/PPP2PPP/RNBQKBNR w KQkq - 0 1");
+    testSuiteClassic("1kr2b1r/ppp2ppp/2np1n2/4pb2/8/8/PPPPPPPP/RNB1KBNR w KQk - 1 1");
+
+    end = std::chrono::high_resolution_clock::now();
+    duration = end - start;
+
+    microseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    std::cout << "Elapsed time: " << microseconds << " ms" << std::endl;
 }

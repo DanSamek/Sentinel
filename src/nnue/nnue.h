@@ -1,11 +1,13 @@
 #ifndef SENTINEL_NNUE_H
 #define SENTINEL_NNUE_H
 
+#include <cassert>
 #include "array"
 #include "const.h"
 #include "string"
 #include "accumulator.h"
 #include "algorithm"
+#include "iostream"
 
 /***
  * Neural network with effective updates
@@ -34,7 +36,10 @@ class NNUE {
         return std::clamp(value, 0, QA);
     }
 
+    void load();
+
 public:
+    NNUE();
     /***
      * Saves current accumulator to a stack.
      * For easier board.undoMove();
@@ -48,34 +53,57 @@ public:
     void pop();
 
     /***
-     * stackIndex = 0.
+     * StackIndex = 0.
      */
     void reset();
 
     /***
-     * see documentation of a accumulator.add()
+     * See documentation of a accumulator.add()
      */
-    void updateAccumulatorSub(Board::pieceColor color, Board::pieceType piece, int square);
+    void updateAccumulatorSub(PIECE_COLOR color, PIECE_TYPE piece, int square);
 
     /***
-     * see documentation of a accumulator.add()
+     * See documentation of a accumulator.add()
      */
-    void updateAccumulatorAdd(Board::pieceColor color, Board::pieceType piece, int square);
+    void updateAccumulatorAdd(PIECE_COLOR color, PIECE_TYPE piece, int square);
+
+    /***
+     * Updates accumulators for a piece [from -> to]
+     */
+    void moveAPiece(PIECE_COLOR color, PIECE_TYPE piece, int fromSquare, int toSquare);
 
     /***
      * @return eval of a current "position".
      */
-    template<Board::pieceColor perspective>
-    int eval();
+    template<PIECE_COLOR perspective>
+    int eval(){
+        constexpr auto opp = perspective == WHITE ? BLACK : WHITE;
+        int result = HIDDEN_LAYER_BIASES[0];
+        auto accumulator = &stack[stackIndex];
 
+        auto ourAccumulator = accumulator->get<perspective>();
+        for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
+            result += HIDDEN_LAYER_WEIGHTS[i] * crelu(ourAccumulator[i]);
+        }
 
-    template<Board::pieceColor perspective>
-    inline int getIndex(Board::pieceColor color, Board::pieceType piece, int square) {
+        auto oppAccumulator = accumulator->get<opp>();
+        for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
+            result += HIDDEN_LAYER_WEIGHTS[i + HIDDEN_LAYER_SIZE] * crelu(oppAccumulator[i]);
+        }
+
+        result *= SCALE;
+        result /= QA * QB;
+        return result;
+    }
+
+    template<PIECE_COLOR perspective>
+    inline int getIndex(PIECE_COLOR color, PIECE_TYPE piece, int square) {
         auto colorIndex = (perspective == color) ? 0 : 1;
         auto pieceIndex = (int)piece;
-        auto squareIndex = (perspective == Board::WHITE) ? square ^ 56 : square; // ?
+        auto squareIndex = (perspective == PIECE_COLOR::WHITE) ? square ^ 56 : square;
 
         auto result = (colorIndex * 6 + pieceIndex) * 64 + squareIndex;
+        assert(result >= 0 && result < 768);
         return result;
     }
 };

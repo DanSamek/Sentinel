@@ -1,4 +1,18 @@
 #include "nnue.h"
+#include "fstream"
+#include "cassert"
+
+template<typename T>
+T readNumber(std::ifstream& stream){
+    T value;
+    stream.read(reinterpret_cast<char*>(&value), sizeof(value));
+    return value;
+}
+
+NNUE::NNUE() {
+    reset();
+    load();
+}
 
 void NNUE::push() {
     stack[stackIndex + 1] = stack[stackIndex];
@@ -14,40 +28,54 @@ void NNUE::reset() {
     stackIndex = 0;
 }
 
-void NNUE::updateAccumulatorAdd(Board::pieceColor color, Board::pieceType piece, int square) {
-    auto indexWhite = getIndex<Board::WHITE>(color, piece, square);
-    auto indexBlack = getIndex<Board::BLACK>(color, piece, square);
+void NNUE::updateAccumulatorAdd(PIECE_COLOR color, PIECE_TYPE piece, int square) {
+    auto indexWhite = getIndex<PIECE_COLOR::WHITE>(color, piece, square);
+    auto indexBlack = getIndex<PIECE_COLOR::BLACK>(color, piece, square);
 
     auto accumulator = &stack[stackIndex];
 
-    accumulator->add<Board::WHITE>(INPUT_LAYER[indexWhite]);
-    accumulator->add<Board::BLACK>(INPUT_LAYER[indexBlack]);
+    accumulator->add<PIECE_COLOR::WHITE>(INPUT_LAYER[indexWhite]);
+    accumulator->add<PIECE_COLOR::BLACK>(INPUT_LAYER[indexBlack]);
 }
 
-void NNUE::updateAccumulatorSub(Board::pieceColor color, Board::pieceType piece, int square) {
-    auto indexWhite = getIndex<Board::WHITE>(color, piece, square);
-    auto indexBlack = getIndex<Board::BLACK>(color, piece, square);
+void NNUE::updateAccumulatorSub(PIECE_COLOR color, PIECE_TYPE piece, int square) {
+    auto indexWhite = getIndex<PIECE_COLOR::WHITE>(color, piece, square);
+    auto indexBlack = getIndex<PIECE_COLOR::BLACK>(color, piece, square);
 
     auto accumulator = &stack[stackIndex];
 
-    accumulator->sub<Board::WHITE>(INPUT_LAYER[indexWhite]);
-    accumulator->sub<Board::BLACK>(INPUT_LAYER[indexBlack]);
+    accumulator->sub<PIECE_COLOR::WHITE>(INPUT_LAYER[indexWhite]);
+    accumulator->sub<PIECE_COLOR::BLACK>(INPUT_LAYER[indexBlack]);
 }
 
-template<Board::pieceColor perspective>
-int NNUE::eval() {
-    int result = HIDDEN_LAYER_BIASES[0];
-    auto accumulator = &stack[stackIndex];
 
-    for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
-        result += HIDDEN_LAYER_WEIGHTS[i] * crelu(accumulator->get<perspective>()[i]);
+void NNUE::load() {
+    std::ifstream stream(NET_PATH, std::ios::binary);
+
+    if(!stream.is_open()){
+        throw "File cannot be opened";
     }
 
+    for(int i = 0; i < INPUT_LAYER_SIZE; i++){
+        for(int x = 0; x < HIDDEN_LAYER_SIZE; x++){
+            INPUT_LAYER[i][x] = readNumber<int16_t>(stream);
+        }
+    }
+    assert(!stream.eof());
     for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
-        result += HIDDEN_LAYER_WEIGHTS[i + HIDDEN_LAYER_SIZE] * crelu(accumulator->get<!perspective>()[i]);
+        INPUT_LAYER_BIASES[i] = readNumber<int16_t>(stream);
     }
 
-    result *= SCALE;
-    result /= QA * QB;
-    return result;
+    assert(!stream.eof());
+    for(int i = 0; i < HIDDEN_LAYER_SIZE * 2; i++){
+        HIDDEN_LAYER_WEIGHTS[i] = readNumber<int16_t>(stream);
+    }
+    assert(!stream.eof());
+
+    HIDDEN_LAYER_BIASES[0] = readNumber<int16_t>(stream);
+}
+
+void NNUE::moveAPiece(PIECE_COLOR color, PIECE_TYPE piece, int fromSquare, int toSquare) {
+    updateAccumulatorSub(color, piece, fromSquare); // -> 0
+    updateAccumulatorAdd(color, piece, toSquare); // -> 1
 }

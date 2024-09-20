@@ -76,4 +76,6 @@ add_executable(Sentinel
         src/nnue/neuralnetwork.cpp
         src/nnue/accumulator.cpp
         src/nnue/nnue.cpp
+        src/boardEnums.h
+        src/tests/NNUETests.cpp
 )

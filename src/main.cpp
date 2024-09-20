@@ -4,6 +4,7 @@
 #include <tests/ZobristTests.cpp>
 #include <tests/nullMoveTests.cpp>
 #include <tests/SEETests.cpp>
+#include <tests/NNUETests.cpp>
 #include "nnue/datagen.h"
 #include <chrono>
 #include <uci.h>
@@ -13,38 +14,27 @@
 int main(){
 
     if(RUN_DATAGEN){
-        /*
+        Board::initPawnEvalBBS();
+        Movegen::init();
+        Zobrist::init();
+        PST::init();
         NeuralNetwork n;
-        n.load();
-        Board b;
-        b.loadFEN("r1bqkbnr/ppp1pppp/2n5/3p4/3P4/1BN2N2/PPP1PPPP/R1BQ1RK1 w kq - 0 1");
-        n.eval(b);
-        b.loadFEN("r2qkb1r/ppp1pppp/2n2n2/3p1b2/3P4/1BN2N2/PPP1PPPP/R1BQ1RK1 w kq - 0 1");
-        n.eval(b);
+        n.test();
 
-        b.loadFEN("rnbqkbnr/pppppppp/8/3P4/4P3/1BN2N2/PPP1QPPP/R1B2RK1 w kq - 0 1");
-        n.eval(b);
-
-        b.loadFEN("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/3P4/PPP2PPP/RNBQKBNR w KQkq - 0 1");
-        n.eval(b);
-
-        b.loadFEN("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/3P4/PPP2PPP/RNBQKBNR b KQkq - 0 1");
-        n.eval(b);
-
-        191
+      /*  191
         79
         469
         -55
-        101
-        return 0;
-         */
-        Datagen(24,7'500,5'000'000).run();
+        101*/
+
+//        Datagen(24,7'500,5'000'000).run();
     }
     else if(RUN_TESTS){
         Board::initPawnEvalBBS();
         Movegen::init();
         Zobrist::init();
         PST::init();
+        NNUETests::testNNUE();
         ZobristTests::runTests();
         SEETests::run();
         BoardTests::testBoard();

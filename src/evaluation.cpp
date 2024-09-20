@@ -1,5 +1,7 @@
+
 #include "board.h"
 #include "movegen.h"
+#include "development.h"
 
 static inline constexpr int TWO_BISHOPS_BONUS = S(27,65);
 static inline constexpr int CASTLING_BONUS = S(10,11);
@@ -21,6 +23,11 @@ static inline constexpr bool E_WHITE = true;
 static inline constexpr bool E_BLACK = false;
 
 int Board::eval() {
+#if !RUN_DATAGEN
+    return whoPlay ? nnue.eval<WHITE>() : nnue.eval<BLACK>();
+#endif
+
+
     uint64_t all;
     uint64_t white = 0ULL;
     uint64_t black = 0ULL;
@@ -35,8 +42,8 @@ int Board::eval() {
 
     // add bonus, if castling is still possible
     // if king is attacked, dont move king, just try block.
-    whiteScore += (castling[pieceColor::WHITE][0] || castling[pieceColor::WHITE][1]) ? CASTLING_BONUS : 0;
-    blackScore += (castling[pieceColor::BLACK][0] || castling[pieceColor::BLACK][1]) ? CASTLING_BONUS : 0;
+    whiteScore += (castling[PIECE_COLOR::WHITE][0] || castling[PIECE_COLOR::WHITE][1]) ? CASTLING_BONUS : 0;
+    blackScore += (castling[PIECE_COLOR::BLACK][0] || castling[PIECE_COLOR::BLACK][1]) ? CASTLING_BONUS : 0;
 
     int phase = countPhase(whitePieces) + countPhase(blackPieces);
     if (phase > 24) phase = 24;

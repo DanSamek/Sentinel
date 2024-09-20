@@ -50,7 +50,6 @@ class Search {
     static constexpr int CHECKMATE = 1000000;
     static constexpr int CHECKMATE_LOWER_BOUND = 1000000 - 1000;
 
-
     static inline Move NO_MOVE = Move();
 
 public:
@@ -215,7 +214,7 @@ private:
 
 
         // Check extension.
-        if(ply > MAX_DEPTH - 1) return _board->eval();
+        if(ply > MAX_DEPTH - 1) return _board->eval();//  _board->eval();
 
         if(_board->isDraw()) return 0;
 
