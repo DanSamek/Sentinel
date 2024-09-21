@@ -9,25 +9,10 @@
 #include <chrono>
 #include <uci.h>
 #include "development.h"
-#include "nnue/neuralnetwork.h"
 
 int main(){
-
     if(RUN_DATAGEN){
-        Board::initPawnEvalBBS();
-        Movegen::init();
-        Zobrist::init();
-        PST::init();
-        NeuralNetwork n;
-        n.test();
-
-      /*  191
-        79
-        469
-        -55
-        101*/
-
-//        Datagen(24,7'500,5'000'000).run();
+        Datagen(24,5'000,4'000'000).run();
     }
     else if(RUN_TESTS){
         Board::initPawnEvalBBS();

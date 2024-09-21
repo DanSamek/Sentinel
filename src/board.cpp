@@ -89,8 +89,9 @@ bool Board::makeMove(const Move &move) {
     auto enemyCastling = whoPlay ? castling[1].data() : castling[0].data();
 
     bool setEnPassant = false;
-
+#if !RUN_DATAGEN
     nnue.push(); // save current accumulator.
+#endif
     State currentState{-1,enPassantSquare, castling, halfMove, zobristKey, fullMove};
 
     std::pair<uint64_t , bool> type;
@@ -203,8 +204,6 @@ bool Board::makeMove(const Move &move) {
 
     fullMove += !whoPlay ? 1 : 0;
 
-    // update and add to a move "stack".
-    // save state to a current depth
     switch (move.moveType) {
         case Move::CAPTURE:
             Zobrist::updateHashMove(zobristKey, move,*this, currentState);
@@ -229,6 +228,7 @@ bool Board::makeMove(const Move &move) {
 
 
     // NNUE accumulator updates.
+#if !RUN_DATAGEN
     auto us = whoPlay ? PIECE_COLOR::WHITE : PIECE_COLOR::BLACK;
     auto enemy = whoPlay ? PIECE_COLOR::BLACK : PIECE_COLOR::WHITE;
     switch (move.moveType) {
@@ -264,6 +264,7 @@ bool Board::makeMove(const Move &move) {
             nnue.updateAccumulatorSub(enemy, static_cast<PIECE_TYPE>(currentState.captureType), move.toSq);
             break;
     }
+#endif
 
     push(setEnPassant, currentState);
     threeFoldRepetition[repetitionIndex] = zobristKey; // just add key to an array.
@@ -300,8 +301,9 @@ void Board::undoMove(const Move &move) {
     zobristKey = prevState.zobristHash;
     halfMove = prevState.halfMove;
     fullMove = prevState.fullMove;
-
+#if !RUN_DATAGEN
     nnue.pop(); // get prev accumulator.
+#endif
 
     switch (move.moveType) {
         case Move::CAPTURE:

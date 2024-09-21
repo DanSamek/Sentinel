@@ -10,6 +10,7 @@ public:
     void run();
 private:
     void runWorker(int softNodeLimit, int threadId);
+    void printInfo();
     int _threadCnt;
     int _softNodeLimit;
     std::atomic<bool> _stopSignal;
