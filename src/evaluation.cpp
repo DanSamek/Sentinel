@@ -23,9 +23,8 @@ static inline constexpr bool E_WHITE = true;
 static inline constexpr bool E_BLACK = false;
 
 int Board::eval() {
-#if !RUN_DATAGEN
+
     return whoPlay ? nnue.eval<WHITE>() : nnue.eval<BLACK>();
-#endif
 
 
     uint64_t all;

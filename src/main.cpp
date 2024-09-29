@@ -12,7 +12,7 @@
 
 int main(){
     if(RUN_DATAGEN){
-        Datagen(24,5'000,4'000'000).run();
+        Datagen().run();
     }
     else if(RUN_TESTS){
         Board::initPawnEvalBBS();

@@ -6,13 +6,15 @@
 
 class Datagen {
 public:
-    Datagen(int threadCount, int softNodeLimit = 5000, int maximumPositions = 1000) : _threadCnt(threadCount), _softNodeLimit(softNodeLimit), _maximumPositions(maximumPositions){};
+    Datagen();
     void run();
 private:
+    void printStartupText();
     void runWorker(int softNodeLimit, int threadId);
     void printInfo();
     int _threadCnt;
     int _softNodeLimit;
+    int _maxMs;
     std::atomic<bool> _stopSignal;
     Timer _timer;
     std::atomic<int> _gamesPlayed = 0;

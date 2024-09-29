@@ -11,7 +11,7 @@
 
 static inline const std::string START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-void printStartupText(){
+Datagen::Datagen() {
     // https://www.patorjk.com/software/taag/#p=display&f=Graffiti&t=Sentinel
     std::cout << "  _________              __  .__              .__   " << std::endl;
     std::cout << " /   _____/ ____   _____/  |_|__| ____   ____ |  |  "<< std::endl;
@@ -20,6 +20,23 @@ void printStartupText(){
     std::cout << "/_______  /\\___  >___|  /__| |__|___|  /\\___  >____/"<< std::endl;
     std::cout << "        \\/     \\/     \\/             \\/     \\/      "<< std::endl;
     std::cout << "Datagen tool" << std::endl;
+    std::cout << "thread count: ";
+    if(!(std::cin >> _threadCnt)){
+        _threadCnt = 1;
+    }
+    std::cout << "soft node limit: ";
+    if(!(std::cin >> _softNodeLimit)){
+        _softNodeLimit = 500;
+    }
+    std::cout  << "maximum positions: ";
+    if(!(std::cin >> _maximumPositions)){
+        _maximumPositions = 1'000'000;
+    }
+    std::cout << "maximum seconds: ";
+    if(!(std::cin >> _maxMs)){
+        _maxMs = 600;
+    }
+    _maxMs *= 1000; // get ms.
 }
 
 void Datagen::run() {
@@ -28,7 +45,6 @@ void Datagen::run() {
     Movegen::init();
     Zobrist::init();
     PST::init();
-    printStartupText();
 
     srand(time(nullptr));
 
@@ -45,7 +61,7 @@ void Datagen::run() {
     // waiting for a user message.
     std::cout << "waiting on `stop` message" << std::endl;
     std::string userMessage;
-    while(_totalPos < _maximumPositions){
+    while(_totalPos < _maximumPositions && (_timer.getMs() <= _maxMs)){
         // handle stop signal
         std::cin >> userMessage;
         if(userMessage == "stop"){
@@ -81,7 +97,7 @@ void Datagen::runWorker(int softNodeLimit, int threadId) {
     const Move NO_MOVE = Move();
 
     Search s = Search();
-    while(!_stopSignal && _totalPos < _maximumPositions){
+    while(!_stopSignal && _totalPos < _maximumPositions && _timer.getMs() <= _maxMs){
         // Position startup.
         again:
         board.loadFEN(START_POS);
@@ -192,7 +208,7 @@ void Datagen::runWorker(int softNodeLimit, int threadId) {
             printInfo();
         }
     }
-    // close a stream
+    // close a file stream.
     file.close();
 
     std::lock_guard<std::mutex> guard(_printMutex);
@@ -203,14 +219,15 @@ void Datagen::printInfo() {
     double percent = (_totalPos / (_maximumPositions * 1.0));
     const int barWidth = 50;
     int position = barWidth * percent;
-    auto posPerSecond = (_totalPos) / (_timer.getMs() / 1000.0);
+    int seconds = (_timer.getMs() / 1000.0);
+    auto posPerSecond = (_totalPos) / (!seconds ? 1 : seconds);
     auto diff = _maximumPositions - _totalPos;
     std::cout << "----------------" << std::endl;
     std::cout << "total games played: " << _gamesPlayed  << std::endl;
     std::cout << "positions/s: " <<  posPerSecond << std::endl;
     std::cout << "total generated positions [quiet]: " << _totalPos << std::endl;
-    std::cout << "total time [seconds]: " << (_timer.getMs()/1000) << std::endl;
-    std::cout << "time remaining [seconds]: " <<  diff / posPerSecond   << std::endl;
+    std::cout << "total time [seconds]: " << seconds << std::endl;
+    std::cout << "time remaining [seconds]: " << diff / posPerSecond   << std::endl;
 
     std::cout << "Progress: " << "[";
     for (int i = 0; i < barWidth; ++i) {
