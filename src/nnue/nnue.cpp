@@ -1,6 +1,8 @@
+#include <sstream>
 #include "nnue.h"
 #include "fstream"
 #include "cassert"
+#include "net.h"
 
 template<typename T>
 T readNumber(std::ifstream& stream){
@@ -10,8 +12,8 @@ T readNumber(std::ifstream& stream){
 }
 
 NNUE::NNUE() {
-    reset();
     load();
+    reset();
 }
 
 void NNUE::push() {
@@ -50,7 +52,20 @@ void NNUE::updateAccumulatorSub(PIECE_COLOR color, PIECE_TYPE piece, int square)
 
 
 void NNUE::load() {
-    std::ifstream stream(NET_PATH, std::ios::binary);
+    std::ifstream stream;
+
+    stream = std::ifstream(NET_PATH, std::ios::binary);
+
+    // load net from user.
+    // TODO
+    /*
+    if(!inlineNet){
+        stream = std::ifstream(NET_PATH, std::ios::binary);
+    }
+    else{
+        stream = std::istringstream(Net::NET_DATA, std::ios::binary);
+    }
+    */
 
     if(!stream.is_open()){
         throw "File cannot be opened";

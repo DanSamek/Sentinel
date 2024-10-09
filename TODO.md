@@ -4,20 +4,13 @@
 
 ### Eval
 
-- [ ] Batteries (QxB, QxR) -> ?
-- [ ] Threats -> ?
-- [ ] King zone attack -> ?
-- [ ] Pawn eval updates - phalanx pawn, pawn storm, pawn shield,.. -> ?
-- [ ] Outposts -> ?
-- [ ] Major on 7th rank -> ?
-- [ ] Mobility changes -> ?
-- [ ] Safe/unsafe checks -> ?
+* No more HCE in Sentinel 2.0 has NNUE *
 
 ------
 
 ### Search
 - [ ] Better move ordering -> ?
-    - [ ] Counter moves -> ?
+    - [X] Counter moves -> ?
     - [ ] Capture history -> ?
     - [ ] Continuation history -> ?
         - [ ] 1 ply -> ?
@@ -32,8 +25,9 @@
 ------
 
 ### Enchantments
-- [ ] PV
-- [ ] TT Prefetching -> ?
+- [x] PV
+- [ ] TT Prefetching -> ? 
+  - no elo gain, yet
 - [ ] Multithread
     - [ ] Lazy SMP
 - [ ] Legal movegen -> ?

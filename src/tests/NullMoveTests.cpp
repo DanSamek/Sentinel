@@ -47,7 +47,7 @@ struct NullMoveTests{
         return std::string(1, file) + rank;
     }
 
-    static void runTests(){
+    static void run(){
 
         std::cout << "RUNNING NULL MOVES TESTS" << std::endl;
         // r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7

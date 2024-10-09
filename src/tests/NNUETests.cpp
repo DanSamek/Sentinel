@@ -51,7 +51,7 @@ struct NNUETests{
 
     static inline NeuralNetwork nn;
 
-    static void testNNUE() {
+    static void run() {
         nn.load();
 
         diff("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");

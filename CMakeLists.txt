@@ -64,7 +64,7 @@ add_executable(Sentinel
         src/timer.cpp
         src/evaluation.cpp
         src/evaluation.cpp
-        src/tests/nullMoveTests.cpp
+        src/tests/NullMoveTests.cpp
         src/see.cpp
         src/tests/SEETests.cpp
         src/timemanager.cpp
@@ -78,4 +78,5 @@ add_executable(Sentinel
         src/nnue/nnue.cpp
         src/boardEnums.h
         src/tests/NNUETests.cpp
+        src/nnue/net.h
 )

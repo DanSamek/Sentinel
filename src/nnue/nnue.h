@@ -24,7 +24,6 @@ class NNUE {
     static constexpr int QB = 64;
     static constexpr int SCALE = 400;
 
-    static inline std::string NET_PATH = "./src/nnue/aegis.bin";
 
     std::array<Accumulator, 1024> stack;
     int stackIndex = 0;
@@ -39,6 +38,8 @@ class NNUE {
     void load();
 
 public:
+    static inline bool inlineNet = true;
+    static inline std::string NET_PATH = "./src/nnue/singularity.bin";
     NNUE();
     /***
      * Saves current accumulator to a stack.

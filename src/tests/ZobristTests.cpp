@@ -4,7 +4,7 @@
 #include <zobrist.h>
 struct ZobristTests{
 
-    static void runTests(){
+    static void run(){
         Zobrist::init();
         Board b;
         b.loadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
