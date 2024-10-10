@@ -37,9 +37,12 @@ class NNUE {
 
     void load();
 
+    void loadFromFile();
+    void loadInlined();
+
 public:
     static inline bool inlineNet = true;
-    static inline std::string NET_PATH = "./src/nnue/singularity.bin";
+    static inline std::string NET_PATH = "../src/nnue/singularity.bin";
     NNUE();
     /***
      * Saves current accumulator to a stack.
@@ -107,6 +110,7 @@ public:
         assert(result >= 0 && result < 768);
         return result;
     }
+
 };
 
 

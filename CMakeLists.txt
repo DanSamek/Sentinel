@@ -78,5 +78,4 @@ add_executable(Sentinel
         src/nnue/nnue.cpp
         src/boardEnums.h
         src/tests/NNUETests.cpp
-        src/nnue/net.h
 )

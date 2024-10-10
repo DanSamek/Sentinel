@@ -1,11 +1,19 @@
-#include <sstream>
+#include "sstream"
 #include "nnue.h"
 #include "fstream"
 #include "cassert"
-#include "net.h"
+#include "singularity.bin.h"
+#include "development.h"
 
 template<typename T>
-T readNumber(std::ifstream& stream){
+T readNumber(std::ifstream & stream){
+    T value;
+    stream.read(reinterpret_cast<char*>(&value), sizeof(value));
+    return value;
+}
+
+template<typename T>
+T readNumber(std::istringstream & stream){
     T value;
     stream.read(reinterpret_cast<char*>(&value), sizeof(value));
     return value;
@@ -50,23 +58,30 @@ void NNUE::updateAccumulatorSub(PIECE_COLOR color, PIECE_TYPE piece, int square)
     accumulator->sub<PIECE_COLOR::BLACK>(INPUT_LAYER[indexBlack]);
 }
 
-
 void NNUE::load() {
-    std::ifstream stream;
+#if DEVELOPMENT
+    std::cout << "loading net, inline: " << inlineNet << std::endl;
+#endif
 
-    stream = std::ifstream(NET_PATH, std::ios::binary);
+    if(!inlineNet) loadFromFile();
+    else loadInlined();
+}
 
-    // load net from user.
-    // TODO
-    /*
-    if(!inlineNet){
-        stream = std::ifstream(NET_PATH, std::ios::binary);
-    }
-    else{
-        stream = std::istringstream(Net::NET_DATA, std::ios::binary);
-    }
-    */
+void NNUE::moveAPiece(PIECE_COLOR color, PIECE_TYPE piece, int fromSquare, int toSquare) {
+    updateAccumulatorSub(color, piece, fromSquare); // -> 0
+    updateAccumulatorAdd(color, piece, toSquare); // -> 1
+}
 
+/*
+ * !!!!
+ * !!!!
+ * TODO
+ * !!!!
+ * !!!!
+ */
+
+void NNUE::loadFromFile() {
+    auto stream = std::ifstream(NET_PATH, std::ios::binary);
     if(!stream.is_open()){
         throw "File cannot be opened";
     }
@@ -90,7 +105,28 @@ void NNUE::load() {
     HIDDEN_LAYER_BIASES[0] = readNumber<int16_t>(stream);
 }
 
-void NNUE::moveAPiece(PIECE_COLOR color, PIECE_TYPE piece, int fromSquare, int toSquare) {
-    updateAccumulatorSub(color, piece, fromSquare); // -> 0
-    updateAccumulatorAdd(color, piece, toSquare); // -> 1
+void NNUE::loadInlined() {
+    std::istringstream stream;
+    auto size = sizeof(singularity_bin) / sizeof (unsigned char);
+    stream.rdbuf()->pubsetbuf((char *) singularity_bin, size);
+
+    for(int i = 0; i < INPUT_LAYER_SIZE; i++){
+        for(int x = 0; x < HIDDEN_LAYER_SIZE; x++){
+            INPUT_LAYER[i][x] = readNumber<int16_t>(stream);
+        }
+    }
+    assert(!stream.eof());
+    for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
+        INPUT_LAYER_BIASES[i] = readNumber<int16_t>(stream);
+    }
+
+    assert(!stream.eof());
+    for(int i = 0; i < HIDDEN_LAYER_SIZE * 2; i++){
+        HIDDEN_LAYER_WEIGHTS[i] = readNumber<int16_t>(stream);
+    }
+    assert(!stream.eof());
+
+    HIDDEN_LAYER_BIASES[0] = readNumber<int16_t>(stream);
+
+
 }

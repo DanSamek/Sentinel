@@ -41,7 +41,7 @@ void UCI::uciInit() {
     std::cout << "id name Sentinel-NNUE-singularity-net" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl << std::endl;
     std::cout << "option name Hash type spin default "<< _hashSize << " min 1 max 30000" << std::endl;
-    std::cout << "option name NetPath spin default none" << std::endl; // TODO uci spec.
+    std::cout << "option name NetPath spin default none" << std::endl;
 #if LI_CHESS_BUILD
     std::cout << "option name Move Overhead type spin default 10 min 0 max 5000" << std::endl;
 #endif
@@ -177,8 +177,11 @@ void UCI::setOption(std::string command) {
     }
 #endif
 
-    if(type.find("net") != std::string::npos){
-        // set NNUE path based on user input.
+    if(type.find("Net") != std::string::npos){
+        // Set NNUE path based on user input.
+        // NOTE:
+        // inlineNet will be disabled when program runs.
+        // Maybe fix [?].
         NNUE::NET_PATH = value;
         NNUE::inlineNet = false;
     }
