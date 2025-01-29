@@ -72,6 +72,25 @@ void NNUE::moveAPiece(PIECE_COLOR color, PIECE_TYPE piece, int fromSquare, int t
     updateAccumulatorAdd(color, piece, toSquare); // -> 1
 }
 
+#if DEVELOPMENT
+void NNUE::print(){
+    for(int i = 0; i < INPUT_LAYER_SIZE; i++){
+        for(int x = 0; x < HIDDEN_LAYER_SIZE; x++){
+            std::cout << INPUT_LAYER[i][x] << " ";
+        }
+    }
+    for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
+        std::cout << INPUT_LAYER_BIASES[i] << " ";
+    }
+
+    for(int i = 0; i < HIDDEN_LAYER_SIZE * 2; i++){
+        std::cout << HIDDEN_LAYER_WEIGHTS[i] << " ";
+    }
+
+    std::cout <<HIDDEN_LAYER_BIASES[0] << std::endl;
+}
+#endif
+
 /*
  * !!!!
  * !!!!
@@ -103,6 +122,11 @@ void NNUE::loadFromFile() {
     assert(!stream.eof());
 
     HIDDEN_LAYER_BIASES[0] = readNumber<int16_t>(stream);
+
+#if DEVELOPMENT
+    print();
+#endif
+
 }
 
 void NNUE::loadInlined() {
@@ -128,5 +152,7 @@ void NNUE::loadInlined() {
 
     HIDDEN_LAYER_BIASES[0] = readNumber<int16_t>(stream);
 
-
+#if DEVELOPMENT
+    print();
+#endif
 }

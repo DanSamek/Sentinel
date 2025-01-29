@@ -2,7 +2,8 @@
 #define SENTINEL_DATAGEN_H
 
 #include <atomic>
-#include "timer.h"
+#include <timer.h>
+#include <mutex>
 
 class Datagen {
 public:

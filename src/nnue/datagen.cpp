@@ -21,6 +21,8 @@ Datagen::Datagen() {
     std::cout << "        \\/     \\/     \\/             \\/     \\/      "<< std::endl;
     std::cout << "Datagen tool" << std::endl;
     std::cout << "Net:" << NNUE::NET_PATH << std::endl;
+    std::cout << "Inlined: " << NNUE::inlineNet << std::endl;
+
     std::cout << "thread count: ";
     if(!(std::cin >> _threadCnt)){
         _threadCnt = 1;
