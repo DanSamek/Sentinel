@@ -1,6 +1,10 @@
 #ifndef SENTINEL_ACCUMULATOR_H
 #define SENTINEL_ACCUMULATOR_H
 
+#ifdef __AVX__
+#include <immintrin.h>
+#endif
+
 #include "array"
 #include "const.h"
 #include "boardEnums.h"
@@ -13,7 +17,7 @@
 class Accumulator {
     // 0 -> white.
     // 1 -> black.
-    std::array<std::array<int, HIDDEN_LAYER_SIZE>, 2> data = {};
+    alignas(32) std::array<std::array<int, HIDDEN_LAYER_SIZE>, 2> data = {};
 
 public:
     /***
@@ -21,9 +25,18 @@ public:
      */
     template<PIECE_COLOR color>
     void add(const std::array<int, HIDDEN_LAYER_SIZE>& weights) {
-        for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
-            data[color][i] += weights[i];
-        }
+        #ifdef __AVX__
+            for (int i = 0; i < HIDDEN_LAYER_SIZE; i += 8) {
+                auto vec_weights = _mm256_load_si256((const __m256i *)&weights[i]);
+                auto accumulator_data = _mm256_load_si256((const __m256i*)&data[color][i]);
+                auto result = _mm256_add_epi32(vec_weights, accumulator_data);
+                _mm256_store_si256((__m256i *)&data[color][i], result);
+            }
+        #else
+                for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
+                    data[color][i] += weights[i];
+                }
+        #endif
     }
 
     /***
@@ -31,9 +44,18 @@ public:
      */
     template<PIECE_COLOR color>
     void sub(const std::array<int, HIDDEN_LAYER_SIZE>& weights) {
-        for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
-            data[color][i] -= weights[i];
-        }
+        #ifdef __AVX__
+            for (int i = 0; i < HIDDEN_LAYER_SIZE; i += 8) {
+                auto vec_weights = _mm256_load_si256((const __m256i *)&weights[i]);
+                auto accumulator_data = _mm256_load_si256((const __m256i*)&data[color][i]);
+                auto result = _mm256_sub_epi32(accumulator_data, vec_weights);
+                _mm256_store_si256((__m256i *)&data[color][i], result);
+            }
+        #else
+            for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
+                data[color][i] -= weights[i];
+            }
+        #endif
     }
 
     template<PIECE_COLOR color>
