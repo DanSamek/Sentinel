@@ -43,8 +43,8 @@ class NNUE {
     void print();
 
 public:
-    static inline bool inlineNet = true;
-    static inline std::string NET_PATH = "../src/nnue/singularity.bin";
+    static inline bool inlineNet = false;
+    static inline std::string NET_PATH = "./src/nnue/singularity_v2_4-40.bin";
     NNUE();
     /***
      * Saves current accumulator to a stack.

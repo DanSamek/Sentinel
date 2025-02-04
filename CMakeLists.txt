@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_CXX_FLAGS "-Wall -pedantic")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address,undefined")
-set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib)
