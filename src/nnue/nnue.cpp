@@ -2,7 +2,7 @@
 #include "nnue.h"
 #include "fstream"
 #include "cassert"
-#include "singularity.bin.h"
+#include "singularity_v2_4_40.bin.h"
 #include "development.h"
 
 template<typename T>
@@ -131,8 +131,8 @@ void NNUE::loadFromFile() {
 
 void NNUE::loadInlined() {
     std::istringstream stream;
-    auto size = sizeof(singularity_bin) / sizeof (unsigned char);
-    stream.rdbuf()->pubsetbuf((char *) singularity_bin, size);
+    auto size = sizeof(singularity_v2_4_40_bin) / sizeof (unsigned char);
+    stream.rdbuf()->pubsetbuf((char *) singularity_v2_4_40_bin, size);
 
     for(int i = 0; i < INPUT_LAYER_SIZE; i++){
         for(int x = 0; x < HIDDEN_LAYER_SIZE; x++){

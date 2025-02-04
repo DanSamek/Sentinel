@@ -49,7 +49,10 @@ void Datagen::run() {
     Zobrist::init();
     PST::init();
 
-    srand(time(nullptr));
+    // Sometimes segfaults :(
+    auto seed = time(nullptr);
+    std::cout << "seed: " << seed << std::endl;
+    srand(seed);
 
     _timer = Timer(0, true);
     // worker threads.
