@@ -1,10 +1,6 @@
 #ifndef SENTINEL_NNUE_H
 #define SENTINEL_NNUE_H
 
-#ifdef __AVX__
-#include <immintrin.h>
-#endif
-
 #include <cassert>
 #include "array"
 #include "const.h"
@@ -12,6 +8,7 @@
 #include "accumulator.h"
 #include "algorithm"
 #include "iostream"
+#include "simd.h"
 
 /***
  * Neural network with effective updates
@@ -39,12 +36,11 @@ class NNUE {
         return std::clamp(value, 0, QA);
     }
 
-
-#if __AVX__
-    static inline const __m256i zero = _mm256_set1_epi32(0);
-    static inline const __m256i qa = _mm256_set1_epi32(QA);
-    inline __m256i avx_crelu(const __m256i& value){
-        auto clamped = _mm256_min_epi32(_mm256_max_epi32(value, zero), qa);
+#if USE_SIMD
+    inline simd_type avx_crelu(const simd_type& value){
+        const auto zero = SIMD_SET1(0);
+        const auto qa = SIMD_SET1(QA);
+        auto clamped = SIMD_MIN(SIMD_MAX(value, zero), qa);
         return clamped;
     }
 #endif
@@ -104,25 +100,24 @@ public:
         auto ourAccumulator = accumulator->get<perspective>();
         auto oppAccumulator = accumulator->get<opp>();
 
-    #if __AVX__
-
-        alignas(32) std::array<int,8> array_result = {0};
-        auto vector_result = _mm256_loadu_si256((__m256i*)&array_result);
-        for(int i = 0; i < HIDDEN_LAYER_SIZE; i += 8){
-            auto weights = _mm256_load_si256((const __m256i*)&HIDDEN_LAYER_WEIGHTS[i]);
-            auto accumulator_data = avx_crelu(_mm256_load_si256((const __m256i*)&ourAccumulator[i]));
-            auto mul = _mm256_mullo_epi32(weights, accumulator_data);
-            vector_result = _mm256_add_epi32(mul, vector_result);
+    #if USE_SIMD
+        alignas(32) std::array<int, simd_jmp> array_result = {0};
+        auto vector_result = SIMD_LOAD((simd_type*)&array_result);
+        for(int i = 0; i < HIDDEN_LAYER_SIZE; i += simd_jmp){
+            auto weights = SIMD_LOAD((const simd_type*)&HIDDEN_LAYER_WEIGHTS[i]);
+            auto accumulator_data = avx_crelu(SIMD_LOAD((const simd_type*)&ourAccumulator[i]));
+            auto mul = SIMD_MUL(weights, accumulator_data);
+            vector_result = SIMD_ADD(mul, vector_result);
         }
 
-        for(int i = 0; i < HIDDEN_LAYER_SIZE; i += 8){
-            auto weights = _mm256_load_si256((const __m256i*)&HIDDEN_LAYER_WEIGHTS[i+HIDDEN_LAYER_SIZE]);
-            auto accumulator_data = avx_crelu(_mm256_load_si256((const __m256i*)&oppAccumulator[i]));
-            auto mul = _mm256_mullo_epi32(weights, accumulator_data);
-            vector_result = _mm256_add_epi32(mul, vector_result);
+        for(int i = 0; i < HIDDEN_LAYER_SIZE; i += simd_jmp){
+            auto weights = SIMD_LOAD((const simd_type*)&HIDDEN_LAYER_WEIGHTS[i+HIDDEN_LAYER_SIZE]);
+            auto accumulator_data = avx_crelu(SIMD_LOAD((const simd_type*)&oppAccumulator[i]));
+            auto mul = SIMD_MUL(weights, accumulator_data);
+            vector_result = SIMD_ADD(mul, vector_result);
         }
-        _mm256_store_si256((__m256i*)&array_result, vector_result);
-        for(int i = 0; i < 8; i++){
+        SIMD_STORE((simd_type*)&array_result, vector_result);
+        for(int i = 0; i < simd_jmp; i++){
             result += array_result[i];
         }
     #else

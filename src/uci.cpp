@@ -40,6 +40,15 @@ void UCI::loop() {
 void UCI::uciInit() {
     std::cout << "id name Sentinel-NNUE-singularity-v2-4-40-net" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl << std::endl;
+#if DEVELOPMENT
+    #if defined(ENABLE_AVX)
+        std::cout << "build type: AVX_BUILD" << std::endl;
+    #elif defined(ENABLE_AVX_512)
+        std::cout << "build type: AVX512_BUILD" << std::endl;
+    #elif defined(ENABLE_SSE)
+        std::cout << "build type: SSE_BUILD" << std::endl;
+    #endif
+#endif
     std::cout << "option name Hash type spin default "<< _hashSize << " min 1 max 30000" << std::endl;
     std::cout << "option name NetPath spin default none" << std::endl;
 #if LI_CHESS_BUILD

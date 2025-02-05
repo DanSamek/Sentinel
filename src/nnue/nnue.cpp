@@ -74,6 +74,7 @@ void NNUE::moveAPiece(PIECE_COLOR color, PIECE_TYPE piece, int fromSquare, int t
 
 #if DEVELOPMENT
 void NNUE::print(){
+    return;
     for(int i = 0; i < INPUT_LAYER_SIZE; i++){
         for(int x = 0; x < HIDDEN_LAYER_SIZE; x++){
             std::cout << INPUT_LAYER[i][x] << " ";

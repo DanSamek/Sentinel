@@ -1,9 +1,7 @@
 #ifndef SENTINEL_ACCUMULATOR_H
 #define SENTINEL_ACCUMULATOR_H
 
-#ifdef __AVX__
-#include <immintrin.h>
-#endif
+#include "simd.h"
 
 #include "array"
 #include "const.h"
@@ -25,12 +23,12 @@ public:
      */
     template<PIECE_COLOR color>
     void add(const std::array<int, HIDDEN_LAYER_SIZE>& weights) {
-        #ifdef __AVX__
-            for (int i = 0; i < HIDDEN_LAYER_SIZE; i += 8) {
-                auto vec_weights = _mm256_load_si256((const __m256i *)&weights[i]);
-                auto accumulator_data = _mm256_load_si256((const __m256i*)&data[color][i]);
-                auto result = _mm256_add_epi32(vec_weights, accumulator_data);
-                _mm256_store_si256((__m256i *)&data[color][i], result);
+        #if USE_SIMD
+            for (int i = 0; i < HIDDEN_LAYER_SIZE; i += simd_jmp) {
+                auto vec_weights = SIMD_LOAD((const simd_type *)&weights[i]);
+                auto accumulator_data = SIMD_LOAD((const simd_type*)&data[color][i]);
+                auto result = SIMD_ADD(vec_weights, accumulator_data);
+                SIMD_STORE((simd_type *)&data[color][i], result);
             }
         #else
                 for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
@@ -44,12 +42,12 @@ public:
      */
     template<PIECE_COLOR color>
     void sub(const std::array<int, HIDDEN_LAYER_SIZE>& weights) {
-        #ifdef __AVX__
-            for (int i = 0; i < HIDDEN_LAYER_SIZE; i += 8) {
-                auto vec_weights = _mm256_load_si256((const __m256i *)&weights[i]);
-                auto accumulator_data = _mm256_load_si256((const __m256i*)&data[color][i]);
-                auto result = _mm256_sub_epi32(accumulator_data, vec_weights);
-                _mm256_store_si256((__m256i *)&data[color][i], result);
+        #if USE_SIMD
+            for (int i = 0; i < HIDDEN_LAYER_SIZE; i += simd_jmp) {
+                auto vec_weights = SIMD_LOAD((const simd_type *)&weights[i]);
+                auto accumulator_data = SIMD_LOAD((const simd_type*)&data[color][i]);
+                auto result = SIMD_SUB(accumulator_data, vec_weights);
+                SIMD_STORE((simd_type *)&data[color][i], result);
             }
         #else
             for(int i = 0; i < HIDDEN_LAYER_SIZE; i++){
