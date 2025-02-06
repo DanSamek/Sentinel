@@ -15,21 +15,14 @@ Net history:
 - Delta net - 64 neuron net trained from Aegis selfplay data
 - Singularity - 128 neuron net trained from Aegis, HCE, [16 && 24] neuron net selfplay data.
   - 5000 soft-nodes limit.
-
 - Singularity_v2 - 128 neuron net trained from Singularity selfplay data. [~120 mil positions]
   - 5000 soft-nodes limit
-
-- Void - 224 neuron net trained from Singularity selfplay data. [~230 mil. positions]
-  - 5000 soft-nodes limit
-
-When Void is trained Tune search parameters for new eval.
-    -> Release of 2.0
 
 3.0 plans:
 - [ ] Internal speedups.
 - [ ] The most of Search TODOs.
 - [X] SIMD [for net performance]
-- [ ] Bigger nets [512,1024,2048] + learn about "bucketing"
+- [ ] Bigger nets [256, 512, 1024, 2048] + learn about "bucketing"
     - [ ] More layers [??]
 
 ------
