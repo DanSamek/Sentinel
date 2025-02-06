@@ -11,7 +11,7 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board,
         // MVV_VLA
         if(isCapture){
             auto attacker = move.movePiece;
-            auto victim = move.moveType == Move::EN_PASSANT ? Board::PAWN : board.getPieceType(move.toSq);
+            auto victim = move.moveType == Move::EN_PASSANT ? PIECE_TYPE::PAWN : board.getPieceType(move.toSq);
             score = MVV_VLA[attacker][victim];
         }
         else{
@@ -25,7 +25,7 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board,
 
             // killers
             for(int killerIndex = 0; killerIndex < 2; killerIndex++){
-                if(move == killerMoves[board.halfMove][killerIndex]){
+                if(move == killerMoves[board.ply][killerIndex]){
                     score = KILLER_MOVES_ORDER_SCORE[killerIndex];
                     break;
                 }
@@ -52,7 +52,7 @@ void Movepick::scoreMovesQSearch(Move *moves, int cnt, Board &board, const Move 
         auto move = moves[moveIndex];
 
         auto attacker = move.movePiece;
-        auto victim = move.moveType == Move::EN_PASSANT ? Board::PAWN : board.getPieceType(move.toSq);
+        auto victim = move.moveType == Move::EN_PASSANT ? PIECE_TYPE::PAWN : board.getPieceType(move.toSq);
         score += MVV_VLA[attacker][victim];
 
         if(hashMove == move){

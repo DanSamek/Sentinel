@@ -21,7 +21,8 @@ void Board::initPieces(uint64_t* pieces) {
 
 void Board::loadFEN(const std::string FEN) {
     // reset repetitions.
-    fiftyMoveRule[0] = 0; fiftyMoveRule[1] = 0;
+    nnue.reset();
+    halfMove = 0;
     repetitionIndex = 0;
 
     castling[0][0] = false; castling[0][1] = false; castling[1][0] = false; castling[1][1] = false;
@@ -35,6 +36,7 @@ void Board::loadFEN(const std::string FEN) {
         std::cout << "FEN is not valid!"<< std::endl;
         return;
     }
+    ply = 0;
 
     // parse a _board.
     int square = 0;
@@ -48,8 +50,14 @@ void Board::loadFEN(const std::string FEN) {
         auto color = isupper(character) ?  WHITE  : BLACK;
         auto index = pieceIndexMap[tolower(character)];
 
-        if(color == WHITE)  bit_ops::setNthBit(whitePieces[index], square);
-        else   bit_ops::setNthBit(blackPieces[index], square);
+        nnue.updateAccumulatorAdd(color, static_cast<PIECE_TYPE>(index), square);
+
+        if(color == WHITE){
+            bit_ops::setNthBit(whitePieces[index], square);
+        }
+        else{
+            bit_ops::setNthBit(blackPieces[index], square);
+        }
         square++;
     }
     whoPlay = whoPlayTmp == "w" ? true : false;
@@ -67,7 +75,7 @@ void Board::loadFEN(const std::string FEN) {
     threeFoldRepetition[repetitionIndex] = zobristKey;
 }
 
-const uint64_t & Board::getPieceBitboard(pieceType type, pieceColor color) const {
+const uint64_t & Board::getPieceBitboard(PIECE_TYPE type, PIECE_COLOR color) const {
     return color == WHITE ? whitePieces[type] : blackPieces[type];
 }
 
@@ -81,8 +89,8 @@ bool Board::makeMove(const Move &move) {
     auto enemyCastling = whoPlay ? castling[1].data() : castling[0].data();
 
     bool setEnPassant = false;
-
-    State currentState{-1,enPassantSquare, castling, fiftyMoveRule, zobristKey};
+    nnue.push(); // save current accumulator.
+    State currentState{-1,enPassantSquare, castling, halfMove, zobristKey, fullMove};
 
     std::pair<uint64_t , bool> type;
     switch (move.moveType) {
@@ -99,7 +107,7 @@ bool Board::makeMove(const Move &move) {
 
             handleEnemyCastling(type, move, whoPlay, enemyCastling);
             handleCastling(move, whoPlay, currentCastling);
-            fiftyMoveRule[whoPlay] = 0;
+            halfMove = 0;
             break;
         case Move::PROMOTION:
         case Move::PROMOTION_CAPTURE:
@@ -133,21 +141,21 @@ bool Board::makeMove(const Move &move) {
                 // pawn can capture rook -> no castling.
                 handleEnemyCastling(type, move, whoPlay, enemyCastling);
             }
-            fiftyMoveRule[whoPlay] = 0;
+            halfMove = 0;
             break;
         case Move::QUIET:
             // !!! rooks  !!! <-> disable castling.
             moveAPiece(currentPieces, move.movePiece, move.fromSq, move.toSq);
             handleCastling(move, whoPlay, currentCastling);
 
-            if(move.movePiece == Board::PAWN) fiftyMoveRule[whoPlay] = 0;
-            else fiftyMoveRule[whoPlay]++;
+            if(move.movePiece == PIECE_TYPE::PAWN) halfMove = 0;
+            else halfMove++;
             break;
         case Move::EN_PASSANT:
             moveAPiece(currentPieces, move.movePiece, move.fromSq, move.toSq);
             bit_ops::popNthBit(enemyPieces[move.movePiece], whoPlay ? move.toSq + 8 : move.toSq - 8);
 
-            fiftyMoveRule[whoPlay] = 0;
+            halfMove = 0;
             break;
         case Move::CASTLING:
             // kingSide
@@ -162,14 +170,14 @@ bool Board::makeMove(const Move &move) {
             currentCastling[0] = false;
             currentCastling[1] = false;
 
-            fiftyMoveRule[whoPlay]++;
+            halfMove++;
             break;
         case Move::DOUBLE_PAWN_UP:
             moveAPiece(currentPieces, move.movePiece, move.fromSq, move.toSq);
             enPassantSquare = (move.fromSq + move.toSq) / 2;
             setEnPassant = true;
 
-            fiftyMoveRule[whoPlay] = 0;
+            halfMove = 0;
             break;
     }
 
@@ -192,8 +200,8 @@ bool Board::makeMove(const Move &move) {
         return false;
     }
 
-    // update and add to a move "stack".
-    // save state to a current depth
+    fullMove += !whoPlay ? 1 : 0;
+
     switch (move.moveType) {
         case Move::CAPTURE:
             Zobrist::updateHashMove(zobristKey, move,*this, currentState);
@@ -216,6 +224,44 @@ bool Board::makeMove(const Move &move) {
             break;
     }
 
+
+    // NNUE accumulator updates.
+    auto us = whoPlay ? PIECE_COLOR::WHITE : PIECE_COLOR::BLACK;
+    auto enemy = whoPlay ? PIECE_COLOR::BLACK : PIECE_COLOR::WHITE;
+    switch (move.moveType) {
+        // DONE.
+        case Move::QUIET:
+        case Move::DOUBLE_PAWN_UP:
+            nnue.moveAPiece(us, static_cast<PIECE_TYPE>(move.movePiece), move.fromSq, move.toSq);
+            break;
+        case Move::CAPTURE:
+            nnue.moveAPiece(us, static_cast<PIECE_TYPE>(move.movePiece), move.fromSq, move.toSq);
+            nnue.updateAccumulatorSub(enemy, static_cast<PIECE_TYPE>(currentState.captureType), move.toSq);
+            break;
+        case Move::PROMOTION:
+            nnue.updateAccumulatorSub(us, static_cast<PIECE_TYPE>(move.movePiece), move.fromSq);
+            nnue.updateAccumulatorAdd(us, static_cast<PIECE_TYPE>(move.promotionType), move.toSq);
+            break;
+        case Move::EN_PASSANT:
+            nnue.moveAPiece(us, static_cast<PIECE_TYPE>(move.movePiece), move.fromSq, move.toSq);
+            nnue.updateAccumulatorSub(enemy, PAWN, whoPlay ? move.toSq + 8 : move.toSq - 8);
+            break;
+        case Move::CASTLING:
+            nnue.moveAPiece(us, KING, move.fromSq, move.toSq);
+            if(move.fromSq < move.toSq){
+                nnue.moveAPiece(us, ROOK, move.toSq + 1, move.toSq - 1);
+            }
+            else{
+                nnue.moveAPiece(us, ROOK, move.toSq - 2, move.toSq + 1);
+            }
+            break;
+        case Move::PROMOTION_CAPTURE:
+            nnue.updateAccumulatorSub(us, static_cast<PIECE_TYPE>(move.movePiece), move.fromSq);
+            nnue.updateAccumulatorAdd(us, static_cast<PIECE_TYPE>(move.promotionType), move.toSq);
+            nnue.updateAccumulatorSub(enemy, static_cast<PIECE_TYPE>(currentState.captureType), move.toSq);
+            break;
+    }
+
     push(setEnPassant, currentState);
     threeFoldRepetition[repetitionIndex] = zobristKey; // just add key to an array.
     return true;
@@ -229,16 +275,16 @@ void Board::push(bool setEnPassant, State &currentState) {
         zobristKey ^= Zobrist::noEnPassant;
     }
 
-    halfMove++;
+    ply++;
     repetitionIndex++;
-    STACK[halfMove] = std::move(currentState);
+    STACK[ply] = std::move(currentState);
 
     whoPlay = !whoPlay;
     enPassantSquare = setEnPassant ? enPassantSquare : -1;
 }
 
 void Board::undoMove(const Move &move) {
-    auto prevState = std::move(STACK[halfMove]);
+    auto prevState = std::move(STACK[ply]);
     whoPlay = !whoPlay;
     repetitionIndex--;
 
@@ -249,7 +295,10 @@ void Board::undoMove(const Move &move) {
     enPassantSquare = prevState.enPassantSquare; // reset of an en passant square.
 
     zobristKey = prevState.zobristHash;
-    fiftyMoveRule = prevState.fiftyMoveRule;
+    halfMove = prevState.halfMove;
+    fullMove = prevState.fullMove;
+    nnue.pop(); // get prev accumulator.
+
 
     switch (move.moveType) {
         case Move::CAPTURE:
@@ -303,7 +352,7 @@ void Board::undoMove(const Move &move) {
             moveAPiece(currentPieces, move.movePiece, move.toSq, move.fromSq);
             break;
     }
-    halfMove--;
+    ply--;
 }
 
 void Board::printBoard() const{
@@ -337,9 +386,9 @@ void Board::printBoard() const{
 bool Board::isDraw(){
     if(isThreeFoldRepetition()) return true;
 
-    if(fiftyMoveRule[0] >= 50 && fiftyMoveRule[1] >= 50) return true;
+    if(halfMove >= 100) return true;
 
-    // _count material from bbs
+    // count material from bbs
     return isInsufficientMaterial(whitePieces) && isInsufficientMaterial(blackPieces);
 }
 
@@ -378,36 +427,101 @@ bool Board::isSquareAttacked(int square, bool isWhiteEnemy) {
         all |= enemies[j];
         all |= current[j];
     }
-    if(Magics::getRookMoves(all, square) & (enemies[Board::ROOK] | enemies[Board::QUEEN])) return true;
+    if(Magics::getRookMoves(all, square) & (enemies[PIECE_TYPE::ROOK] | enemies[PIECE_TYPE::QUEEN])) return true;
 
-    if(Magics::getBishopMoves(all, square) & (enemies[Board::BISHOP] | enemies[Board::QUEEN])) return true;
+    if(Magics::getBishopMoves(all, square) & (enemies[PIECE_TYPE::BISHOP] | enemies[PIECE_TYPE::QUEEN])) return true;
 
-    if(Movegen::KNIGHT_MOVES[square] & enemies[Board::KNIGHT]) return true;
+    if(Movegen::KNIGHT_MOVES[square] & enemies[PIECE_TYPE::KNIGHT]) return true;
 
-    if(Movegen::PAWN_ATTACK_MOVES[!whoPlay][square] & enemies[Board::PAWN]) return true;
+    if(Movegen::PAWN_ATTACK_MOVES[!whoPlay][square] & enemies[PIECE_TYPE::PAWN]) return true;
 
-    if(Movegen::KING_MOVES[square] & enemies[Board::KING]) return true;
+    if(Movegen::KING_MOVES[square] & enemies[PIECE_TYPE::KING]) return true;
     return false;
 }
 
 
 void Board::makeNullMove() {
-    State currentState{-1,enPassantSquare, castling, fiftyMoveRule, zobristKey};
+    State currentState{-1,enPassantSquare, castling, halfMove, zobristKey};
     push(false, currentState);
 
     zobristKey ^= Zobrist::sideToMove;
 }
 
 void Board::undoNullMove() {
-    auto prevState = std::move(STACK[halfMove]);
+    auto prevState = std::move(STACK[ply]);
 
     zobristKey = prevState.zobristHash;
     enPassantSquare = prevState.enPassantSquare;
     castling = prevState.castling;
-    fiftyMoveRule = prevState.fiftyMoveRule;
+    halfMove = prevState.halfMove;
 
     whoPlay = !whoPlay;
 
     repetitionIndex--;
-    halfMove--;
+    ply--;
+}
+
+std::string Board::FEN() const{
+    std::stringstream ss;
+    std::array<std::array<char, 8>,8> posArray;
+    for (auto& row : posArray) {
+        std::fill(row.begin(), row.end(), ' ');
+    }
+
+    for(int color = 0; color <= 1; color ++){
+        for(int piece = 0; piece <= KING; piece++){
+            auto white = color == 0;
+            auto tmpBB = white ? whitePieces[piece] : blackPieces[piece];
+            while(tmpBB){
+                auto pos = bit_ops::bitScanForwardPopLsb(tmpBB);
+                auto lIndex = pos / 8;
+                auto rIndex = pos % 8;
+                assert(rIndex < 8 && lIndex < 8);
+                posArray[lIndex][rIndex] = white ? toupper(reversedPieceIndexMap[piece]) : reversedPieceIndexMap[piece];
+            }
+        }
+    }
+    for(int row = 0; row < 8; row++){
+        auto emptyColumns = 0;
+        for(int column = 0; column < 8; column++){
+            if(posArray[row][column] == ' ') {
+                emptyColumns++;
+                continue;
+            }
+            if(emptyColumns != 0){
+                ss << (char)('0' + emptyColumns);
+                emptyColumns = 0;
+            }
+            ss << posArray[row][column];
+        }
+        if(emptyColumns != 0) ss << (char)('0' + emptyColumns);
+        if(row != 7) ss << "/";
+    }
+
+    ss << " " << (whoPlay ? "w" : "b") << " ";
+
+    auto any = castling[WHITE][K_CASTLE] || castling[WHITE][Q_CASTLE] || castling[BLACK][K_CASTLE] || castling[BLACK][Q_CASTLE];
+    if(castling[WHITE][K_CASTLE]) ss << "K";
+    if(castling[WHITE][Q_CASTLE]) ss << "Q";
+    if(castling[BLACK][K_CASTLE]) ss << "k";
+    if(castling[BLACK][Q_CASTLE]) ss << "q";
+
+    if(!any) ss << "-";
+    ss << " ";
+
+    // en-passant square.
+    if(enPassantSquare != -1){
+        auto lIndex = enPassantSquare / 8;
+        auto rIndex = enPassantSquare % 8;
+        ss << (char)('a' + rIndex) << (char)('8' - lIndex);
+    }
+    else ss << "-";
+
+    ss << " ";
+    ss << halfMove << " ";
+    // halfMove
+    ss << fullMove;
+
+    auto result = ss.str();
+    return result;
 }

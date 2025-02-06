@@ -53,24 +53,24 @@ struct Movegen {
 
     template <bool capturesOnly>
     std::pair<int, bool> generateMoves(){
-        auto kingPos = bit_ops::bitScanForward(friendlyBits[Board::KING]);
+        auto kingPos = bit_ops::bitScanForward(friendlyBits[PIECE_TYPE::KING]);
 
         bool checked = !validateKingCheck(kingPos);
         if (capturesOnly){
-            generatePawnCaptures(friendlyBits[Board::PAWN]);
-            generateRookCaptures(friendlyBits[Board::ROOK]);
-            generateBishopCaptures(friendlyBits[Board::BISHOP]);
-            generateQueenCaptures(friendlyBits[Board::QUEEN]);
-            generateKnightCaptures(friendlyBits[Board::KNIGHT]);
-            generateKingCaptures(friendlyBits[Board::KING]);
+            generatePawnCaptures(friendlyBits[PIECE_TYPE::PAWN]);
+            generateRookCaptures(friendlyBits[PIECE_TYPE::ROOK]);
+            generateBishopCaptures(friendlyBits[PIECE_TYPE::BISHOP]);
+            generateQueenCaptures(friendlyBits[PIECE_TYPE::QUEEN]);
+            generateKnightCaptures(friendlyBits[PIECE_TYPE::KNIGHT]);
+            generateKingCaptures(friendlyBits[PIECE_TYPE::KING]);
             return {index, checked};
         }
-        generatePawnMoves(friendlyBits[Board::PAWN], board.enPassantSquare, board.whoPlay);
-        generateRookMoves(friendlyBits[Board::ROOK]);
-        generateBishopMoves(friendlyBits[Board::BISHOP]);
-        generateQueenMoves(friendlyBits[Board::QUEEN]);
-        generateKnightMoves(friendlyBits[Board::KNIGHT]);
-        generateKingMoves(friendlyBits[Board::KING], board.castling[!board.whoPlay]);
+        generatePawnMoves(friendlyBits[PIECE_TYPE::PAWN], board.enPassantSquare, board.whoPlay);
+        generateRookMoves(friendlyBits[PIECE_TYPE::ROOK]);
+        generateBishopMoves(friendlyBits[PIECE_TYPE::BISHOP]);
+        generateQueenMoves(friendlyBits[PIECE_TYPE::QUEEN]);
+        generateKnightMoves(friendlyBits[PIECE_TYPE::KNIGHT]);
+        generateKingMoves(friendlyBits[PIECE_TYPE::KING], board.castling[!board.whoPlay]);
 
         return {index, checked};
     }
@@ -120,7 +120,7 @@ struct Movegen {
      * @param pieceType
      * @note for all except pawns and kings. This method handles captures, quiets, checks, no more.
      */
-    void bitboardToMoves(int fromSquare, uint64_t& moveBitboard, Board::pieceType pieceType);
+    void bitboardToMoves(int fromSquare, uint64_t& moveBitboard, PIECE_TYPE pieceType);
 
     void generateRookMoves(uint64_t rooks);
     void generateBishopMoves(uint64_t bishops);
@@ -139,7 +139,7 @@ struct Movegen {
     void generateKnightCaptures(uint64_t knight);
     void generateKingCaptures(uint64_t king);
     void generatePawnCaptures(uint64_t b);
-    void captureBitboardToMoves(int fromSquare, uint64_t& moveBitboard, Board::pieceType pieceType);
+    void captureBitboardToMoves(int fromSquare, uint64_t& moveBitboard, PIECE_TYPE pieceType);
 };
 
 

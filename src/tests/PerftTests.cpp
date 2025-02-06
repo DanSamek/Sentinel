@@ -43,7 +43,7 @@ struct PerftTests{
         return std::string(1, file) + rank;
     }
 
-    static void runTests(){
+    static void run(){
 
         // r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7
         runCase("r3k3/pP3pp1/1N1pr1p1/4p1P1/4P3/3P4/P1P2PP1/R3K2r w Qq - 0 5", 1,2 );

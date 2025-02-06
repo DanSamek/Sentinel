@@ -58,15 +58,15 @@ public:
         // capture
         if(move.toSq == 0 || move.toSq == 7 || move.toSq == 63 || move.toSq == 56 ||
         // rook moves.
-            (move.movePiece == Board::ROOK  && (move.fromSq == 0 || move.fromSq == 7 || move.fromSq == 63 || move.fromSq == 56))){
+            (move.movePiece == PIECE_TYPE::ROOK  && (move.fromSq == 0 || move.fromSq == 7 || move.fromSq == 63 || move.fromSq == 56))){
             updateCastlingRightsHash(hash, board, state);
         }
         hash ^= sideToMove;
     }
 
     static inline void updateCastlingHash(uint64_t& hash, const Move& move, const Board& board, const State& state){
-        int king = board.whoPlay ? Board::KING : (Board::KING + 6);
-        int rook = board.whoPlay ? Board::ROOK : (Board::ROOK + 6);
+        int king = board.whoPlay ? PIECE_TYPE::KING : (PIECE_TYPE::KING + 6);
+        int rook = board.whoPlay ? PIECE_TYPE::ROOK : (PIECE_TYPE::ROOK + 6);
         // king XOR from position
         hash ^= zobristTable[king][move.fromSq];
         // XOR rook from position

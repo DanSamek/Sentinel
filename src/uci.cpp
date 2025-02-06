@@ -38,9 +38,20 @@ void UCI::loop() {
 }
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-1.02" << std::endl;
+    std::cout << "id name Sentinel-NNUE-singularity-v2-4-40-net" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl << std::endl;
+#if DEVELOPMENT
+    #if defined(ENABLE_AVX)
+        std::cout << "build type: AVX_BUILD" << std::endl;
+    #elif defined(ENABLE_AVX_512)
+        std::cout << "build type: AVX512_BUILD" << std::endl;
+    #elif defined(ENABLE_SSE)
+        std::cout << "build type: SSE_BUILD" << std::endl;
+    #endif
+#endif
     std::cout << "option name Hash type spin default "<< _hashSize << " min 1 max 30000" << std::endl;
+    std::cout << "option name NetPath spin default none" << std::endl;
+    std::cout << "option name Move Overhead type spin default 10 min 0 max 5000" << std::endl;
     std::cout << "uciok" << std::endl;
 }
 
@@ -62,7 +73,6 @@ void UCI::newGame() {
     if(_ready){
         _TT.free();
         _TT = TranspositionTable(_hashSize);
-        Search::TT = &_TT;
     }
 }
 
@@ -139,6 +149,10 @@ void UCI::go(std::string command) {
     }
 
     auto search = Search();
+    search.TT = &_TT;
+
+    timeRemaining -= 2 * _moveOverhead; // li-chess support.
+
     auto move = search.findBestMove(timeRemaining, increment, _board, exact, depth, inf);
     std::cout << "bestmove ";
     move.print();
@@ -159,6 +173,20 @@ void UCI::setOption(std::string command) {
     if(type == "Hash"){
         _hashSize = std::stoi(value);
         reallocHashTable();
+    }
+
+    // li-chess support.
+    if(type.find("Overhead") != std::string::npos){
+        _moveOverhead = std::stoi(value);
+    }
+
+    if(type.find("Net") != std::string::npos){
+        // Set NNUE path based on user input.
+        // NOTE:
+        // inlineNet will be disabled when program runs.
+        // Maybe fix [?].
+        NNUE::NET_PATH = value;
+        NNUE::inlineNet = false;
     }
 }
 
@@ -223,5 +251,4 @@ UCI::~UCI(){
 void UCI::reallocHashTable(){
     if(_ready) _TT.free();
     _TT = TranspositionTable(_hashSize);
-    Search::TT = &_TT;
 }

@@ -1,6 +1,7 @@
-
 #ifndef SENTINEL_BOARD_H
 #define SENTINEL_BOARD_H
+#pragma once
+
 
 #include <map>
 #include <string>
@@ -10,6 +11,7 @@
 #include "state.h"
 #include <unordered_map>
 #include "pst.h"
+#include "nnue/nnue.h"
 
 class Board {
     static inline std::map<char, int> pieceIndexMap = {{'p',0}, {'n', 1}, {'b', 2}, {'r',3}, {'q',4}, {'k', 5}};
@@ -18,6 +20,7 @@ class Board {
     static inline std::map<char, int> files = {{'a', 0}, {'b', 1}, {'c', 2}, {'d',3}, {'e', 4}, {'f', 5}, {'g', 6}, {'h',7}};
     static inline std::map<char, int> ranks = {{'1',7}, {'2',6},{'3',5},{'4',4}, {'5',3}, {'6',2}, {'7',1}, {'8',0}};
 
+    NNUE nnue;
 public:
 
     static inline uint64_t PAWN_PASSED_BITBOARDS[2][64];
@@ -25,26 +28,12 @@ public:
     static inline uint64_t PAWN_ISOLATION_BITBOARDS[8]; // for each column.
     static inline uint64_t LINE_BITBOARDS[8]; // doubled pawns || rooks/queens on open/semi open files.
 
-    enum pieceType{
-        PAWN,
-        KNIGHT,
-        BISHOP,
-        ROOK,
-        QUEEN,
-        KING
-    };
-
-    enum pieceColor{
-        WHITE,
-        BLACK
-    };
-
     // Bitboards
     uint64_t whitePieces[6]; // make it easy
     uint64_t blackPieces[6];
 
     // enPassantSquare is set to -1 if there is no enpassant
-    int halfMove, fullMove, enPassantSquare;
+    int ply, fullMove, enPassantSquare;
     // true -> white, false -> black
     bool whoPlay;
 
@@ -61,7 +50,7 @@ public:
     uint64_t threeFoldRepetition[MAX_DEPTH];
     int repetitionIndex = 0;
 
-    std::array<int, 2> fiftyMoveRule = {0,0};
+    int halfMove = 1;
 
     uint64_t zobristKey;
 
@@ -81,7 +70,7 @@ public:
      * @param color
      * @return bitboard for a request.
      */
-    const uint64_t& getPieceBitboard(pieceType type, pieceColor color) const;
+    const uint64_t& getPieceBitboard(PIECE_TYPE type, PIECE_COLOR color) const;
 
     /***
      * Makes a move on a board.
@@ -131,11 +120,11 @@ public:
     void undoNullMove();
 
     // inlined
-    inline std::pair<Board::pieceType, bool> getPieceTypeFromSQ(int square, const uint64_t* bbs) const{
+    inline std::pair<PIECE_TYPE, bool> getPieceTypeFromSQ(int square, const uint64_t* bbs) const{
         for(int j = 0; j < 6; j++){
-            if(bit_ops::getNthBit(bbs[j], square)) return {(Board::pieceType)j, true};
+            if(bit_ops::getNthBit(bbs[j], square)) return {(PIECE_TYPE)j, true};
         }
-        return {(Board::pieceType)0, false};
+        return {(PIECE_TYPE)0, false};
     }
 
     const int NO_PIECE = -1;
@@ -165,6 +154,9 @@ public:
     }
 
 
+    inline const uint64_t * colorBBS(PIECE_COLOR color) const{
+        return color == WHITE ? whitePieces : blackPieces;
+    }
 
     /***
      * Function, that calls
@@ -311,6 +303,7 @@ private:
 
     uint64_t mergeBBS(const uint64_t* bbs, int cnt) const;
 public:
+
     /***
      * Static exhange evaluation (simple)
      * @param move
@@ -318,6 +311,11 @@ public:
      * @return
      */
     bool SEE(Move move, int threshold) const;
+
+    /***
+     * @return current position/state of board in FEN.
+     */
+    std::string FEN() const;
 };
 
 
