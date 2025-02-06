@@ -3,7 +3,6 @@
 
 #define DEVELOPMENT false
 #define RUN_TESTS false
-#define RUN_DATAGEN false
-#define LI_CHESS_BUILD false
+#define RUN_DATAGEN true
 
 #endif //SENTINEL_DEVELOPMENT_H

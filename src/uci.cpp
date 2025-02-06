@@ -51,9 +51,7 @@ void UCI::uciInit() {
 #endif
     std::cout << "option name Hash type spin default "<< _hashSize << " min 1 max 30000" << std::endl;
     std::cout << "option name NetPath spin default none" << std::endl;
-#if LI_CHESS_BUILD
     std::cout << "option name Move Overhead type spin default 10 min 0 max 5000" << std::endl;
-#endif
     std::cout << "uciok" << std::endl;
 }
 
@@ -153,9 +151,7 @@ void UCI::go(std::string command) {
     auto search = Search();
     search.TT = &_TT;
 
-#if LI_CHESS_BUILD
     timeRemaining -= 2 * _moveOverhead; // li-chess support.
-#endif
 
     auto move = search.findBestMove(timeRemaining, increment, _board, exact, depth, inf);
     std::cout << "bestmove ";
@@ -179,12 +175,10 @@ void UCI::setOption(std::string command) {
         reallocHashTable();
     }
 
-#if LI_CHESS_BUILD
     // li-chess support.
     if(type.find("Overhead") != std::string::npos){
         _moveOverhead = std::stoi(value);
     }
-#endif
 
     if(type.find("Net") != std::string::npos){
         // Set NNUE path based on user input.
