@@ -11,6 +11,7 @@
 #include <development.h>
 #include "consts.h"
 #include "history.h"
+#include "searchstack.h"
 
 class Search {
     static constexpr int POSITIVE_INF = 100000000;
@@ -26,19 +27,10 @@ class Search {
 
     Timer _timer;
 
-    // Debug.
-    int _ttUsed;
-    int _nodesVisited;
-
-    int _bestScoreIter = INT_MIN;
-    Move _bestMoveIter;
-
-    // PV
-    Move _pvTable[MAX_DEPTH][MAX_DEPTH];
-    int _pvLength[MAX_DEPTH];
-
     static inline auto NO_MOVE = Move();
+
     History hist = History();
+    SearchStack ss;
 
 public:
     TranspositionTable* TT;
@@ -50,8 +42,6 @@ public:
 
         _board = &board;
         _forceStopped = false;
-        _bestScoreIter = INT_MIN;
-        _bestMoveIter = {};
 
         auto msCanBeUsed = Timemanager::getSearchTime(timeRemaining, increment, exact);
 
@@ -61,16 +51,18 @@ public:
         int beta = POSITIVE_INF;
         int score;
 
-        Move bestMove;
         Timer idTimer; // info about time.
         maxDepth = maxDepth <= 0 ? MAX_DEPTH : maxDepth + 1;
+        Move bestMove;
 
         for(int depth = 1; depth < maxDepth; depth++){
             // for smaller search do a non aspirations.
             if(depth <= 5){
                 score = negamax(depth, 0, alpha, beta, true, true);
-                bestMove = _bestMoveIter;
-                printInfo(depth, idTimer, bestMove);
+                bestMove = ss.bestMove;
+                printInfo(depth, idTimer);
+                if(_forceStopped) break;
+
                 continue;
             }
 
@@ -90,8 +82,10 @@ public:
                     beta += delta;
                 }
                 else{
-                    bestMove = _bestMoveIter;
-                    printInfo(depth, idTimer, bestMove);
+                    if(!_forceStopped){
+                        bestMove = ss.bestMove;
+                        printInfo(depth, idTimer);
+                    }
                     break;
                 }
                 delta *= 2;
@@ -112,27 +106,19 @@ public:
         prepareForSearch();
 
         _board = &board;
-        _forceStopped = false;
-        _bestScoreIter = INT_MIN;
-        _bestMoveIter = {};
-
         _timer = Timer(0, true);
 
         int alpha = NEGATIVE_INF;
         int beta = POSITIVE_INF;
         int score;
 
-        _nodesVisited = 0;
-        Move bestMove;
-        Timer idTimer; // info about time.
         for(int depth = 1; depth < MAX_DEPTH; depth++){
-            if(_nodesVisited > softNodeLimit) {
+            if(ss.nodesVisited > softNodeLimit) {
                 break;
             }
             // for smaller search do a non aspirations.
             if(depth <= 5){
                 score = negamax(depth, 0, alpha, beta, true, true);
-                bestMove = _bestMoveIter;
                 continue;
             }
 
@@ -152,7 +138,6 @@ public:
                     beta += delta;
                 }
                 else{
-                    bestMove = _bestMoveIter;
                     break;
                 }
                 delta *= 2;
@@ -163,35 +148,36 @@ public:
             }
         }
 
-        return {bestMove, _bestScoreIter};
+        return {ss.bestMove, ss.bestScore};
     }
 
 private:
 
     void prepareForSearch(){
+        ss = SearchStack();
         hist.init();
 #if !RUN_DATAGEN
-        std::fill(std::begin(_pvLength), std::end(_pvLength), 0);
+        std::fill(std::begin(ss.pvLength), std::end(ss.pvLength), 0);
 #endif
     }
 
     // https://en.wikipedia.org/wiki/Negamax ,PVS, alpha beta, TT, ...
-    int negamax(int depth, int ply, int alpha, int beta, bool doNull, bool isPv, const Move& prevMove = NO_MOVE){
+    int negamax(int depth, int ply, int alpha, int beta, bool doNull, bool isPv){
 #if !RUN_DATAGEN
-        if(_nodesVisited & 2048 && _timer.isTimeout()){
+        if(ss.nodesVisited & 2048 && _timer.isTimeout()){
             _forceStopped = true;
             return 0;
         }
 
         // Pv.
-        _pvLength[ply] = ply;
+        ss.pvLength[ply] = ply;
 #endif
         assert(isPv || alpha + 1 == beta);
-        _nodesVisited++;
+        ss.nodesVisited++;
 
 
         // Check extension.
-        if(ply > MAX_DEPTH - 1) return _board->eval();//  _board->eval();
+        if(ply > MAX_DEPTH - 1) return _board->eval();
 
         if(_board->isDraw()) return 0;
 
@@ -201,7 +187,7 @@ private:
         auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->entries[ttIndex].best : Move();
 
         if(ttEval > TranspositionTable::LOOKUP_ERROR && !isPv){
-            _ttUsed++;
+            ss.ttUsed++;
             return ttEval;
         }
         // IIR
@@ -209,7 +195,7 @@ private:
 
         if(depth <= 0)
         {
-            _nodesVisited--;
+            ss.nodesVisited--;
             return qsearch(alpha, beta, ply);
         }
 
@@ -225,15 +211,17 @@ private:
         // Check extension.
         if(isCheckNMP) depth++;
 
-        int currentEval = _board->eval();
+        int currentEval = ss.data[ply].score =_board->eval();
 
         // Null move pruning
-        // We just give enemy next move (we dont move any piece)
+        // We just give enemy next move (we don't move any piece)
         // If our position is too good, even 1 additional move for opponent cant help, we return beta.
         bool someBigPiece = _board->anyBiggerPiece(); // Zugzwang prevention, in some simple endgames can NMP hurt.
 
         if(!isPv && depth >= 3 && doNull && !isCheckNMP && someBigPiece && ply > 0){
             _board->makeNullMove();
+            ss.data[ply].move = NO_MOVE;
+
             int R = 3 + depth / 3;
             int eval = -negamax(depth - R + 1, ply + 1, -beta, -beta + 1, false, false);
             _board->undoNullMove();
@@ -253,6 +241,7 @@ private:
         std::vector<int> moveScores(moveCount);
 
         // "move ordering"
+        auto prevMove = ply == 0 ? NO_MOVE : ss.data[ply - 1].move;
         auto counterMove = prevMove.fromSq == -1 ? NO_MOVE : hist.counterMoves[prevMove.fromSq][prevMove.toSq];
         Movepick::scoreMoves(moves, moveCount, *_board, hist,hashMove, counterMove, moveScores);
         bool visitedAny = false;
@@ -285,15 +274,16 @@ private:
 
             }
             // SEE pruning of captures.
-            // Dont prune so much captures, we can still be in good position even if we lose material in SEE (sacrifice for example).
+            // Don't prune so much captures, we can still be in good position even if we lose material in SEE (sacrifice for example).
             else if(ply > 0 && depth <= 7 && isCapture && !_board->SEE(moves[j], -40*depth*depth)){
                 continue;
             }
 
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
+            ss.data[ply].move = moves[j];
             // late move reduction.
-            int eval = lmr(depth, ply, alpha, beta, movesSearched, isPv, moveScores[j], moves[j]);
+            int eval = lmr(depth, ply, alpha, beta, movesSearched, isPv, moveScores[j]);
 
             _board->undoMove(moves[j]);
             quietMovesCount += !isCapture;
@@ -306,15 +296,15 @@ private:
 
             // update PV
             if(eval > alpha){
-                _pvTable[ply][ply] = moves[j];
-                for (int index = ply + 1; index < _pvLength[ply + 1]; index++) {
-                    _pvTable[ply][index] = _pvTable[ply + 1][index];
+                ss.pvTable[ply][ply] = moves[j];
+                for (int index = ply + 1; index < ss.pvLength[ply + 1]; index++) {
+                    ss.pvTable[ply][index] = ss.pvTable[ply + 1][index];
                 }
-                _pvLength[ply] = _pvLength[ply + 1];
+                ss.pvLength[ply] = ss.pvLength[ply + 1];
             }
 #endif
             if(eval >= beta){
-                // If move, that wasnt capture causes a beta cuttoff, we call it killer move, remember this move for move ordering.
+                // If move that wasn't a capture causes a beta cutoff, we call it killer move, remember this move for move ordering.
                 if(!isCapture){
                     hist.storeKillerMove(ply, moves[j]);
                     hist.updateHistory(moves[j], depth);
@@ -335,8 +325,8 @@ private:
                 bestMoveInPos = moves[j];
                 // best move for current player in depth "0".
                 if(ply == 0){
-                    _bestMoveIter = moves[j];
-                    _bestScoreIter = eval;
+                    ss.bestMove = moves[j];
+                    ss.bestScore = eval;
                 }
             }
 
@@ -353,7 +343,7 @@ private:
     }
 
 
-    inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched, bool isPv, int moveScore, const Move& move) {
+    inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched, bool isPv, int moveScore) {
         int eval;
 
         int R = 0;
@@ -365,17 +355,17 @@ private:
             R = std::clamp(R, 0, depth - 2);
         }
         if(movesSearched == 1 && isPv){
-            eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv, move);
+            eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
         }
         else{
             // do reduced search (null window)
-            eval = -negamax(depth - 1 - R, ply + 1, -alpha - 1, -alpha, true, false, move);
+            eval = -negamax(depth - 1 - R, ply + 1, -alpha - 1, -alpha, true, false);
 
             // do non reduced search (null window)
-            if(eval > alpha && R != 0) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true, false, move);
+            if(eval > alpha && R != 0) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true, false);
 
             // if LMR fails, do normal full search.
-            if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv, move);
+            if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
         }
         return eval;
     }
@@ -388,7 +378,7 @@ private:
      * @return eval of the position without captures.
      */
     int qsearch(int alpha, int beta, int ply){
-        _nodesVisited++;
+        ss.nodesVisited++;
 
         if(_board->isDraw()) return 0;
         if(ply >= MAX_DEPTH) return _board->eval();
@@ -403,7 +393,7 @@ private:
         Movepick::scoreMovesQSearch(moves, moveCount, *_board, Move(), moveScores);
 
         for(int j = 0; j < moveCount; j++){
-            // pick a best move to play.
+            // pick the best move to play.
             Movepick::pickMove(moves, moveCount, j, moveScores);
 
             // SEE pruning of losing captures.
@@ -421,28 +411,28 @@ private:
     }
 
 
-    void printInfo(int depth, Timer idTimer, Move& bestMove){
+    void printInfo(int depth, Timer idTimer){
         auto ms = idTimer.getMs() / 1000.0;
-        auto nps = _nodesVisited / (ms == 0 ? 1 : ms);
+        auto nps = ss.nodesVisited / (ms == 0 ? 1 : ms);
 
         int movesToCheckmate = 0;
-        if (_bestScoreIter <= -(CHECKMATE - MAX_DEPTH)) {
-            int plyToCheckmate = CHECKMATE + _bestScoreIter;
+        if (ss.bestScore <= -(CHECKMATE - MAX_DEPTH)) {
+            int plyToCheckmate = CHECKMATE + ss.bestScore;
             movesToCheckmate = -((plyToCheckmate + 1) / 2);
-        } else if (_bestScoreIter >= (CHECKMATE - MAX_DEPTH)) {
-            int plyToCheckmate = CHECKMATE - _bestScoreIter;
+        } else if (ss.bestScore >= (CHECKMATE - MAX_DEPTH)) {
+            int plyToCheckmate = CHECKMATE - ss.bestScore;
             movesToCheckmate = (plyToCheckmate + 1) / 2;
         }
-        if(movesToCheckmate != 0 && _bestScoreIter != INT_MIN) std::cout << "info score mate " << movesToCheckmate;
-        else std::cout << "info score cp " << _bestScoreIter;
+        if(movesToCheckmate != 0 && ss.bestScore != INT_MIN) std::cout << "info score mate " << movesToCheckmate;
+        else std::cout << "info score cp " << ss.bestScore;
 
-        std::cout << " depth " << depth << " nodes " << _nodesVisited << " time " << idTimer.getMs() << " nps " << (int)nps << " move ";
-        bestMove.print();
+        std::cout << " depth " << depth << " nodes " << ss.nodesVisited << " time " << idTimer.getMs() << " nps " << (int)nps << " move ";
+        ss.bestMove.print();
 
         // PV
         std::cout << " pv ";
-        for(int j = 0; j < _pvLength[0]; j++){
-            _pvTable[0][j].print();
+        for(int j = 0; j < ss.pvLength[0]; j++){
+            ss.pvTable[0][j].print();
             std::cout << " ";
         }
         std::cout << std::endl;
