@@ -1,7 +1,6 @@
 #include "movepick.h"
 
-void Movepick::scoreMoves(Move *moves, int cnt, Board &board,
-                          const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64],
+void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const History& moveHistory,
                           const Move& hashMove, const Move& counterMove, std::vector<int>& moveScores) {
     for(int moveIndex = 0; moveIndex < cnt; moveIndex++){
         int score = 0;
@@ -16,7 +15,7 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board,
         }
         else{
             // history score.
-            score = history[move.fromSq][move.toSq];
+            score = moveHistory.history[move.fromSq][move.toSq];
 
             // countermoves
             if(move == counterMove){
@@ -25,7 +24,7 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board,
 
             // killers
             for(int killerIndex = 0; killerIndex < 2; killerIndex++){
-                if(move == killerMoves[board.ply][killerIndex]){
+                if(move == moveHistory.killerMoves[board.ply][killerIndex]){
                     score = KILLER_MOVES_ORDER_SCORE[killerIndex];
                     break;
                 }

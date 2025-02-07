@@ -2,13 +2,15 @@
 #define SENTINEL_SEARCH_H
 
 #include <movegen.h>
-#include <limits.h>
+#include <climits>
 #include <movepick.h>
 #include <tt.h>
 #include <chrono>
 #include <timer.h>
 #include <timemanager.h>
 #include <development.h>
+#include "consts.h"
+#include "history.h"
 
 class Search {
     static constexpr int POSITIVE_INF = 100000000;
@@ -18,9 +20,6 @@ class Search {
 
     static inline constexpr int ASPIRATION_DELTA_START = 7;
     static inline constexpr int ASPIRATION_MAX_DELTA_SIZE = 4'096;
-
-    // !!!! Same value has to be in TT.h !!!!
-    static inline constexpr int MAX_DEPTH = 128;
 
     Board* _board;
     bool _forceStopped = false;
@@ -34,23 +33,12 @@ class Search {
     int _bestScoreIter = INT_MIN;
     Move _bestMoveIter;
 
-    // Killer moves, that did beta cutoffs, use them in move order.
-    // Now only 2 killer moves per ply.
-    Move _killerMoves[MAX_DEPTH][2];
-    int _history[64][64];
-
-    // Some moves can have natural response.
-    Move _counterMoves[64][64];
-
     // PV
     Move _pvTable[MAX_DEPTH][MAX_DEPTH];
     int _pvLength[MAX_DEPTH];
 
-    // !!!! Same value has to be in TT.h !!!!
-    static constexpr int CHECKMATE = 1000000;
-    static constexpr int CHECKMATE_LOWER_BOUND = 1000000 - 1000;
-
-    static inline Move NO_MOVE = Move();
+    static inline auto NO_MOVE = Move();
+    History hist = History();
 
 public:
     TranspositionTable* TT;
@@ -181,22 +169,11 @@ public:
 private:
 
     void prepareForSearch(){
-        for (auto& killers : _killerMoves) {
-            std::fill(std::begin(killers), std::end(killers), Move());
-        }
-
-        for (auto& counterMoves : _counterMoves) {
-            std::fill(std::begin(counterMoves), std::end(counterMoves), Move());
-        }
-
-        for (auto& row : _history) {
-            std::fill(std::begin(row), std::end(row), 0);
-        }
+        hist.init();
 #if !RUN_DATAGEN
         std::fill(std::begin(_pvLength), std::end(_pvLength), 0);
 #endif
     }
-
 
     // https://en.wikipedia.org/wiki/Negamax ,PVS, alpha beta, TT, ...
     int negamax(int depth, int ply, int alpha, int beta, bool doNull, bool isPv, const Move& prevMove = NO_MOVE){
@@ -276,8 +253,8 @@ private:
         std::vector<int> moveScores(moveCount);
 
         // "move ordering"
-        auto counterMove = prevMove.fromSq == -1 ? NO_MOVE : _counterMoves[prevMove.fromSq][prevMove.toSq];
-        Movepick::scoreMoves(moves, moveCount, *_board, _killerMoves, _history ,hashMove, counterMove,moveScores);
+        auto counterMove = prevMove.fromSq == -1 ? NO_MOVE : hist.counterMoves[prevMove.fromSq][prevMove.toSq];
+        Movepick::scoreMoves(moves, moveCount, *_board, hist,hashMove, counterMove, moveScores);
         bool visitedAny = false;
 
         TranspositionTable::HashType TTType = TranspositionTable::UPPER_BOUND;
@@ -339,11 +316,11 @@ private:
             if(eval >= beta){
                 // If move, that wasnt capture causes a beta cuttoff, we call it killer move, remember this move for move ordering.
                 if(!isCapture){
-                    storeKillerMove(ply, moves[j]);
-                    _history[moves[j].fromSq][moves[j].toSq] += depth * depth;
+                    hist.storeKillerMove(ply, moves[j]);
+                    hist.updateHistory(moves[j], depth);
 
                     if(ply > 0 && prevMove != NO_MOVE){
-                        _counterMoves[prevMove.fromSq][prevMove.toSq] = moves[j];
+                        hist.storeCounterMove(prevMove, moves[j]);
                     }
                 }
 
@@ -441,11 +418,6 @@ private:
         }
 
         return alpha;
-    }
-
-    inline void storeKillerMove(int ply, const Move& move){
-        _killerMoves[ply][1] = _killerMoves[ply][0];
-        _killerMoves[ply][0] = move;
     }
 
 

@@ -3,6 +3,7 @@
 
 #include <move.h>
 #include <board.h>
+#include "history.h"
 
 class Movepick {
 
@@ -35,8 +36,7 @@ public:
     /***
      * Move scoring for moves in main search.
      */
-    static void scoreMoves(Move *moves, int cnt, Board &board,
-                           const Move killerMoves[Board::MAX_DEPTH][2], int history[64][64],
+    static void scoreMoves(Move *moves, int cnt, Board &board, const History& moveHistory,
                            const Move& hashMove, const Move& counterMove, std::vector<int>& moveScores);
 
     /***

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <move.h>
 #include <board.h>
+#include <consts.h>
 
 // https://web.archive.org/web/20071031100051/http://www.brucemo.com/compchess/programming/hashing.htm
 class TranspositionTable {
@@ -33,8 +34,6 @@ public:
 
     static constexpr int LOOKUP_ERROR = -1000000000;
     static constexpr int FOUND_NOT_ACCEPTED = -2000000000;
-
-    static constexpr int WIN_BOUND = 1000000 - 128;
 
     // Default .ctor for uci init (not used)
     TranspositionTable() = default;
