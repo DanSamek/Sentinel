@@ -201,7 +201,7 @@ private:
     // https://en.wikipedia.org/wiki/Negamax ,PVS, alpha beta, TT, ...
     int negamax(int depth, int ply, int alpha, int beta, bool doNull, bool isPv, const Move& prevMove = NO_MOVE){
 #if !RUN_DATAGEN
-        if(_timer.isTimeout()){
+        if(_nodesVisited & 2048 && _timer.isTimeout()){
             _forceStopped = true;
             return 0;
         }
