@@ -235,6 +235,14 @@ private:
             _nodesVisited--;
             return qsearch(alpha, beta, ply);
         }
+
+        // Mate distance pruning
+        auto alphaMd = std::max(alpha, -CHECKMATE + ply);
+        auto betaMd = std::min(beta, CHECKMATE - ply - 1);
+        if(ply > 0 && alphaMd >= betaMd){
+            return alphaMd;
+        }
+
         bool isCheckNMP = _board->inCheck(); // If current king is checked, logically we can't do NMP (enemy will capture our king).
 
         // Check extension.
