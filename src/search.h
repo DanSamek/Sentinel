@@ -14,6 +14,25 @@
 #include "searchstack.h"
 
 class Search {
+    struct LMRTable{
+        int data[MAX_DEPTH][Movegen::MAX_LEGAL_MOVES];
+        bool loaded;
+
+        LMRTable(bool loaded) : loaded(loaded){}
+
+        void init(){
+            if(loaded) return;
+            for(int depth = 1; depth <= MAX_DEPTH; depth++){
+                for(int moveCnt = 1; moveCnt <= Movegen::MAX_LEGAL_MOVES; moveCnt++){
+                    data[depth-1][moveCnt-1] = round(0.65 + log(depth) * log(moveCnt) * 0.3);
+                }
+            }
+            loaded = true;
+        }
+    };
+
+    static inline LMRTable lmrTable = LMRTable(false);
+
     static constexpr int POSITIVE_INF = 100000000;
     static constexpr int NEGATIVE_INF = -100000000;
 
@@ -31,6 +50,8 @@ class Search {
 
     History hist = History();
     SearchStack ss;
+
+
 
 public:
     TranspositionTable* TT;
@@ -156,6 +177,8 @@ private:
     void prepareForSearch(){
         ss = SearchStack();
         hist.init();
+        lmrTable.init();
+
 #if !RUN_DATAGEN
         std::fill(std::begin(ss.pvLength), std::end(ss.pvLength), 0);
 #endif
@@ -282,8 +305,33 @@ private:
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
             ss.data[ply].move = moves[j];
-            // late move reduction.
-            int eval = lmr(depth, ply, alpha, beta, movesSearched, isPv, moveScores[j]);
+
+            // Late move reductions
+            int eval;
+            int R = 0;
+            if(depth > LMR_DEPTH && ply > 0){
+                R = lmrTable.data[depth][movesSearched];
+                R -= isPv;
+                R -= isCheck;
+                if(!isCapture && hashMove.isCapture()){
+                    R++;
+                }
+                R = std::clamp(R, 0, depth - 2);
+            }
+
+            if(movesSearched == 0 && isPv){
+                eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
+            }
+            else{
+                // do reduced search (null window)
+                eval = -negamax(depth - 1 - R, ply + 1, -alpha - 1, -alpha, true, false);
+
+                // do non reduced search (null window)
+                if(eval > alpha && R != 0) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true, false);
+
+                // if LMR fails, do normal full search.
+                if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
+            }
 
             _board->undoMove(moves[j]);
             quietMovesCount += !isCapture;
@@ -340,34 +388,6 @@ private:
 
         TT->store(_board->zobristKey, ttIndex, alpha, depth, TTType, bestMoveInPos, ply );
         return alpha;
-    }
-
-
-    inline int lmr(int depth, int ply, int alpha, int beta, int movesSearched, bool isPv, int moveScore) {
-        int eval;
-
-        int R = 0;
-        if(depth > LMR_DEPTH && ply > 0){
-            R += !isPv;
-            R += moveScore == 0;
-            R += movesSearched >= 4;
-
-            R = std::clamp(R, 0, depth - 2);
-        }
-        if(movesSearched == 1 && isPv){
-            eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
-        }
-        else{
-            // do reduced search (null window)
-            eval = -negamax(depth - 1 - R, ply + 1, -alpha - 1, -alpha, true, false);
-
-            // do non reduced search (null window)
-            if(eval > alpha && R != 0) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true, false);
-
-            // if LMR fails, do normal full search.
-            if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
-        }
-        return eval;
     }
 
     /***
