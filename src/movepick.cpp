@@ -33,7 +33,7 @@ void Movepick::scoreMoves(Move *moves, int cnt, Board &board, const History& mov
 
         // promotion is good.
         if(move.isPromotion()){
-            score += move.promotionType * 70000;
+            score += move.promotionType * 700;
         }
 
         // tt move
@@ -60,7 +60,7 @@ void Movepick::scoreMovesQSearch(Move *moves, int cnt, Board &board, const Move 
 
         // promotion capture is good.
         if(move.isPromotion()){
-            score += move.promotionType * 7;
+            score += move.promotionType * 700;
         }
 
         moveScores[moveIndex] = score;

@@ -307,7 +307,7 @@ private:
                 // If move that wasn't a capture causes a beta cutoff, we call it killer move, remember this move for move ordering.
                 if(!isCapture){
                     hist.storeKillerMove(ply, moves[j]);
-                    hist.updateHistory(moves[j], depth);
+                    hist.updateHistory(moves[j], depth * depth);
 
                     if(ply > 0 && prevMove != NO_MOVE){
                         hist.storeCounterMove(prevMove, moves[j]);

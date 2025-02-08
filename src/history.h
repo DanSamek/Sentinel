@@ -13,13 +13,17 @@ struct History {
     // Some moves can have natural response.
     Move counterMoves[64][64];
 
+    static inline constexpr int MAX_HISTORY = 65536;
+
     inline void storeKillerMove(int ply, const Move& move){
         killerMoves[ply][1] = killerMoves[ply][0];
         killerMoves[ply][0] = move;
     }
 
-    inline void updateHistory(const Move& move, int depth){
-        history[move.fromSq][move.toSq] += depth * depth;
+    inline void updateHistory(const Move& move, int bonus){
+        // History gravity.
+        auto clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
+        history[move.fromSq][move.toSq] += clampedBonus - history[move.fromSq][move.toSq] * abs(clampedBonus) / MAX_HISTORY;
     }
 
     inline void storeCounterMove(const Move& prevMove, const Move& move){
