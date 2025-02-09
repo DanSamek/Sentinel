@@ -38,8 +38,8 @@ class Search {
 
     static inline constexpr int LMR_DEPTH = 2;
 
-    static inline constexpr int ASPIRATION_DELTA_START = 7;
-    static inline constexpr int ASPIRATION_MAX_DELTA_SIZE = 4'096;
+    static inline constexpr int ASPIRATION_DELTA_START = 15;
+    static inline constexpr int ASPIRATION_MAX_DELTA_SIZE = 481;
 
     Board* _board;
     bool _forceStopped = false;
@@ -294,7 +294,6 @@ private:
                 if(depth <= 7 && alpha > -CHECKMATE && !_board->SEE(moves[j], -80*depth)){
                     continue;
                 }
-
             }
             // SEE pruning of captures.
             // Don't prune so much captures, we can still be in good position even if we lose material in SEE (sacrifice for example).
