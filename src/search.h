@@ -290,6 +290,11 @@ private:
                     continue;
                 }
 
+                // Futility pruning
+                if(!isPv && movesSearched > 0 && depth <= 7 && currentEval + 140 * depth <= alpha){
+                    continue;
+                }
+
                 // SEE pruning of quiet moves.
                 if(depth <= 7 && alpha > -CHECKMATE && !_board->SEE(moves[j], -80*depth)){
                     continue;
