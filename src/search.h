@@ -236,6 +236,9 @@ private:
 
         int currentEval = ss.data[ply].score =_board->eval();
 
+        // Improving heuristic
+        const auto improving = ply >= 2 && currentEval > ss.data[ply - 2].score + 41 && !isCheckNMP;
+
         // Null move pruning
         // We just give enemy next move (we don't move any piece)
         // If our position is too good, even 1 additional move for opponent cant help, we return beta.
@@ -317,9 +320,9 @@ private:
                 R = lmrTable.data[depth][movesSearched];
                 R -= isPv;
                 R -= isCheck;
-                if(!isCapture && hashMove.isCapture()){
-                    R++;
-                }
+                R -= improving;
+
+                R += !isCapture && hashMove.isCapture();
                 R = std::clamp(R, 0, depth - 2);
             }
 

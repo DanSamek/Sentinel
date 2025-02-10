@@ -38,7 +38,7 @@ void UCI::loop() {
 }
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-FKINFP" << std::endl;
+    std::cout << "id name Sentinel-IH" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl << std::endl;
 #if DEVELOPMENT
     #if defined(ENABLE_AVX)
