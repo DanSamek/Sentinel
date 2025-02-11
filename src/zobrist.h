@@ -55,12 +55,7 @@ public:
             hash ^= enPassantTable[board.enPassantSquare % 8];
         }
 
-        // capture
-        if(move.toSq == 0 || move.toSq == 7 || move.toSq == 63 || move.toSq == 56 ||
-        // rook moves.
-            (move.movePiece == PIECE_TYPE::ROOK  && (move.fromSq == 0 || move.fromSq == 7 || move.fromSq == 63 || move.fromSq == 56))){
-            updateCastlingRightsHash(hash, board, state);
-        }
+        updateCastlingRightsHash(hash, board, state);
         hash ^= sideToMove;
     }
 
@@ -111,7 +106,7 @@ public:
         // << 2
         // << 1
         // << 0
-        if(state.castling == board.castling && !force) return; // Dont xor same castlings!
+        if(state.castling == board.castling && !force) return; // Dont xor same castling!
 
         uint8_t prevCastling =  getCastlingUInt(state.castling);
         hash ^= castlingTable[prevCastling];

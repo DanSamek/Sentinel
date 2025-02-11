@@ -52,7 +52,7 @@ public:
      * @return a value from TT, if not found, returns @see TranspositionTable::LOOKUP_ERROR.
      */
     inline int getEval(const uint64_t& zobristKey, int index,int depth, int alpha, int beta, int ply) {
-        Entry entry = entries[index];
+        const auto& entry = entries[index];
         if(entry.hash != zobristKey) return LOOKUP_ERROR;
 
         if(entry.depth >= depth){
@@ -87,7 +87,7 @@ public:
         if (eval >= WIN_BOUND) eval += ply;
         else if (eval <= -WIN_BOUND) eval -= ply;
 
-        //if(zobristKey == entries[index].hash && entries[index].depth > depth && entries[index].age+2 > ply) return;
+        //if(entries[index].depth > depth && zobristKey == entries[index].hash) return;
         entries[index] = {eval, depth, zobristKey, type, move};
     }
 
@@ -104,6 +104,11 @@ public:
     inline int index(const uint64_t& key) {
         return (int)(key % _count);
     }
+
+    inline void prefetch(const uint64_t& key){
+        __builtin_prefetch(&entries[key]);
+    }
+
 private:
 
     static inline Move NO_MOVE = Move();

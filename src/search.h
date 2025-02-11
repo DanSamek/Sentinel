@@ -293,7 +293,7 @@ private:
                     continue;
                 }
 
-                // Futility pruning
+                // Futility pruning.
                 if(!isPv && movesSearched > 0 && depth <= 7 && currentEval + 140 * depth <= alpha){
                     continue;
                 }
@@ -303,6 +303,7 @@ private:
                     continue;
                 }
             }
+
             // SEE pruning of captures.
             // Don't prune so much captures, we can still be in good position even if we lose material in SEE (sacrifice for example).
             else if(ply > 0 && depth <= 7 && isCapture && !_board->SEE(moves[j], -40*depth*depth)){
@@ -312,6 +313,8 @@ private:
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
             ss.data[ply].move = moves[j];
+
+            TT->prefetch(TT->index(_board->zobristKey));
 
             // Late move reductions
             int eval;
@@ -410,6 +413,15 @@ private:
         if(_board->isDraw()) return 0;
         if(ply >= MAX_DEPTH) return _board->eval();
 
+        auto ttIndex =  TT->index(_board->zobristKey);
+        auto ttEval = TT->getEval(_board->zobristKey, ttIndex, 0, alpha, beta, ply);
+        auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->entries[ttIndex].best : NO_MOVE;
+
+        if(ttEval > TranspositionTable::LOOKUP_ERROR){
+            ss.ttUsed++;
+            return ttEval;
+        }
+
         auto currentEval = _board->eval();
         if(currentEval >= beta) return beta;
         if(currentEval > alpha) alpha = currentEval;
@@ -417,7 +429,10 @@ private:
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto [moveCount, isCheck] = Movegen(*_board, moves).generateMoves<true>();
         std::vector<int> moveScores(moveCount);
-        Movepick::scoreMovesQSearch(moves, moveCount, *_board, Move(), moveScores);
+        Movepick::scoreMovesQSearch(moves, moveCount, *_board, hashMove, moveScores);
+
+        TranspositionTable::HashType TTType = TranspositionTable::UPPER_BOUND;
+        Move bestMoveInPos = NO_MOVE;
 
         for(int j = 0; j < moveCount; j++){
             // pick the best move to play.
@@ -427,13 +442,24 @@ private:
             if(!_board->SEE(moves[j], 0)) continue;
 
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
+
+            TT->prefetch(TT->index(_board->zobristKey));
+
             int eval = -qsearch(-beta, -alpha, ply + 1);
             _board->undoMove(moves[j]);
 
-            if(eval >= beta) return beta;
-            if(eval > alpha) alpha = eval;
+            if(eval >= beta){
+                TT->store(_board->zobristKey, ttIndex, eval, 0, TranspositionTable::LOWER_BOUND, moves[j], ply);
+                return beta;
+            }
+            if(eval > alpha){
+                bestMoveInPos = moves[j];
+                TTType = TranspositionTable::EXACT;
+                alpha = eval;
+            }
         }
 
+        TT->store(_board->zobristKey, ttIndex, alpha, 0, TTType, bestMoveInPos, ply);
         return alpha;
     }
 
