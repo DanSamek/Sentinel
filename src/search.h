@@ -12,6 +12,7 @@
 #include "consts.h"
 #include "history.h"
 #include "searchstack.h"
+#include "tunables.h"
 
 class Search {
     struct LMRTable{
@@ -36,22 +37,13 @@ class Search {
     static constexpr int POSITIVE_INF = 100000000;
     static constexpr int NEGATIVE_INF = -100000000;
 
-    static inline constexpr int LMR_DEPTH = 2;
-
-    static inline constexpr int ASPIRATION_DELTA_START = 15;
-    static inline constexpr int ASPIRATION_MAX_DELTA_SIZE = 481;
-
     Board* _board;
     bool _forceStopped = false;
 
     Timer _timer;
 
-    static inline auto NO_MOVE = Move();
-
     History hist = History();
     SearchStack ss;
-
-
 
 public:
     TranspositionTable* TT;
@@ -88,7 +80,7 @@ public:
             }
 
             // Aspiration windows
-            int delta = ASPIRATION_DELTA_START;
+            int delta = ASPIRATION_DELTA_START.current;
             alpha = std::max(NEGATIVE_INF, score - delta);
             beta = std::min(POSITIVE_INF, score + delta);
 
@@ -110,7 +102,7 @@ public:
                     break;
                 }
                 delta *= 2;
-                if(delta >= ASPIRATION_MAX_DELTA_SIZE){
+                if(delta >= ASPIRATION_MAX_DELTA_SIZE.current){
                     alpha = NEGATIVE_INF;
                     beta = POSITIVE_INF;
                 }
@@ -144,7 +136,7 @@ public:
             }
 
             // Aspiration windows
-            int delta = ASPIRATION_DELTA_START;
+            int delta = ASPIRATION_DELTA_START.current;
             alpha = std::max(NEGATIVE_INF, score - delta);
             beta = std::min(POSITIVE_INF, score + delta);
 
@@ -162,7 +154,7 @@ public:
                     break;
                 }
                 delta *= 2;
-                if(delta >= ASPIRATION_MAX_DELTA_SIZE){
+                if(delta >= ASPIRATION_MAX_DELTA_SIZE.current){
                     alpha = NEGATIVE_INF;
                     beta = POSITIVE_INF;
                 }
@@ -198,23 +190,28 @@ private:
         assert(isPv || alpha + 1 == beta);
         ss.nodesVisited++;
 
-
         // Check extension.
         if(ply > MAX_DEPTH - 1) return _board->eval();
 
         if(_board->isDraw()) return 0;
 
-        // Try get eval from TT.
-        auto ttIndex =  TT->index(_board->zobristKey);
-        int ttEval = TT->getEval(_board->zobristKey, ttIndex, depth, alpha, beta, ply);
-        auto hashMove = ttEval == TranspositionTable::FOUND_NOT_ACCEPTED ? TT->entries[ttIndex].best : Move();
+        const auto isSingular = ss[ply].excludedMove != NO_MOVE;
 
-        if(ttEval > TranspositionTable::LOOKUP_ERROR && !isPv){
-            ss.ttUsed++;
-            return ttEval;
+        const TranspositionTable::Entry* entry = &TranspositionTable::NO_ENTRY;
+        auto ttIndex =  TT->index(_board->zobristKey);
+        auto ttEval = TranspositionTable::LOOKUP_ERROR;
+
+        if(!isSingular){
+            ttEval = TT->getEval(_board->zobristKey, ttIndex, depth, alpha, beta, ply);
+            entry = TT->getEntry(ttIndex);
+
+            if(ttEval > TranspositionTable::LOOKUP_ERROR && !isPv){
+                ss.ttUsed++;
+                return ttEval;
+            }
         }
         // IIR
-        if(ttEval == TranspositionTable::LOOKUP_ERROR && ply > 0 && depth >= 5) depth--;
+        if(ttEval == TranspositionTable::LOOKUP_ERROR && ply > 0 && depth >= IIR_DEPTH.current) depth--;
 
         if(depth <= 0)
         {
@@ -234,32 +231,34 @@ private:
         // Check extension.
         if(isCheckNMP) depth++;
 
-        int currentEval = ss.data[ply].score =_board->eval();
+        int currentEval = ss[ply].score =_board->eval();
 
         // Improving heuristic
-        const auto improving = ply >= 2 && currentEval > ss.data[ply - 2].score + 41 && !isCheckNMP;
+        const auto improving = ply >= 2 && currentEval > ss[ply - 2].score + IMPROVING_CONSTANT.current && !isCheckNMP;
 
-        // Null move pruning
-        // We just give enemy next move (we don't move any piece)
-        // If our position is too good, even 1 additional move for opponent cant help, we return beta.
-        bool someBigPiece = _board->anyBiggerPiece(); // Zugzwang prevention, in some simple endgames can NMP hurt.
+        if(!isSingular){
+            // Null move pruning
+            // We just give enemy next move (we don't move any piece)
+            // If our position is too good, even 1 additional move for opponent cant help, we return beta.
+            bool someBigPiece = _board->anyBiggerPiece(); // Zugzwang prevention, in some simple endgames can NMP hurt.
 
-        if(!isPv && depth >= 3 && doNull && !isCheckNMP && someBigPiece && ply > 0){
-            _board->makeNullMove();
-            ss.data[ply].move = NO_MOVE;
+            if(!isPv && depth >= NMP_DEPTH.current && doNull && !isCheckNMP && someBigPiece && ply > 0){
+                _board->makeNullMove();
+                ss[ply].move = NO_MOVE;
 
-            int R = 3 + depth / 3;
-            int eval = -negamax(depth - R + 1, ply + 1, -beta, -beta + 1, false, false);
-            _board->undoNullMove();
+                int R = NMP_REDUCTION_CONSTANT.current + depth / NMP_REDUCTION_DIV_CONSTANT.current;
+                int eval = -negamax(depth - R + 1, ply + 1, -beta, -beta + 1, false, false);
+                _board->undoNullMove();
 
-            if(eval >= beta) return eval;
-            if(_forceStopped) return 0;
-        }
+                if(eval >= beta) return eval;
+                if(_forceStopped) return 0;
+            }
 
-        // Reverse futility pruning
-        // If current pos - margin is too good (>= beta), we can return currentEval.
-        if(!isPv && !isCheckNMP && ply > 0 && depth <= 8 && currentEval - 92 * depth >= beta){
-            return currentEval;
+            // Reverse futility pruning
+            // If current pos - margin is too good (>= beta), we can return currentEval.
+            if(!isPv && !isCheckNMP && ply > 0 && depth <= RFP_DEPTH.current && currentEval - RFP_CONSTANT.current * depth >= beta){
+                return currentEval;
+            }
         }
 
         Move moves[Movegen::MAX_LEGAL_MOVES];
@@ -267,9 +266,9 @@ private:
         std::vector<int> moveScores(moveCount);
 
         // "move ordering"
-        auto prevMove = ply == 0 ? NO_MOVE : ss.data[ply - 1].move;
+        auto prevMove = ply == 0 ? NO_MOVE : ss[ply - 1].move;
         auto counterMove = prevMove.fromSq == -1 ? NO_MOVE : hist.counterMoves[prevMove.fromSq][prevMove.toSq];
-        Movepick::scoreMoves(moves, moveCount, *_board, hist,hashMove, counterMove, moveScores);
+        Movepick::scoreMoves(moves, moveCount, *_board, hist, entry->best, counterMove, moveScores);
         bool visitedAny = false;
 
         TranspositionTable::HashType TTType = TranspositionTable::UPPER_BOUND;
@@ -277,9 +276,17 @@ private:
 
         int movesSearched = 0; // LMR
         int quietMovesCount = 0;
+
+        // Singular extensions -- condition
+        const auto canSingular = !isSingular && ply > 0 && depth >= SI_DEPTH.current && entry->flag != TranspositionTable::UPPER_BOUND && entry->depth + SI_DEPTH_TT_ADD.current >= depth && std::abs(ttEval) < CHECKMATE_LOWER_BOUND;
+
         for(int j = 0; j < moveCount; j++){
             // pick a move to play (sorting moves, can be slower, thanks to alpha beta pruning).
             Movepick::pickMove(moves, moveCount, j, moveScores);
+
+            if(moves[j] == ss[ply].excludedMove){
+                continue;
+            }
 
             bool isCapture = moves[j].isCapture();
 
@@ -288,59 +295,82 @@ private:
             if(!isCapture && ply > 0 && !isCheckNMP){
 
                 // Late move pruning.
-                auto lmpLimit = 3 + depth * depth;
-                if(!isPv && quietMovesCount > lmpLimit && depth <= 5 && !moves[j].isPromotion()){
+                auto lmpLimit = LMR_MOVE_COUNT_ADD.current + depth * depth;
+                if(!isPv && quietMovesCount > lmpLimit && depth <= LMP_DEPTH.current && !moves[j].isPromotion()){
                     continue;
                 }
 
                 // Futility pruning.
-                if(!isPv && movesSearched > 0 && depth <= 7 && currentEval + 140 * depth <= alpha){
+                if(!isPv && !isSingular && movesSearched > 0 && depth <= FP_DEPTH.current && currentEval + FP_CONSTANT.current * depth <= alpha){
                     continue;
                 }
 
                 // SEE pruning of quiet moves.
-                if(depth <= 7 && alpha > -CHECKMATE && !_board->SEE(moves[j], -80*depth)){
+                if(depth <= SEE_QUIET_DEPTH.current && alpha > -CHECKMATE && !_board->SEE(moves[j], -SEE_QUIET_THRESHOLD.current*depth)){
                     continue;
                 }
             }
 
             // SEE pruning of captures.
-            // Don't prune so much captures, we can still be in good position even if we lose material in SEE (sacrifice for example).
-            else if(ply > 0 && depth <= 7 && isCapture && !_board->SEE(moves[j], -40*depth*depth)){
+            else if(ply > 0 && depth <= SEE_CAP_DEPTH.current && isCapture && !_board->SEE(moves[j], -SEE_CAP_THRESHOLD.current*depth*depth)){
                 continue;
+            }
+
+            // Singular extensions
+            // If TT move is better than other moves, extend search depth [if conditions are met] for this move.
+            auto newDepth = depth;
+            if(canSingular && moves[j] == entry->best){
+                const auto singularBeta = ttEval - depth*SI_DEPTH_MUL.current;
+
+                ss[ply].excludedMove = entry->best;
+                const auto singularEval = negamax((depth - 1) / 2, ply, singularBeta - 1, singularBeta, true, false);
+                ss[ply].excludedMove = NO_MOVE;
+
+                if(singularEval < singularBeta){
+                    newDepth++;
+                    // TODO double extension.
+                    // newDepth += singularEval + 25 < singularBeta && !isPv;
+                }
+
+                // TODO negative extension.
+
+                // Multicut.
+                if(singularBeta >= beta){
+                    return singularBeta;
+                }
+
             }
 
             if(!_board->makeMove(moves[j])) continue; // pseudolegal movegen.
 
-            ss.data[ply].move = moves[j];
-
+            ss[ply].move = moves[j];
             TT->prefetch(TT->index(_board->zobristKey));
 
             // Late move reductions
             int eval;
             int R = 0;
-            if(depth > LMR_DEPTH && ply > 0){
+            if(depth > LMR_DEPTH.current && ply > 0){
                 R = lmrTable.data[depth][movesSearched];
                 R -= isPv;
                 R -= isCheck;
                 R -= improving;
 
-                R += !isCapture && hashMove.isCapture();
+                R += !isCapture && entry->best.isCapture();
                 R = std::clamp(R, 0, depth - 2);
             }
 
             if(movesSearched == 0 && isPv){
-                eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
+                eval = -negamax(newDepth - 1, ply + 1, -beta, -alpha, true, isPv);
             }
             else{
                 // do reduced search (null window)
-                eval = -negamax(depth - 1 - R, ply + 1, -alpha - 1, -alpha, true, false);
+                eval = -negamax(newDepth - 1 - R, ply + 1, -alpha - 1, -alpha, true, false);
 
                 // do non reduced search (null window)
-                if(eval > alpha && R != 0) eval = -negamax(depth - 1, ply + 1, -alpha - 1, -alpha, true, false);
+                if(eval > alpha && R != 0) eval = -negamax(newDepth - 1, ply + 1, -alpha - 1, -alpha, true, false);
 
                 // if LMR fails, do normal full search.
-                if(eval > alpha && eval < beta) eval = -negamax(depth - 1, ply + 1, -beta, -alpha, true, isPv);
+                if(eval > alpha && eval < beta) eval = -negamax(newDepth - 1, ply + 1, -beta, -alpha, true, isPv);
             }
 
             _board->undoMove(moves[j]);
@@ -372,7 +402,7 @@ private:
                     }
                 }
 
-                TT->store(_board->zobristKey, ttIndex,eval, depth, TranspositionTable::LOWER_BOUND, moves[j], ply);
+                if(!isSingular) TT->store(_board->zobristKey, ttIndex,eval, depth, TranspositionTable::LOWER_BOUND, moves[j], ply);
                 return eval;
             }
 
@@ -396,7 +426,7 @@ private:
         if(!visitedAny && !isCheck) return 0; // draw
 
 
-        TT->store(_board->zobristKey, ttIndex, alpha, depth, TTType, bestMoveInPos, ply );
+        if(!isSingular) TT->store(_board->zobristKey, ttIndex, alpha, depth, TTType, bestMoveInPos, ply );
         return alpha;
     }
 

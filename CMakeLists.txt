@@ -97,4 +97,6 @@ add_executable(Sentinel
         src/nnue/nnue.cpp
         src/boardEnums.h
         src/tests/NNUETests.cpp
+        src/tunable.h
+        src/tunable.cpp
 )

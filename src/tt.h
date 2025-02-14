@@ -27,9 +27,15 @@ public:
             best = NO_MOVE;
             depth = -1;
             hash = 0ULL;
+            flag = UPPER_BOUND;
+        }
+
+        bool valid(){
+            return hash != 0ULL;
         }
     };
 
+    static inline const Entry NO_ENTRY = {};
     Entry* entries;
 
     static constexpr int LOOKUP_ERROR = -1000000000;
@@ -87,14 +93,13 @@ public:
         if (eval >= WIN_BOUND) eval += ply;
         else if (eval <= -WIN_BOUND) eval -= ply;
 
-        //if(entries[index].depth > depth && zobristKey == entries[index].hash) return;
+        // if(entries[index].depth >= depth && zobristKey == entries[index].hash) return;
         entries[index] = {eval, depth, zobristKey, type, move};
     }
 
-    /***
-     * @return current flag @see HashType
-     */
-    HashType getHashFlag();
+    const Entry* getEntry(int index){
+        return &entries[index];
+    }
 
     /***
      * Frees an allocated memory for a table.
@@ -111,7 +116,6 @@ public:
 
 private:
 
-    static inline Move NO_MOVE = Move();
     int getCorrectedScore(int score, int ply);
 
     uint64_t _count;

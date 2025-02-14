@@ -8,6 +8,7 @@
 struct Info{
     Move move;
     int score;
+    Move excludedMove;
 };
 
 struct SearchStack{
@@ -21,6 +22,10 @@ struct SearchStack{
     int pvLength[MAX_DEPTH];
 
     Info data[MAX_DEPTH];
+
+    Info& operator[](int ply){
+        return data[ply];
+    }
 };
 
 #endif //SENTINEL_SEARCHSTACK_H
