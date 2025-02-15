@@ -373,7 +373,7 @@ private:
                 if(eval > alpha && eval < beta) eval = -negamax(newDepth - 1, ply + 1, -beta, -alpha, true, isPv);
             }
 
-            _board->undoMove(moves[j]);
+            _board->undoMove();
             quietMovesCount += !isCapture;
 
 #if! RUN_DATAGEN
@@ -476,7 +476,7 @@ private:
             TT->prefetch(TT->index(_board->zobristKey));
 
             int eval = -qsearch(-beta, -alpha, ply + 1);
-            _board->undoMove(moves[j]);
+            _board->undoMove();
 
             if(eval >= beta){
                 TT->store(_board->zobristKey, ttIndex, eval, 0, TranspositionTable::LOWER_BOUND, moves[j], ply);

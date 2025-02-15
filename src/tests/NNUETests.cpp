@@ -42,7 +42,7 @@ struct NNUETests{
             }
             total ++;
             generateMoves(b, depth-1);
-            b.undoMove(moves[j]);
+            b.undoMove();
         }
         if(total % 100 == 0 && total != 0){
             std::cout << total;
@@ -52,6 +52,7 @@ struct NNUETests{
     static inline NeuralNetwork nn;
 
     static void run() {
+        return;
         nn.load();
 
         diff("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");

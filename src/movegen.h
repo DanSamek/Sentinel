@@ -57,7 +57,9 @@ struct Movegen {
 
         bool checked = !validateKingCheck(kingPos);
         if (capturesOnly){
-            generatePawnCaptures(friendlyBits[PIECE_TYPE::PAWN]);
+            if(board.whoPlay) generatePawnCaptures<true>(friendlyBits[PIECE_TYPE::PAWN]);
+            else generatePawnCaptures<false>(friendlyBits[PIECE_TYPE::PAWN]);
+
             generateRookCaptures(friendlyBits[PIECE_TYPE::ROOK]);
             generateBishopCaptures(friendlyBits[PIECE_TYPE::BISHOP]);
             generateQueenCaptures(friendlyBits[PIECE_TYPE::QUEEN]);
@@ -65,7 +67,10 @@ struct Movegen {
             generateKingCaptures(friendlyBits[PIECE_TYPE::KING]);
             return {index, checked};
         }
-        generatePawnMoves(friendlyBits[PIECE_TYPE::PAWN], board.enPassantSquare, board.whoPlay);
+
+        if(board.whoPlay) generatePawnMoves<true>(friendlyBits[PIECE_TYPE::PAWN], board.enPassantSquare);
+        else generatePawnMoves<false>(friendlyBits[PIECE_TYPE::PAWN], board.enPassantSquare);
+
         generateRookMoves(friendlyBits[PIECE_TYPE::ROOK]);
         generateBishopMoves(friendlyBits[PIECE_TYPE::BISHOP]);
         generateQueenMoves(friendlyBits[PIECE_TYPE::QUEEN]);
@@ -85,9 +90,43 @@ struct Movegen {
      * Attacks + normal moves
      * @param b pawn bitboard
      * @param enPassantSquare
-     * @param color
      */
-    void generatePawnMoves(uint64_t b, int enPassantSquare, bool color);
+    template<bool color>
+    void generatePawnMoves(uint64_t b, int enPassantSquare){
+        uint64_t enPassantBB = enPassantSquare != -1 ? 1ULL << enPassantSquare : 0;
+        constexpr auto tmpColor = (PIECE_COLOR)!color;
+        while(b){
+            int bit = bit_ops::bitScanForwardPopLsb(b);
+            int rank = bit / 8;
+            bool promotion = (tmpColor == PIECE_COLOR::WHITE && rank == 1) ||(tmpColor == PIECE_COLOR::BLACK && rank == 6); // next move will be promotion on 100%!
+
+            auto bb = PAWN_PUSH_MOVES[!color][bit];
+            if(((tmpColor == PIECE_COLOR::WHITE && rank == 6) || (tmpColor == PIECE_COLOR::BLACK && rank == 1)) && (bb & all) != PAWN_ILLEGAL_AND[!color][bit]){
+                bb &= ~all;
+                while(bb){
+                    auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
+                    movesPtr[index++] = {bit, tmpBit, Move::NONE, abs(tmpBit - bit) > 8 ? Move::DOUBLE_PAWN_UP : Move::QUIET, PIECE_TYPE::PAWN};
+                }
+            }
+            else{
+                while(!(bb & all) && bb){
+                    auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
+                    if(promotion) generatePromotions(bit, tmpBit, false);
+                    else movesPtr[index++] = {bit, tmpBit, Move::NONE, Move::QUIET, PIECE_TYPE::PAWN};
+                }
+            }
+
+
+            bb = PAWN_ATTACK_MOVES[!color][bit] & (enemyMerged | enPassantBB);
+            // normal captures || captures with promotions.
+            while(bb){
+                auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
+                if(tmpBit == enPassantSquare) movesPtr[index++] = {bit, tmpBit, Move::NONE, Move::EN_PASSANT, PIECE_TYPE::PAWN};
+                else if(promotion) generatePromotions(bit, tmpBit, true);
+                else movesPtr[index++] = {bit, tmpBit, Move::NONE, Move::CAPTURE, PIECE_TYPE::PAWN};
+            }
+        }
+    }
 
     /***
      * ULL lookup tables for all king moves.
@@ -138,7 +177,27 @@ struct Movegen {
     void generateQueenCaptures(uint64_t queens);
     void generateKnightCaptures(uint64_t knight);
     void generateKingCaptures(uint64_t king);
-    void generatePawnCaptures(uint64_t b);
+
+    template<bool color>
+    void generatePawnCaptures(uint64_t b) {
+        uint64_t enPassantBB = board.enPassantSquare != -1 ? 1ULL << board.enPassantSquare : 0;
+        constexpr auto tmpColor = !color;
+        while(b){
+            int bit = bit_ops::bitScanForwardPopLsb(b);
+            int rank = bit / 8;
+            bool promotion = (tmpColor == PIECE_COLOR::WHITE && rank == 1) ||(tmpColor == PIECE_COLOR::BLACK && rank == 6); // next move will be promotion !!
+
+            auto bb = PAWN_ATTACK_MOVES[tmpColor][bit] & (enemyMerged | enPassantBB);
+            while(bb){
+                auto tmpBit = bit_ops::bitScanForwardPopLsb(bb);
+                if(tmpBit == board.enPassantSquare) movesPtr[index++] = {bit, tmpBit, Move::NONE, Move::EN_PASSANT, PIECE_TYPE::PAWN};
+                else if(promotion) generatePromotions(bit, tmpBit, true);
+                else movesPtr[index++] = {bit, tmpBit, Move::NONE, Move::CAPTURE, PIECE_TYPE::PAWN};
+            }
+        }
+    }
+
+
     void captureBitboardToMoves(int fromSquare, uint64_t& moveBitboard, PIECE_TYPE pieceType);
 };
 

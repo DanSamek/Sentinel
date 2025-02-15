@@ -17,7 +17,7 @@ struct ZobristTests{
         assert(zobrist != b.zobristKey);
 
         assert("rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq a3 0 1" == b.FEN());
-        b.undoMove(moves[0]);
+        b.undoMove();
         assert("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" == b.FEN());
 
         assert(zobrist == b.zobristKey);
@@ -37,13 +37,13 @@ struct ZobristTests{
         assert("rnbqkbnr/1ppppppp/p7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2" == b.FEN());
 
         auto zobrist2 = b.zobristKey; // uniq
-        b.undoMove(moves2[0]);
+        b.undoMove();
         assert("rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq a3 0 1" == b.FEN());
 
         assert(b.zobristKey == zobrist1);
         assert("rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq a3 0 1" == b.FEN());
 
-        b.undoMove(moves[0]);
+        b.undoMove();
         assert(b.zobristKey == zobrist);
 
         assert(zobrist2 != zobrist && zobrist2 != zobrist1);
