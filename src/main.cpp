@@ -4,15 +4,12 @@
 #include "development.h"
 
 int main(){
-    if(RUN_DATAGEN){
+#if RUN_DATAGEN
         Datagen().run();
-    }
-    else if(RUN_TESTS){
+#elif RUN_TESTS
         TestRunner::run();
-
-    }else{
+#else
         UCI::loop();
-    }
-
+#endif
     return 0;
 }

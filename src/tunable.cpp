@@ -10,14 +10,12 @@ void Tunable::print() {
 
 // For a weather factory.
 void Tunable::printJSON() {
-    std::cout << "{\n";
     std::cout << "    \"" << name << "\": {\n";
     std::cout << "        \"value\": " << def << ",\n";
     std::cout << "        \"min_value\": " << min << ",\n";
     std::cout << "        \"max_value\": " << max << ",\n";
     std::cout << "        \"step\": " << "x" << "\n";
-    std::cout << "    }\n";
-    std::cout << "},\n";
+    std::cout << "    },\n";
 }
 
 void Tunable::setValue(int value) {

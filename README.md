@@ -19,51 +19,22 @@ or
 make
 ```
 
-<h3>Features</h3>
+<h4> NNUE </h4>
+<p>Sentinel 2.0 uses neural networks to evaluate positions.</p>
+<p>Current architecture of NNUE is (768 -> 128)x2 trained on selfplay data [see nnue/datagen.cpp] </p>
+<i>Currently I don't have resources to train bigger networks, but in future i would like to make at least (768 -> 512)x2 </i>
 
 <h4>Search</h4>
-<ul>
-  <li>Aspiration windows</li>
-  <li>Iterative deepening</li>
-  <li>Killer moves</li>
-  <li>History heuristic</li>
-  <li>SEE</li>
-  <li>Negamax alpha beta</li>
-  <li>Internal iterative reductions</li>
-  <li>Quiescence search</li>
-  <li>Null move pruning</li>
-  <li>Reverse futility pruning</li>
-  <li>Late move pruning</li>
-  <li>Late move reductions</li>
-  <li>Transposition table</li>
-  <ul>
-    <li>TT cut offs</li>
-  </ul>
-</ul>
-
-<h4>Eval</h4>
-<p>All parameters were tuned using <a href="https://github.com/GediminasMasaitis/texel-tuner">Geda's Texel Tuner</a></p>
-<ul>
-  <li>Tapered eval</li>
-  <li>Piece square tables</li>
-  <li>King virtual mobility</li>
-  <li>Simple piece mobility</li>
-  <li>Rooks on open and semiopen files</li>
-  <li>Isolated pawns </li>
-  <li>Passed pawns</li>
-  <li>Stacked pawns</li>
-  <li>Two bishops bonus</li>
-  <li>Castling bonus</li>
-</ul>
+<p>Sentinel uses a lot of search heuristics that were inspired from top chess engines or found on chess programming wiki.</p>
 
 <h4>Progress</h4>
 
-  | Version     | Estimated   | CCRL 40/15  | CCRL Blitz 2 + 1
-| ----------- | ----------- | ----------- | ---------------- |
-| 1.0         | 2.3-2.5k       | ?        | ?         |
-
-
-
+| Version     | Estimated    | CCRL 40/15  | CCRL Blitz 2 + 1
+| ----------- | -----------  | ----------- | ---------------- |
+| 1.0         | 2.3-2.5k     | ?           | ?                |
+| 2.0         | 2.7-3k       | ?           | ?                |
 
 <h4>Special thanks</h4>
 <p>Many thanks to all Chads on the Chess Engine Programming Discord who helped me and taught me the basics of engine programming.</p>
+<p>Bullet - NNUE trainer that was used to train neural networks.</p>
+
