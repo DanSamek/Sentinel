@@ -36,6 +36,7 @@ make
 | 1.0         | 2.3-2.5k     | 2425        | ?                |
 | 2.0         | 2.7-3k       | ?           | ?                |
 
+
 <h4>Special thanks</h4>
 <p>Many thanks to all Chads on the Chess Engine Programming Discord who helped me and taught me the basics of engine programming.</p>
 <p>Bullet - a NNUE trainer that has been used to train neural networks.</p>
