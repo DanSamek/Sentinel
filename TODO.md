@@ -7,7 +7,7 @@
 * No more HCE - Sentinel 2.0 has NNUE *
 * Data generated via self-play.*
 
-- [X] HCE => NNUE -> ?
+- [X] HCE => NNUE -> ~200-300 ELO
 
 Net history:
 - Simple nets - 16 neuron, 24 neuron.
@@ -28,26 +28,26 @@ Net history:
 ------
 
 ### Search
-- [ ] Better move ordering -> ?
-    - [X] Counter moves -> ?
-    - [ ] Better history - max history values
-    - [ ] Capture history -> ?
-    - [ ] Continuation history -> ?
-        - [ ] 1 ply -> ?
-        - [ ] 2 ply -> ?
-- [ ] Futility pruning -> ?
-- [ ] Late move pruning -> ?
-- [ ] Check extension -> ?
-- [ ] Q Search TT -> ?
-- [ ] Singular extensions -> ?
-    - [ ] Multicut -> ?
+- [ ] Better move ordering
+    - [X] Counter moves
+    - [X] Better history - max history values
+    - [ ] Capture history
+    - [ ] Continuation history
+        - [ ] 1 ply
+        - [ ] 2 ply
+- [X] Futility pruning
+- [X] Late move pruning
+- [X] Check extension
+- [X] Q Search TT
+- [X] Singular extensions
+    - [X] Multicut
 
 ------
 
 ### Enchantments
-- [x] PV
-- [ ] TT Prefetching -> ? 
+- [X] PV
+- [X] TT Prefetching
   - no elo gain, yet
 - [ ] Multithread
     - [ ] Lazy SMP
-- [ ] Legal movegen -> ?
+- [ ] Legal movegen
