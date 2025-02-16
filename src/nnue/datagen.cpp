@@ -1,3 +1,5 @@
+#include "development.h"
+#if RUN_DATAGEN
 #include "datagen.h"
 #include "thread"
 #include "vector"
@@ -246,3 +248,4 @@ void Datagen::printInfo() {
 
     std::cout.flush();
 }
+#endif

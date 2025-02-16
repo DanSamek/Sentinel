@@ -2,7 +2,7 @@
 #include "nnue.h"
 #include "fstream"
 #include "cassert"
-#include "singularity_v2_4_40.bin.h"
+#include "singularity_v2_4_40.bin.hpp"
 #include "development.h"
 
 template<typename T>

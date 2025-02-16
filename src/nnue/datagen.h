@@ -1,3 +1,5 @@
+#include "development.h"
+#if RUN_DATAGEN
 #ifndef SENTINEL_DATAGEN_H
 #define SENTINEL_DATAGEN_H
 
@@ -30,3 +32,4 @@ private:
 };
 
 #endif //SENTINEL_DATAGEN_H
+#endif
