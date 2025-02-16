@@ -25,7 +25,7 @@ struct PerftTests{
             auto key = b.zobristKey;
             if(!b.makeMove(moves[j])) continue;
             res += generateMoves(b, depth-1);
-            b.undoMove(moves[j]);
+            b.undoMove();
             assert(b.zobristKey == key);
 
         }
@@ -52,7 +52,6 @@ struct PerftTests{
         runCase("r3k2r/p1ppqpb1/bn1Ppnp1/4N3/1p2P3/2N2Q2/PPPBBPpP/R3K2R w KQkq - 0 6", 1, 47 );
         runCase("8/8/8/1PpK4/5p2/4k3/8/8 b - - 0 24", 1, 7);
         runCase("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0", 1, 48 );
-        runCase("8/8/8/1PpK4/5p2/4k3/8/8 b - - 0 24", 9, 133225511 );
         runCase("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 7", 3, 81066 );
         runCase("r3k2r/p1ppqpb1/bn1Ppnp1/4N3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 5", 2, 1991 );
         runCase("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0", 2, 2039 );
@@ -118,6 +117,7 @@ struct PerftTests{
         runCase("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",5, 164075551 );
         runCase("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 5, 89941194 );
         runCase("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 0", 5, 193690690 );
+        runCase("8/8/8/1PpK4/5p2/4k3/8/8 b - - 0 24", 9, 133225511 );
     }
 
     static void runCase(std::string FEN, int depth, int expected = -1){

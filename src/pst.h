@@ -4,6 +4,7 @@
 #include <cassert>
 
 // From texel tuner.
+// !! NOT USED ANYMORE !!
 
 constexpr int32_t S(const int32_t mg, const int32_t eg)
 {

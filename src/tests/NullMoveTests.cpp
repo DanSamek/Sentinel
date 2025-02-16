@@ -29,7 +29,7 @@ struct NullMoveTests{
                 assert(b.zobristKey == nullKey);
                 b.undoNullMove();
             }
-            b.undoMove(moves[j]);
+            b.undoMove();
             assert(b.zobristKey == key);
 
         }

@@ -40,6 +40,8 @@ public:
     // WHITE, BLACK {queen, king}
     static inline constexpr int K_CASTLE = 1;
     static inline constexpr int Q_CASTLE = 0;
+
+    // TODO make it uint8.
     std::array<std::array<bool, 2>,2> castling;
 
     // static array for a performance.
@@ -85,7 +87,13 @@ public:
      * Undo a move.
      * @param move
      */
-    void undoMove(const Move& move);
+    void undoMove();
+
+
+    /***
+     * Pseudolegal -> faster than push, undo.
+     */
+    void restore(const State& prevState);
 
     /***
      * Simple _board print of a current state.
@@ -119,7 +127,7 @@ public:
      */
     void undoNullMove();
 
-    // inlined
+    // TODO try array -- O(1) lookup.
     inline std::pair<PIECE_TYPE, bool> getPieceTypeFromSQ(int square, const uint64_t* bbs) const{
         for(int j = 0; j < 6; j++){
             if(bit_ops::getNthBit(bbs[j], square)) return {(PIECE_TYPE)j, true};
@@ -128,7 +136,8 @@ public:
     }
 
     const int NO_PIECE = -1;
-    // inlined
+
+    // TODO try array -- O(1) lookup.
     inline int getPieceType(int square) const{
         for(int j = 0; j < 6; j++){
             if(bit_ops::getNthBit(whitePieces[j], square) || bit_ops::getNthBit(blackPieces[j], square)) return j;
@@ -136,7 +145,6 @@ public:
         return NO_PIECE;
     }
 
-    // inlined
     inline bool anyBiggerPiece(){
         // from knight to queen
         for(int j = 1; j < 5; j++){
@@ -172,8 +180,8 @@ private:
         bit_ops::popNthBit(currentPieces[movePiece], fromSq);
     }
 
-    // inlined for a performance
-    inline void handleCastling(Move move, bool whoPlay, bool* currentCastling)
+
+    inline void handleCastling(const Move& move, bool whoPlay, bool* currentCastling)
     {
         switch (move.movePiece) {
             case ROOK:
@@ -210,8 +218,8 @@ private:
         }
     }
 
-    // inlined for a performance
-    inline void handleEnemyCastling(std::pair<uint64_t , bool> type, Move move, bool whoPlay, bool* enemyCastling) {
+
+    inline void handleEnemyCastling(const std::pair<uint64_t , bool>& type, const Move& move, bool whoPlay, bool* enemyCastling) {
         switch (type.first) {
             case ROOK:
                 if (whoPlay) {

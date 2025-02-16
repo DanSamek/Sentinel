@@ -20,7 +20,7 @@ struct bit_ops {
     }
 
     inline static int bitScanForward(const uint64_t & value){
-        return std::countr_zero(value); // lsb
+        return std::countr_zero(value);
     }
 
     inline static int bitScanForwardPopLsb(uint64_t& value){

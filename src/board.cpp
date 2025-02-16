@@ -80,7 +80,6 @@ const uint64_t & Board::getPieceBitboard(PIECE_TYPE type, PIECE_COLOR color) con
 }
 
 bool Board::makeMove(const Move &move) {
-    // validate move if king is checked, return false
 
     auto currentPieces = whoPlay ? whitePieces : blackPieces;
     auto enemyPieces = !whoPlay ? whitePieces : blackPieces;
@@ -88,9 +87,10 @@ bool Board::makeMove(const Move &move) {
     auto currentCastling = whoPlay ? castling[0].data() : castling[1].data();
     auto enemyCastling = whoPlay ? castling[1].data() : castling[0].data();
 
-    bool setEnPassant = false;
+    auto setEnPassant = false;
     nnue.push(); // save current accumulator.
-    State currentState{-1,enPassantSquare, castling, halfMove, zobristKey, fullMove};
+
+    State currentState(-1,enPassantSquare, castling, halfMove, zobristKey, fullMove, whitePieces, blackPieces);
 
     std::pair<uint64_t , bool> type;
     switch (move.moveType) {
@@ -188,15 +188,13 @@ bool Board::makeMove(const Move &move) {
 
         for(int j = from; j <= to; j++){
             if(isSquareAttacked(j, !whoPlay)){
-                push(setEnPassant, currentState);
-                undoMove(move);
+                restore(currentState);
                 return false;
             }
         }
     }
     else if(isSquareAttacked(bit_ops::bitScanForward(currentPieces[KING]), !whoPlay)){
-        push(setEnPassant, currentState);
-        undoMove(move);
+        restore(currentState);
         return false;
     }
 
@@ -263,15 +261,15 @@ bool Board::makeMove(const Move &move) {
     }
 
     push(setEnPassant, currentState);
-    threeFoldRepetition[repetitionIndex] = zobristKey; // just add key to an array.
+    threeFoldRepetition[repetitionIndex] = zobristKey;
     return true;
 }
 
+
 void Board::push(bool setEnPassant, State &currentState) {
     if(!setEnPassant && currentState.enPassantSquare != -1){
-        // remove current en-passant.
         zobristKey ^= Zobrist::enPassantTable[currentState.enPassantSquare % 8];
-        // set no enPassant.
+
         zobristKey ^= Zobrist::noEnPassant;
     }
 
@@ -283,75 +281,38 @@ void Board::push(bool setEnPassant, State &currentState) {
     enPassantSquare = setEnPassant ? enPassantSquare : -1;
 }
 
-void Board::undoMove(const Move &move) {
-    auto prevState = std::move(STACK[ply]);
-    whoPlay = !whoPlay;
-    repetitionIndex--;
 
-    auto currentPieces = whoPlay ? whitePieces : blackPieces;
-    auto enemyPieces = !whoPlay ? whitePieces : blackPieces;
-
-    castling = std::move(prevState.castling); // set prev castling rules.
-    enPassantSquare = prevState.enPassantSquare; // reset of an en passant square.
+void Board::restore(const State &prevState) {
+    castling = std::move(prevState.castling);
+    enPassantSquare = prevState.enPassantSquare;
 
     zobristKey = prevState.zobristHash;
     halfMove = prevState.halfMove;
     fullMove = prevState.fullMove;
-    nnue.pop(); // get prev accumulator.
 
+    memcpy(whitePieces, prevState.whitePieces, 6*sizeof (uint64_t));
+    memcpy(blackPieces, prevState.blackPieces, 6*sizeof (uint64_t));
 
-    switch (move.moveType) {
-        case Move::CAPTURE:
-            moveAPiece(currentPieces, move.movePiece, move.toSq, move.fromSq);
-            bit_ops::setNthBit(enemyPieces[prevState.captureType], move.toSq);
-            break;
-        case Move::PROMOTION:
-        case Move::PROMOTION_CAPTURE:
-            // undo a promotion
-            bit_ops::setNthBit(currentPieces[move.movePiece], move.fromSq);
-            switch (move.promotionType) {
-                case Move::QUEEN:
-                    bit_ops::popNthBit(currentPieces[QUEEN], move.toSq);
-                    break;
-                case Move::ROOK:
-                    bit_ops::popNthBit(currentPieces[ROOK], move.toSq);
-                    break;
-                case Move::BISHOP:
-                    bit_ops::popNthBit(currentPieces[BISHOP], move.toSq);
-                    break;
-                case Move::KNIGHT:
-                    bit_ops::popNthBit(currentPieces[KNIGHT], move.toSq);
-                    break;
-                default:
-                    throw std::out_of_range("UNEXPECTED UNDER-PROMOTION!");
-            }
-            // undo capture.
-            if(prevState.captureType != -1) bit_ops::setNthBit(enemyPieces[prevState.captureType], move.toSq);
-            break;
-        case Move::QUIET:
-            moveAPiece(currentPieces, move.movePiece, move.toSq, move.fromSq);
-            break;
-        case Move::EN_PASSANT:
-            // move back pawn, "respawn" enemyPawn.
-            bit_ops::setNthBit(enemyPieces[move.movePiece], whoPlay ? move.toSq + 8 : move.toSq - 8);
-            moveAPiece(currentPieces, move.movePiece, move.toSq, move.fromSq);
-            break;
-        case Move::CASTLING:
-            // move rook and king to original squares.
-            // kingSide
-            moveAPiece(currentPieces, KING, move.toSq, move.fromSq);
-            if(move.fromSq < move.toSq){
-                moveAPiece(currentPieces, ROOK, move.toSq - 1, move.toSq + 1);
-            }
-            // queenSide
-            else{
-                moveAPiece(currentPieces, ROOK, move.toSq + 1, move.toSq - 2);
-            }
-            break;
-        case Move::DOUBLE_PAWN_UP:
-            moveAPiece(currentPieces, move.movePiece, move.toSq, move.fromSq);
-            break;
-    }
+    nnue.pop();
+}
+
+void Board::undoMove() {
+    const auto& prevState = std::move(STACK[ply]);
+    whoPlay = !whoPlay;
+    repetitionIndex--;
+
+    castling = std::move(prevState.castling);
+    enPassantSquare = prevState.enPassantSquare;
+
+    zobristKey = prevState.zobristHash;
+    halfMove = prevState.halfMove;
+    fullMove = prevState.fullMove;
+
+    memcpy(whitePieces, prevState.whitePieces, 6*sizeof (uint64_t));
+    memcpy(blackPieces, prevState.blackPieces, 6*sizeof (uint64_t));
+
+    nnue.pop();
+
     ply--;
 }
 
@@ -384,16 +345,15 @@ void Board::printBoard() const{
 
 
 bool Board::isDraw(){
-    if(isThreeFoldRepetition()) return true;
-
     if(halfMove >= 100) return true;
 
-    // count material from bbs
-    return isInsufficientMaterial(whitePieces) && isInsufficientMaterial(blackPieces);
+    if(isInsufficientMaterial(whitePieces) && isInsufficientMaterial(blackPieces)) return true;
+
+    return isThreeFoldRepetition();
 }
 
 bool Board::isThreeFoldRepetition() const {
-    int cnt = 0;
+    auto cnt = 0;
     for(int j = 0; j < repetitionIndex; j++){
         if(threeFoldRepetition[j] == zobristKey) cnt++;
         if(cnt == 2) return true;
@@ -407,11 +367,11 @@ bool Board::isInsufficientMaterial(uint64_t* bbs) const{
     if(bbs[PAWN] || bbs[ROOK] || bbs[QUEEN]) return false;
 
     auto bb = bbs[BISHOP];
-    int bishopCnt = bit_ops::countBits(bb);
+    auto bishopCnt = bit_ops::countBits(bb);
     if(bishopCnt >= 2) return false;
 
     bb = bbs[KNIGHT];
-    int knightCnt = bit_ops::countBits(bb);
+    auto knightCnt = bit_ops::countBits(bb);
     if(knightCnt >= 2) return false;
 
     if (knightCnt == 1 && bishopCnt == 1) return false;
@@ -441,19 +401,22 @@ bool Board::isSquareAttacked(int square, bool isWhiteEnemy) {
 
 
 void Board::makeNullMove() {
-    State currentState{-1,enPassantSquare, castling, halfMove, zobristKey};
+    State currentState{-1,enPassantSquare, castling, halfMove, zobristKey, fullMove, whitePieces, blackPieces};
     push(false, currentState);
 
     zobristKey ^= Zobrist::sideToMove;
 }
 
 void Board::undoNullMove() {
-    auto prevState = std::move(STACK[ply]);
+    const auto& prevState = std::move(STACK[ply]);
 
     zobristKey = prevState.zobristHash;
     enPassantSquare = prevState.enPassantSquare;
     castling = prevState.castling;
     halfMove = prevState.halfMove;
+
+    memcpy(whitePieces, prevState.whitePieces, 6*sizeof (uint64_t));
+    memcpy(blackPieces, prevState.blackPieces, 6*sizeof (uint64_t));
 
     whoPlay = !whoPlay;
 

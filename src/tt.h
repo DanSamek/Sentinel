@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <move.h>
 #include <board.h>
+#include <consts.h>
 
 // https://web.archive.org/web/20071031100051/http://www.brucemo.com/compchess/programming/hashing.htm
 class TranspositionTable {
@@ -26,15 +27,19 @@ public:
             best = NO_MOVE;
             depth = -1;
             hash = 0ULL;
+            flag = UPPER_BOUND;
+        }
+
+        bool valid(){
+            return hash != 0ULL;
         }
     };
 
+    static inline const Entry NO_ENTRY = {};
     Entry* entries;
 
     static constexpr int LOOKUP_ERROR = -1000000000;
     static constexpr int FOUND_NOT_ACCEPTED = -2000000000;
-
-    static constexpr int WIN_BOUND = 1000000 - 128;
 
     // Default .ctor for uci init (not used)
     TranspositionTable() = default;
@@ -53,7 +58,7 @@ public:
      * @return a value from TT, if not found, returns @see TranspositionTable::LOOKUP_ERROR.
      */
     inline int getEval(const uint64_t& zobristKey, int index,int depth, int alpha, int beta, int ply) {
-        Entry entry = entries[index];
+        const auto& entry = entries[index];
         if(entry.hash != zobristKey) return LOOKUP_ERROR;
 
         if(entry.depth >= depth){
@@ -88,14 +93,13 @@ public:
         if (eval >= WIN_BOUND) eval += ply;
         else if (eval <= -WIN_BOUND) eval -= ply;
 
-        //if(zobristKey == entries[index].hash && entries[index].depth > depth && entries[index].age+2 > ply) return;
+        // if(entries[index].depth >= depth && zobristKey == entries[index].hash) return;
         entries[index] = {eval, depth, zobristKey, type, move};
     }
 
-    /***
-     * @return current flag @see HashType
-     */
-    HashType getHashFlag();
+    const Entry* getEntry(int index){
+        return &entries[index];
+    }
 
     /***
      * Frees an allocated memory for a table.
@@ -105,9 +109,13 @@ public:
     inline int index(const uint64_t& key) {
         return (int)(key % _count);
     }
+
+    inline void prefetch(const uint64_t& key){
+        __builtin_prefetch(&entries[key]);
+    }
+
 private:
 
-    static inline Move NO_MOVE = Move();
     int getCorrectedScore(int score, int ply);
 
     uint64_t _count;

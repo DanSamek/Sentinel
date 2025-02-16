@@ -29,25 +29,19 @@ public:
      */
     static void init();
 
-    /***
-     * Gets valid moves for current piece.
-     * @param blockers current blockers
-     * @param square square of piece
-     * @param rook if its rook
-     * @return
-     */
-    //static uint64_t getSlidingMoves(const uint64_t& blockers, int square, bool rook);
-    static uint64_t getRookMoves(const uint64_t& blockers, int square);
-    static uint64_t getBishopMoves(const uint64_t& blockers, int square);
+    inline static uint64_t getRookMoves(const uint64_t& blockers, int square){
+        uint64_t hashBlockers = blockers & ROOK_BLOCKERS[square];
+        uint64_t hash =  hashBlockers * ROOK_MAGICS[square] ;
+        uint64_t index = (hash >> (64ULL - ROOK_MAGICS_SHIFT[square]));
+        return ROOK_TABLE[square][index];
+    }
 
-    /***
-     * Gets xrays for pins?
-     * @param blockers current blockers
-     * @param square square of piece
-     * @param rook if its rook
-     * @return
-     */
-    // static uint64_t getXRay(uint64_t blockers, int square, bool rook);
+    inline static uint64_t getBishopMoves(const uint64_t& blockers, int square){
+        uint64_t hashBlockers = blockers & BISHOP_BLOCKERS[square];
+        uint64_t hash = hashBlockers * BISHOP_MAGICS[square];
+        uint64_t index = (hash >> (64ULL - BISHOP_MAGICS_SHIFT[square]));
+        return BISHOP_TABLE[square][index];
+    }
 
     /***
      * Random uint64t number for Magics.

@@ -34,11 +34,18 @@ void UCI::loop() {
         else if(commandName == "setoption"){
             UCI::setOption(command);
         }
+#if SEARCH_TUNE
+        else if(command == "tunablesjson"){
+            for(const auto& tunable: Tunable::getRegistry()){
+                tunable.second->printJSON();
+            }
+        }
+#endif
     }
 }
 
 void UCI::uciInit() {
-    std::cout << "id name Sentinel-NNUE-singularity-v2-4-40-net" << std::endl;
+    std::cout << "id name Sentinel-Simplifications||Opt" << std::endl;
     std::cout << "id author Daniel Samek" << std::endl << std::endl;
 #if DEVELOPMENT
     #if defined(ENABLE_AVX)
@@ -50,8 +57,17 @@ void UCI::uciInit() {
     #endif
 #endif
     std::cout << "option name Hash type spin default "<< _hashSize << " min 1 max 30000" << std::endl;
-    std::cout << "option name NetPath spin default none" << std::endl;
     std::cout << "option name Move Overhead type spin default 10 min 0 max 5000" << std::endl;
+#if DEVELOPMENT
+    std::cout << "option name NetPath spin default none" << std::endl;
+#endif
+#if SEARCH_TUNE
+    const auto& registry = Tunable::getRegistry();
+    for(const auto& tunable: registry){
+        tunable.second->print();
+    }
+#endif
+
     std::cout << "uciok" << std::endl;
 }
 
@@ -113,7 +129,7 @@ void UCI::position(std::string command) {
 
 void UCI::go(std::string command) {
     if(!_ready){
-        std::cout << "command isready wasnt called. Run first isready before go." << std::endl;
+        std::cout << "Command isready wasn't called. Call first isready before a go command." << std::endl;
         return;
     }
     /*
@@ -188,6 +204,14 @@ void UCI::setOption(std::string command) {
         NNUE::NET_PATH = value;
         NNUE::inlineNet = false;
     }
+#if SEARCH_TUNE
+    const auto& registry = Tunable::getRegistry();
+    auto it = registry.find(type);
+    if(it != registry.end()){
+        it->second->setValue(std::stoi(value));
+    }
+#endif
+
 }
 
 void UCI::printPos() {
