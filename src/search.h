@@ -280,6 +280,7 @@ private:
         // Singular extensions -- condition
         const auto canSingular = !isSingular && ply > 0 && depth >= SI_DEPTH.current && entry->flag != TranspositionTable::UPPER_BOUND && entry->depth + SI_DEPTH_TT_ADD.current >= depth && std::abs(ttEval) < CHECKMATE_LOWER_BOUND;
 
+        const auto isTTCapture = entry->best.isCapture();
         for(int j = 0; j < moveCount; j++){
             // pick a move to play (sorting moves, can be slower, thanks to alpha beta pruning).
             Movepick::pickMove(moves, moveCount, j, moveScores);
@@ -355,7 +356,7 @@ private:
                 R -= isCheck;
                 R -= improving;
 
-                R += !isCapture && entry->best.isCapture();
+                R += !isCapture && isTTCapture;
                 R = std::clamp(R, 0, depth - 2);
             }
 
