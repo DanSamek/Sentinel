@@ -47,10 +47,7 @@ class Search {
 
 public:
     TranspositionTable* TT;
-    Move findBestMove(int timeRemaining, int increment, Board& board, bool exact, int maxDepth, bool inf){
-#if DEVELOPMENT
-        _ttUsed = _nodesVisited = 0;
-#endif
+    std::pair<Move, uint64_t> findBestMove(int timeRemaining, int increment, Board& board, bool exact, int maxDepth, bool inf){
         prepareForSearch();
 
         _board = &board;
@@ -109,13 +106,10 @@ public:
             }
         }
 
-#if DEVELOPMENT
-        std::cout << "TT used:" << _ttUsed << " _nodesVisited:" << _nodesVisited << std::endl;
-#endif
-        return bestMove;
+        return {bestMove, ss.nodesVisited};
     }
 
-    std::pair<Move, int> datagen(Board& board, int softNodeLimit){
+    std::pair<Move, int> datagen(Board& board, uint64_t softNodeLimit){
         prepareForSearch();
 
         _board = &board;
@@ -280,6 +274,7 @@ private:
         // Singular extensions -- condition
         const auto canSingular = !isSingular && ply > 0 && depth >= SI_DEPTH.current && entry->flag != TranspositionTable::UPPER_BOUND && entry->depth + SI_DEPTH_TT_ADD.current >= depth && std::abs(ttEval) < CHECKMATE_LOWER_BOUND;
 
+        const auto isTTCapture = entry->best.isCapture();
         for(int j = 0; j < moveCount; j++){
             // pick a move to play (sorting moves, can be slower, thanks to alpha beta pruning).
             Movepick::pickMove(moves, moveCount, j, moveScores);
@@ -355,7 +350,7 @@ private:
                 R -= isCheck;
                 R -= improving;
 
-                R += !isCapture && entry->best.isCapture();
+                R += !isCapture && isTTCapture;
                 R = std::clamp(R, 0, depth - 2);
             }
 
