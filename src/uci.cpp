@@ -20,7 +20,7 @@ void UCI::loop() {
             break;
         }
         else if(commandName == "ucinewgame"){
-            UCI::newGame();
+            UCI::newGame(START_POS);
         }
         else if(commandName == "position"){
             UCI::position(command);
@@ -84,8 +84,8 @@ void UCI::isReady() {
     _ready = true;
 }
 
-void UCI::newGame() {
-    _board.loadFEN(START_POS);
+void UCI::newGame(const std::string& fen) {
+    _board.loadFEN(fen);
     if(_ready){
         _TT.free();
         _TT = TranspositionTable(_hashSize);
@@ -127,15 +127,11 @@ void UCI::position(std::string command) {
     }
 }
 
-void UCI::go(std::string command) {
+int UCI::go(std::string command) {
     if(!_ready){
         std::cout << "Command isready wasn't called. Call first isready before a go command." << std::endl;
-        return;
+        return 0;
     }
-    /*
-        movetime 10 mseconds - exactly.
-        wtime 1000 btime 1000 winc 10 binc 10
-    */
 
     std::istringstream iss(command);
     int timeRemaining = 0; std::string tmp;
@@ -148,7 +144,6 @@ void UCI::go(std::string command) {
         exact = true;
     }
     else if(command.find("wtime") != std::string::npos){
-        // fuck it, we ball.
         if(_board.whoPlay){
             iss >> tmp >> tmp >> timeRemaining >> tmp >> tmp >> tmp >> increment;
         }
@@ -169,7 +164,7 @@ void UCI::go(std::string command) {
 
     timeRemaining -= 2 * _moveOverhead; // li-chess support.
 
-    auto move = search.findBestMove(timeRemaining, increment, _board, exact, depth, inf);
+    auto [move, nodesVisited] = search.findBestMove(timeRemaining, increment, _board, exact, depth, inf);
     std::cout << "bestmove ";
     move.print();
     std::cout << std::endl;
@@ -178,6 +173,7 @@ void UCI::go(std::string command) {
 #if DEVELOPMENT
     _board.printBoard();
 #endif
+    return nodesVisited;
 }
 
 

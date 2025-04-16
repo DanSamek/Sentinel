@@ -12,8 +12,8 @@ struct Info{
 };
 
 struct SearchStack{
-    int nodesVisited = 0;
-    int ttUsed = 0;
+    uint64_t nodesVisited = 0;
+    uint64_t ttUsed = 0;
 
     int bestScore = INT_MIN;
     Move bestMove = {};

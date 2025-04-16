@@ -47,10 +47,7 @@ class Search {
 
 public:
     TranspositionTable* TT;
-    Move findBestMove(int timeRemaining, int increment, Board& board, bool exact, int maxDepth, bool inf){
-#if DEVELOPMENT
-        _ttUsed = _nodesVisited = 0;
-#endif
+    std::pair<Move, uint64_t> findBestMove(int timeRemaining, int increment, Board& board, bool exact, int maxDepth, bool inf){
         prepareForSearch();
 
         _board = &board;
@@ -109,13 +106,10 @@ public:
             }
         }
 
-#if DEVELOPMENT
-        std::cout << "TT used:" << _ttUsed << " _nodesVisited:" << _nodesVisited << std::endl;
-#endif
-        return bestMove;
+        return {bestMove, ss.nodesVisited};
     }
 
-    std::pair<Move, int> datagen(Board& board, int softNodeLimit){
+    std::pair<Move, int> datagen(Board& board, uint64_t softNodeLimit){
         prepareForSearch();
 
         _board = &board;

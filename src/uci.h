@@ -11,7 +11,7 @@
 struct UCI {
     static inline Board _board;
     static inline TranspositionTable _TT;
-    static inline int _hashSize = 128;
+    static inline int _hashSize = 16;
     static inline int _moveOverhead = 0; // li-chess support.
     static inline const std::string START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     static inline bool _ready = false;
@@ -34,7 +34,7 @@ struct UCI {
     /***
      * Init of a new game from starting position
      */
-    static void newGame();
+    static void newGame(const std::string& fen);
 
     /***
      * Format: 'position startpos moves e2e4 e7e5'
@@ -47,7 +47,7 @@ struct UCI {
      * movetime 10
      * wtime 1000 btime 1000 winc 10 binc 10
      */
-    static void go(std::string command);
+    static int go(std::string command);
 
     /***
      * Only for debug, if position is equal to a actual position in a GUI.
