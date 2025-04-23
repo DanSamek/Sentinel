@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.25)
 project(Sentinel)
 
+if(NOT DEFINED EXE)
+    set(EXE "Sentinel" CACHE STRING "Executable name")
+    set(EXE_DEFINED OFF)
+else()
+    set(EXE_DEFINED ON)
+endif()
+
 option(ENABLE_AVX "Enable AVX" OFF)
 option(ENABLE_AVX_512 "Enable AVX512" OFF)
 option(ENABLE_SSE, "Enable SSE" OFF)
@@ -15,6 +22,25 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib)
     set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ -lpthread")
 endif ()
+
+
+if(EXE_DEFINED)
+    message(STATUS "EXE defined as ${EXE}, enabling Release build with AVX")
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-mavx" COMPILER_SUPPORTS_AVX)
+    if(COMPILER_SUPPORTS_AVX)
+        add_definitions(-DENABLE_AVX)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mavx")
+    endif()
+
+    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+    if(COMPILER_SUPPORTS_AVX2)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mavx2")
+    endif()
+endif()
+
 
 if(ENABLE_AVX)
     include(CheckCXXCompilerFlag)
@@ -55,7 +81,7 @@ endif ()
 include_directories(src/tests)
 include_directories(src)
 
-add_executable(Sentinel
+add_executable(${EXE}
         src/bit_ops.h
         src/main.cpp
         src/movegen.h
