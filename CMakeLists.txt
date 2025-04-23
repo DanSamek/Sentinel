@@ -64,17 +64,13 @@ add_executable(Sentinel
         src/magics.cpp
         src/board.h
         src/board.cpp
-        src/tests/BoardTests.cpp
         src/move.h
         src/move.cpp
-        src/tests/PerftTests.cpp
         src/state.h
         src/uci.h
         src/uci.cpp
         src/search.h
         src/search.cpp
-        src/tests/ZobristTests.cpp
-        src/pst.h
         src/movepick.h
         src/movepick.cpp
         src/tt.h
@@ -83,20 +79,15 @@ add_executable(Sentinel
         src/timer.cpp
         src/evaluation.cpp
         src/evaluation.cpp
-        src/tests/NullMoveTests.cpp
+        src/tests/nullmovetests.h
         src/see.cpp
-        src/tests/SEETests.cpp
         src/timemanager.cpp
         src/nnue/datagen.h
         src/nnue/datagen.cpp
-        src/nnue/neuralnetwork.h
         src/nnue/const.h
-        src/nnue/neuralnetwork.cpp
-        src/nnue/neuralnetwork.cpp
         src/nnue/accumulator.cpp
         src/nnue/nnue.cpp
         src/boardEnums.h
-        src/tests/NNUETests.cpp
         src/tunable.h
         src/tunable.cpp
 )

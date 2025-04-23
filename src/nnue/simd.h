@@ -1,7 +1,6 @@
 #ifndef SENTINEL_SIMD_H
 #define SENTINEL_SIMD_H
 
-
 #if defined(ENABLE_AVX) || defined(ENABLE_AVX_512) || defined(ENABLE_SSE)
     #define USE_SIMD 1
 #else
@@ -46,5 +45,7 @@
     #define SIMD_LOAD _mm_load_si128
     #define SIMD_STORE _mm_store_si128
 #endif
+
+
 
 #endif //SENTINEL_SIMD_H

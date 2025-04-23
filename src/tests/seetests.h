@@ -1,7 +1,12 @@
+#ifndef SENTINEL_SEETESTS_H
+#define SENTINEL_SEETESTS_H
+
 #include <string>
 #include <vector>
 #include "board.h"
 #include "movegen.h"
+
+using namespace Sentinel;
 
 struct SEETests{
     struct test{
@@ -30,7 +35,7 @@ struct SEETests{
 
 
         for(const auto& test : tests){
-            Board b;
+            Sentinel::Board b;
             b.loadFEN(test.FEN);
 
             Move moves[Movegen::MAX_LEGAL_MOVES];
@@ -47,3 +52,5 @@ struct SEETests{
         }
     }
 };
+
+#endif //SENTINEL_SEETESTS_H

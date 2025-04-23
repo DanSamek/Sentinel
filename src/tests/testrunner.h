@@ -1,22 +1,21 @@
+#ifndef SENTINEL_TESTRUNNER_H
+#define SENTINEL_TESTRUNNER_H
+
 #include "zobrist.h"
 #include "chrono"
 #include "movegen.h"
-#include "./tests/NNUETests.cpp"
-#include "./tests/ZobristTests.cpp"
-#include "./tests/SEETests.cpp"
-#include "./tests/BoardTests.cpp"
-#include "./tests/NullMoveTests.cpp"
-#include "./tests/PerftTests.cpp"
+#include "boardtests.h"
+#include "nullmovetests.h"
+#include "perfttests.h"
+#include "seetests.h"
+#include "zobristtests.h"
 
 struct TestRunner{
 
     static void run(){
-        Board::initPawnEvalBBS();
-        Movegen::init();
-        Zobrist::init();
-        PST::init();
+        Sentinel::Movegen::init();
+        Sentinel::Zobrist::init();
 
-        NNUETests::run();
         ZobristTests::run();
         SEETests::run();
         BoardTests::run();
@@ -30,3 +29,5 @@ struct TestRunner{
         std::cout << "Elapsed time: " << microseconds << " ms" << std::endl;
     }
 };
+
+#endif //SENTINEL_TESTRUNNER_H

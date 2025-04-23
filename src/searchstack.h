@@ -5,27 +5,31 @@
 #include "move.h"
 #include "consts.h"
 
-struct Info{
-    Move move;
-    int score;
-    Move excludedMove;
-};
+namespace Sentinel{
 
-struct SearchStack{
-    uint64_t nodesVisited = 0;
-    uint64_t ttUsed = 0;
+    struct Info{
+        Move move;
+        int score;
+        Move excludedMove;
+    };
 
-    int bestScore = INT_MIN;
-    Move bestMove = {};
+    struct SearchStack{
+        uint64_t nodesVisited = 0;
+        uint64_t ttUsed = 0;
 
-    Move pvTable[MAX_DEPTH][MAX_DEPTH];
-    int pvLength[MAX_DEPTH];
+        int bestScore = INT_MIN;
+        Move bestMove = {};
 
-    Info data[MAX_DEPTH];
+        Move pvTable[MAX_DEPTH][MAX_DEPTH];
+        int pvLength[MAX_DEPTH];
 
-    Info& operator[](int ply){
-        return data[ply];
-    }
-};
+        Info data[MAX_DEPTH];
+
+        Info& operator[](int ply){
+            return data[ply];
+        }
+    };
+
+}
 
 #endif //SENTINEL_SEARCHSTACK_H

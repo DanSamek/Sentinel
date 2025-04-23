@@ -1,8 +1,13 @@
+#ifndef SENTINEL_BOARDTESTS_H
+#define SENTINEL_BOARDTESTS_H
+
 
 #include <board.h>
 #include <vector>
 #include <cassert>
 #include <bit_ops.h>
+
+using namespace Sentinel;
 
 struct BoardTests {
 
@@ -18,7 +23,7 @@ struct BoardTests {
 
     // Loading fen test and checking all bitboards, etc.
     static void run(){
-        Board board;
+        Sentinel::Board board;
         board.loadFEN("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 
 
@@ -108,3 +113,5 @@ struct BoardTests {
         assert(board.FEN() == "rnbqkbnr/pppppppp/8/8/8/8/PPP3PP/RNBQKBNR b KQkq - 0 1");
     }
 };
+
+#endif //SENTINEL_BOARDTESTS_H

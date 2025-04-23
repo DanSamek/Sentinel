@@ -1,8 +1,10 @@
-#include "tests/TestRunner.cpp"
 #include "nnue/datagen.h"
 #include "uci.h"
 #include "development.h"
 #include "bench.cpp"
+#include "testrunner.h"
+
+using namespace Sentinel;
 
 int main(int argc, char* argv[]){
 #if RUN_DATAGEN

@@ -3,204 +3,208 @@
 #include "bit_ops.h"
 #include <iostream>
 
-int getSquare(int rank, int file){
-    return rank * 8 + file;
-}
+namespace Sentinel{
 
-std::uniform_int_distribution<uint64_t> distribution;
-std::mt19937_64 generator;
-
-void Magics::init() {
-    int seed = 123456;
-    generator = std::mt19937_64(seed);
-    distribution = std::uniform_int_distribution<uint64_t>(0, std::numeric_limits<uint64_t>::max());
-    generateBishopBlockers();
-    generateRookBlockers();
-    initMagics();
-}
-
-std::vector<uint64_t> Magics::getMagics(int file, int rank, uint64_t* sliderBlockers, bool rook, uint64_t magic){
-    int square = getSquare(rank, file);
-    auto allBlockers = generateAllBlockerCombinations(sliderBlockers[square]);
-    auto table = tryBuildTable(sliderBlockers[square], file, rank, rook, magic, allBlockers);
-    return table;
-}
-
-uint64_t Magics::magic_index(uint64_t currentBlockers, uint64_t tableBlocker, int indexBits, uint64_t magics){
-    uint64_t blockers = currentBlockers & tableBlocker;
-    uint64_t hash = blockers * magics;
-    uint64_t index = (hash >> (uint64_t)(64 - indexBits));
-    return index;
-}
-
-void Magics::initMagics() {
-    for(int rank = 0; rank < 8; rank++ ) {
-        for (int file = 0; file < 8; file++) {
-            int square = getSquare(rank, file);
-            ROOK_TABLE[square] = getMagics(file, rank, ROOK_BLOCKERS, true, ROOK_MAGICS[square]);
-            assert(ROOK_TABLE[square].size() != 0);
-        }
+    int getSquare(int rank, int file){
+        return rank * 8 + file;
     }
 
-    for(int rank = 0; rank < 8; rank++ ) {
-        for (int file = 0; file < 8; file++) {
-            int square = getSquare(rank, file);
-            BISHOP_TABLE[square] = getMagics(file, rank, BISHOP_BLOCKERS, false, BISHOP_MAGICS[square]);
-            assert(BISHOP_TABLE[square].size() != 0);
-        }
-    }
-}
+    std::uniform_int_distribution<uint64_t> distribution;
+    std::mt19937_64 generator;
 
-void Magics::generateRookBlockers(){
-    uint64_t tmp;
-    for(int rank = 0; rank < 8; rank++ ){
-        for(int file = 0; file < 8; file++){
-            int square = getSquare(rank, file);
-            tmp = 0ULL;
-            auto moves = generateMovesForDirections(rookDirections, rank, file);
-            for(auto move: moves) bit_ops::setNthBit(tmp, move.first*8 + move.second);
-            ROOK_BLOCKERS[square] = tmp;
-        }
-    }
-}
-
-void Magics::generateBishopBlockers(){
-    uint64_t tmp;
-    for(int rank = 0; rank < 8; rank++ ){
-        for(int file = 0; file < 8; file++){
-            tmp = 0ULL;
-            int square = getSquare(rank, file);
-            auto moves = generateMovesForDirections(bishopDirections, rank, file);
-            for(auto move: moves) bit_ops::setNthBit(tmp, move.first*8 + move.second);
-            BISHOP_BLOCKERS[square] = tmp;
-        }
-    }
-}
-
-std::vector<std::pair<int, int>> Magics::generateMovesForDirections(const std::vector<std::pair<int,int>>& directions, int rank, int file){
-    std::vector<std::pair<int, int>> result;
-    for(const auto& direction : directions){
-        int rankTmp = rank + direction.second;
-        int fileTmp = file + direction.first;
-        bool added = false;
-        while(rankTmp >= 0 && rankTmp <= 7 && fileTmp >= 0 && fileTmp <= 7){
-            result.emplace_back(rankTmp, fileTmp);
-            rankTmp += direction.second;
-            fileTmp += direction.first;
-            added = true;
-        }
-        // last move was the end of a _board, remove it -> pointless.
-        if(added) result.pop_back();
-    }
-    return result;
-}
-
-std::vector<uint64_t> Magics::generateAllBlockerCombinations(uint64_t bitboard){
-    std::vector<uint64_t> result; // No blockers.
-    std::vector<int> bits;
-
-    int move = 0;
-    while(move <= 63){
-        if((bitboard >> move) & 1) bits.push_back(move);
-        move++;
+    void Magics::init() {
+        int seed = 123456;
+        generator = std::mt19937_64(seed);
+        distribution = std::uniform_int_distribution<uint64_t>(0, std::numeric_limits<uint64_t>::max());
+        generateBishopBlockers();
+        generateRookBlockers();
+        initMagics();
     }
 
-    size_t n = bits.size();
-    int numCombinations = std::pow(2, n);
+    std::vector<uint64_t> Magics::getMagics(int file, int rank, uint64_t* sliderBlockers, bool rook, uint64_t magic){
+        int square = getSquare(rank, file);
+        auto allBlockers = generateAllBlockerCombinations(sliderBlockers[square]);
+        auto table = tryBuildTable(sliderBlockers[square], file, rank, rook, magic, allBlockers);
+        return table;
+    }
 
+    uint64_t Magics::magic_index(uint64_t currentBlockers, uint64_t tableBlocker, int indexBits, uint64_t magics){
+        uint64_t blockers = currentBlockers & tableBlocker;
+        uint64_t hash = blockers * magics;
+        uint64_t index = (hash >> (uint64_t)(64 - indexBits));
+        return index;
+    }
 
-    for (int i = 0; i < numCombinations; ++i) {
-        uint64_t b = 0ULL;
-        for (size_t j = 0; j < n; ++j) {
-            if (i & (1 << j)) {
-                bit_ops::setNthBit(b,bits[j]);
+    void Magics::initMagics() {
+        for(int rank = 0; rank < 8; rank++ ) {
+            for (int file = 0; file < 8; file++) {
+                int square = getSquare(rank, file);
+                ROOK_TABLE[square] = getMagics(file, rank, ROOK_BLOCKERS, true, ROOK_MAGICS[square]);
+                assert(ROOK_TABLE[square].size() != 0);
             }
         }
-        result.push_back(b);
-    }
-    assert(result.size() == (size_t(1 << bits.size())));
 
-    return result;
-}
-
-uint64_t Magics::generateSliderMoves(int file, int rank, const uint64_t& bitboard, const std::vector<std::pair<int, int>>& movement){
-    auto board2d = bit_ops::generateBoardFromBitboard(bitboard);
-    std::vector<int> bits;
-
-    for(const auto& direction : movement) {
-        int rankTmp = rank + direction.second;
-        int fileTmp = file + direction.first;
-        while(rankTmp >= 0 && rankTmp <= 7 && fileTmp >= 0 && fileTmp <= 7){
-            int square = rankTmp * 8 + fileTmp;
-            bits.push_back(square);
-            if(board2d[rankTmp][fileTmp]) break;
-            rankTmp += direction.second;
-            fileTmp += direction.first;
+        for(int rank = 0; rank < 8; rank++ ) {
+            for (int file = 0; file < 8; file++) {
+                int square = getSquare(rank, file);
+                BISHOP_TABLE[square] = getMagics(file, rank, BISHOP_BLOCKERS, false, BISHOP_MAGICS[square]);
+                assert(BISHOP_TABLE[square].size() != 0);
+            }
         }
     }
 
-    uint64_t resultB = 0ULL;
-    for(auto item: bits) bit_ops::setNthBit(resultB, item);
-
-    return resultB;
-}
-
-
-std::pair<std::vector<uint64_t>, uint64_t> Magics::findMagics(int file, int rank, uint64_t* sliderBlockers, bool rook){
-    int square = getSquare(rank, file);
-    auto allBlockers = generateAllBlockerCombinations(sliderBlockers[square]);
-    while(true){
-        auto magic = randUInt64() & randUInt64() & randUInt64();
-        auto table = tryBuildTable(sliderBlockers[square], file, rank, rook, magic, allBlockers);
-        if(!table.empty()){
-            return {table, magic};
+    void Magics::generateRookBlockers(){
+        uint64_t tmp;
+        for(int rank = 0; rank < 8; rank++ ){
+            for(int file = 0; file < 8; file++){
+                int square = getSquare(rank, file);
+                tmp = 0ULL;
+                auto moves = generateMovesForDirections(rookDirections, rank, file);
+                for(auto move: moves) bit_ops::setNthBit(tmp, move.first*8 + move.second);
+                ROOK_BLOCKERS[square] = tmp;
+            }
         }
     }
-}
 
-std::vector<uint64_t> Magics::tryBuildTable(uint64_t blockerBitBoard, int file, int rank, bool rook, uint64_t magic, const std::vector<uint64_t>& allBlockers){
-    int indexBits = rook ?  ROOK_MAGICS_SHIFT[getSquare(rank, file)] : BISHOP_MAGICS_SHIFT[getSquare(rank, file)];
-    std::vector<uint64_t> table(1 << indexBits, 0);
-    for(const auto& blocker: allBlockers){
-        auto moves = generateSliderMoves(file, rank, blocker, rook ? rookDirections : bishopDirections);
-        auto index = magic_index(blocker, blockerBitBoard, indexBits, magic);
-        auto item = table[index];
-
-        if(item == 0ULL) table[index] = moves;
-        else if(moves != item) return {};
-    }
-    return table;
-}
-
-uint64_t Magics::randUInt64(){
-    return distribution(generator);
-}
-
-void Magics::generateMagics(){
-    std::vector<uint64_t> RESULT(64,0);
-    for(int rank = 0; rank < 8; rank++ ){
-        for(int file = 0; file < 8; file++) {
-            auto result = findMagics(file, rank, ROOK_BLOCKERS, true);
-            RESULT[getSquare(rank, file)] = result.second;
+    void Magics::generateBishopBlockers(){
+        uint64_t tmp;
+        for(int rank = 0; rank < 8; rank++ ){
+            for(int file = 0; file < 8; file++){
+                tmp = 0ULL;
+                int square = getSquare(rank, file);
+                auto moves = generateMovesForDirections(bishopDirections, rank, file);
+                for(auto move: moves) bit_ops::setNthBit(tmp, move.first*8 + move.second);
+                BISHOP_BLOCKERS[square] = tmp;
+            }
         }
     }
-    for(auto item: RESULT){
-        std::cout << std::hex << "0x" << item << ",";
+
+    std::vector<std::pair<int, int>> Magics::generateMovesForDirections(const std::vector<std::pair<int,int>>& directions, int rank, int file){
+        std::vector<std::pair<int, int>> result;
+        for(const auto& direction : directions){
+            int rankTmp = rank + direction.second;
+            int fileTmp = file + direction.first;
+            bool added = false;
+            while(rankTmp >= 0 && rankTmp <= 7 && fileTmp >= 0 && fileTmp <= 7){
+                result.emplace_back(rankTmp, fileTmp);
+                rankTmp += direction.second;
+                fileTmp += direction.first;
+                added = true;
+            }
+            // last move was the end of a _board, remove it -> pointless.
+            if(added) result.pop_back();
+        }
+        return result;
     }
-    RESULT.clear();
 
-    RESULT = std::vector<uint64_t>(64,0);
-    std::cout << std::endl;
+    std::vector<uint64_t> Magics::generateAllBlockerCombinations(uint64_t bitboard){
+        std::vector<uint64_t> result; // No blockers.
+        std::vector<int> bits;
 
-    for(int rank = 0; rank < 8; rank++ ){
-        for(int file = 0; file < 8; file++) {
-            auto result = findMagics(file, rank, BISHOP_BLOCKERS, false);
-            RESULT[getSquare(rank, file)] = result.second;
+        int move = 0;
+        while(move <= 63){
+            if((bitboard >> move) & 1) bits.push_back(move);
+            move++;
+        }
+
+        size_t n = bits.size();
+        int numCombinations = std::pow(2, n);
+
+
+        for (int i = 0; i < numCombinations; ++i) {
+            uint64_t b = 0ULL;
+            for (size_t j = 0; j < n; ++j) {
+                if (i & (1 << j)) {
+                    bit_ops::setNthBit(b,bits[j]);
+                }
+            }
+            result.push_back(b);
+        }
+        assert(result.size() == (size_t(1 << bits.size())));
+
+        return result;
+    }
+
+    uint64_t Magics::generateSliderMoves(int file, int rank, const uint64_t& bitboard, const std::vector<std::pair<int, int>>& movement){
+        auto board2d = bit_ops::generateBoardFromBitboard(bitboard);
+        std::vector<int> bits;
+
+        for(const auto& direction : movement) {
+            int rankTmp = rank + direction.second;
+            int fileTmp = file + direction.first;
+            while(rankTmp >= 0 && rankTmp <= 7 && fileTmp >= 0 && fileTmp <= 7){
+                int square = rankTmp * 8 + fileTmp;
+                bits.push_back(square);
+                if(board2d[rankTmp][fileTmp]) break;
+                rankTmp += direction.second;
+                fileTmp += direction.first;
+            }
+        }
+
+        uint64_t resultB = 0ULL;
+        for(auto item: bits) bit_ops::setNthBit(resultB, item);
+
+        return resultB;
+    }
+
+
+    std::pair<std::vector<uint64_t>, uint64_t> Magics::findMagics(int file, int rank, uint64_t* sliderBlockers, bool rook){
+        int square = getSquare(rank, file);
+        auto allBlockers = generateAllBlockerCombinations(sliderBlockers[square]);
+        while(true){
+            auto magic = randUInt64() & randUInt64() & randUInt64();
+            auto table = tryBuildTable(sliderBlockers[square], file, rank, rook, magic, allBlockers);
+            if(!table.empty()){
+                return {table, magic};
+            }
         }
     }
-    for(auto item: RESULT){
-        std::cout << std::hex << "0x" << item << ",";
+
+    std::vector<uint64_t> Magics::tryBuildTable(uint64_t blockerBitBoard, int file, int rank, bool rook, uint64_t magic, const std::vector<uint64_t>& allBlockers){
+        int indexBits = rook ?  ROOK_MAGICS_SHIFT[getSquare(rank, file)] : BISHOP_MAGICS_SHIFT[getSquare(rank, file)];
+        std::vector<uint64_t> table(1 << indexBits, 0);
+        for(const auto& blocker: allBlockers){
+            auto moves = generateSliderMoves(file, rank, blocker, rook ? rookDirections : bishopDirections);
+            auto index = magic_index(blocker, blockerBitBoard, indexBits, magic);
+            auto item = table[index];
+
+            if(item == 0ULL) table[index] = moves;
+            else if(moves != item) return {};
+        }
+        return table;
     }
-    std::cout << std::endl;
+
+    uint64_t Magics::randUInt64(){
+        return distribution(generator);
+    }
+
+    void Magics::generateMagics(){
+        std::vector<uint64_t> RESULT(64,0);
+        for(int rank = 0; rank < 8; rank++ ){
+            for(int file = 0; file < 8; file++) {
+                auto result = findMagics(file, rank, ROOK_BLOCKERS, true);
+                RESULT[getSquare(rank, file)] = result.second;
+            }
+        }
+        for(auto item: RESULT){
+            std::cout << std::hex << "0x" << item << ",";
+        }
+        RESULT.clear();
+
+        RESULT = std::vector<uint64_t>(64,0);
+        std::cout << std::endl;
+
+        for(int rank = 0; rank < 8; rank++ ){
+            for(int file = 0; file < 8; file++) {
+                auto result = findMagics(file, rank, BISHOP_BLOCKERS, false);
+                RESULT[getSquare(rank, file)] = result.second;
+            }
+        }
+        for(auto item: RESULT){
+            std::cout << std::hex << "0x" << item << ",";
+        }
+        std::cout << std::endl;
+    }
+
 }
 

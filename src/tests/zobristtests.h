@@ -1,12 +1,17 @@
+#ifndef SENTINEL_ZOBRISTTESTS_H
+#define SENTINEL_ZOBRISTTESTS_H
+
 #include <cassert>
 #include <board.h>
 #include <movegen.h>
 #include <zobrist.h>
+using namespace Sentinel;
+
 struct ZobristTests{
 
     static void run(){
         Zobrist::init();
-        Board b;
+        Sentinel::Board b;
         b.loadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         auto initHash = b.zobristKey;
         Move moves[Movegen::MAX_LEGAL_MOVES];
@@ -220,3 +225,5 @@ struct ZobristTests{
         assert(false);
     }
 };
+
+#endif //SENTINEL_ZOBRISTTESTS_H

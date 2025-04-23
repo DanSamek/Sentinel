@@ -1,15 +1,17 @@
 #include "timer.h"
 
-bool Timer::isTimeout() const {
-    if(_infinity) return false;
+namespace Sentinel{
+    bool Timer::isTimeout() const {
+        if(_infinity) return false;
 
-    auto now = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = now - startTime;
-    return (elapsed.count() * 1000 ) >= _maxDurationMs;
-}
+        auto now = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = now - startTime;
+        return (elapsed.count() * 1000 ) >= _maxDurationMs;
+    }
 
-int Timer::getMs() const{
-    auto now = std::chrono::high_resolution_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime);
-    return elapsed.count();
+    int Timer::getMs() const{
+        auto now = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime);
+        return elapsed.count();
+    }
 }

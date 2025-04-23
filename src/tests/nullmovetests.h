@@ -1,18 +1,22 @@
+#ifndef SENTINEL_NULLMOVETESTS_H
+#define SENTINEL_NULLMOVETESTS_H
+
 #include <zobrist.h>
 #include <movegen.h>
 #include <chrono>
+using namespace Sentinel;
 
 struct NullMoveTests{
 
     static int perft(std::string position, int depth){
-        Board b;
+        Sentinel::Board b;
         b.loadFEN(position);
         int res;
         res = generateMoves(b, depth);
         return res;
     }
 
-    static int generateMoves(Board& b, int depth){
+    static int generateMoves(Sentinel::Board& b, int depth){
         if(depth == 0) return 1;
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto result = Movegen(b, moves).generateMoves<false>();
@@ -89,3 +93,5 @@ struct NullMoveTests{
 
 
 };
+
+#endif //SENTINEL_NULLMOVETESTS_H

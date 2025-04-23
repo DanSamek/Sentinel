@@ -1,22 +1,26 @@
+#ifndef SENTINEL_PERFTTESTS_H
+#define SENTINEL_PERFTTESTS_H
+
 #include <string>
 #include <board.h>
 #include <movegen.h>
 #include <cassert>
 #include <chrono>
 #include "zobrist.h"
+using namespace Sentinel;
 
 struct PerftTests{
 
-    
+
     static int perft(std::string position, int depth){
-        Board b;
+        Sentinel::Board b;
         b.loadFEN(position);
         int res;
         res = generateMoves(b, depth);
         return res;
     }
 
-    static int generateMoves(Board& b, int depth){
+    static int generateMoves(Sentinel::Board& b, int depth){
         if(depth == 0) return 1;
         Move moves[Movegen::MAX_LEGAL_MOVES];
         auto result = Movegen(b, moves).generateMoves<false>();
@@ -136,3 +140,5 @@ struct PerftTests{
         std::cout << FEN << ": " << ms << "ms; " << res << " nodes" << std::endl;
     }
 };
+
+#endif //SENTINEL_PERFTTESTS_H
