@@ -55,7 +55,7 @@ public:
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> duration = end - start;
 
-        // 1234567 nodes 1231231 nps
-        std::cout << std::endl << totalVisited << " nodes " << uint64_t (totalVisited / (duration.count() / 1000))  << " nps " << std::endl;
+        // bench: 1234567 nps: 1231231
+        std::cout << std::endl << "bench:" << totalVisited << " nps:" << uint64_t (totalVisited / (duration.count() / 1000)) << std::endl;
     }
 };
